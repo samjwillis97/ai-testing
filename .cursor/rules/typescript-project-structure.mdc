@@ -1,0 +1,273 @@
+---
+description: 
+globs: *.ts
+alwaysApply: false
+---
+# TypeScript Project Structure and Module Organization Best Practices
+
+## Description
+This rule establishes best practices for organizing TypeScript projects and modules, ensuring maintainability, scalability, and clear code organization.
+
+## Rule
+When structuring TypeScript projects:
+
+1. MUST follow a consistent directory structure
+   ```
+   src/
+   ├── components/       # React/UI components
+   ├── services/        # Business logic and API calls
+   ├── models/          # Data models and types
+   ├── utils/           # Utility functions
+   ├── config/          # Configuration files
+   ├── hooks/           # Custom hooks (React)
+   ├── constants/       # Constants and enums
+   └── types/           # Global type definitions
+   ```
+
+2. MUST use barrel files (index.ts) for clean exports
+   ```typescript
+   // ✅ Good
+   // services/index.ts
+   export * from './userService';
+   export * from './authService';
+   export * from './apiService';
+
+   // Usage
+   import { UserService, AuthService } from '@/services';
+   ```
+
+3. MUST use proper module resolution
+   ```typescript
+   // tsconfig.json
+   {
+     "compilerOptions": {
+       "baseUrl": "src",
+       "paths": {
+         "@/*": ["*"],
+         "@components/*": ["components/*"],
+         "@services/*": ["services/*"]
+       }
+     }
+   }
+   ```
+
+4. MUST organize imports consistently
+   ```typescript
+   // ✅ Good
+   // External imports first
+   import React from 'react';
+   import { useQuery } from '@tanstack/react-query';
+
+   // Internal absolute imports
+   import { UserService } from '@/services';
+   import { User } from '@/models';
+
+   // Internal relative imports
+   import { UserCard } from './UserCard';
+   import { useUserState } from './hooks';
+   ```
+
+5. MUST use feature-based organization for large applications
+   ```
+   src/
+   ├── features/
+   │   ├── auth/
+   │   │   ├── components/
+   │   │   ├── services/
+   │   │   ├── hooks/
+   │   │   └── types.ts
+   │   └── users/
+   │       ├── components/
+   │       ├── services/
+   │       ├── hooks/
+   │       └── types.ts
+   ```
+
+6. MUST structure monorepos effectively
+   ```
+   packages/
+   ├── core/              # Core utilities and types
+   │   ├── src/
+   │   └── package.json
+   ├── ui/               # Shared UI components
+   │   ├── src/
+   │   └── package.json
+   ├── api/              # API client
+   │   ├── src/
+   │   └── package.json
+   └── web/              # Web application
+       ├── src/
+       └── package.json
+   ```
+
+7. MUST manage package boundaries
+   ```typescript
+   // ✅ Good: Clear package boundary
+   // @myorg/core/src/types.ts
+   export interface User {
+     id: string;
+     name: string;
+   }
+
+   // @myorg/api/src/client.ts
+   import type { User } from '@myorg/core';
+
+   export class ApiClient {
+     async getUser(id: string): Promise<User> {
+       // implementation
+     }
+   }
+   ```
+
+8. MUST version types properly
+   ```typescript
+   // ✅ Good: Versioned types
+   // @myorg/api-types/v1/index.ts
+   export namespace V1 {
+     export interface User {
+       id: string;
+       name: string;
+     }
+   }
+
+   // @myorg/api-types/v2/index.ts
+   export namespace V2 {
+     export interface User {
+       id: string;
+       name: string;
+       email: string; // New field in V2
+     }
+   }
+   ```
+
+## Benefits
+- Improved code organization
+- Better maintainability
+- Clear module boundaries
+- Easier navigation
+- Better scalability
+- Reduced cognitive load
+- Efficient monorepo management
+- Clear versioning strategy
+
+## Examples
+
+✅ Correct:
+```typescript
+// Monorepo package structure
+// packages/tsconfig/base.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+
+// packages/ui/tsconfig.json
+{
+  "extends": "../tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "./dist"
+  }
+}
+
+// Package boundary enforcement
+// packages/core/src/index.ts
+export * from './types';
+export * from './utils';
+
+// packages/ui/src/components/UserCard.tsx
+import type { User } from '@myorg/core';
+
+interface UserCardProps {
+  user: User;
+}
+
+// Version management
+// packages/api-client/src/index.ts
+import type { V1, V2 } from '@myorg/api-types';
+
+export class ApiClient {
+  async getUserV1(id: string): Promise<V1.User> {
+    // V1 implementation
+  }
+
+  async getUserV2(id: string): Promise<V2.User> {
+    // V2 implementation
+  }
+}
+```
+
+❌ Incorrect:
+```typescript
+// Bad: Mixed package responsibilities
+// packages/ui/src/api.ts
+export class ApiClient {} // Should be in @myorg/api
+
+// Bad: Direct imports across package boundaries
+import { userUtils } from '../../core/src/utils';
+
+// Bad: No version management
+interface User {
+  // Breaking changes without versioning
+  id: string;
+  name: string;
+  email: string; // Added without version bump
+}
+```
+
+## Additional Guidelines
+
+1. Monorepo Management:
+   - Use workspace tools (pnpm/yarn/npm)
+   - Share configurations
+   - Manage dependencies effectively
+   - Use consistent versioning
+
+2. Package Boundaries:
+   - Define clear responsibilities
+   - Avoid circular dependencies
+   - Use proper access control
+   - Document public APIs
+
+3. Type Versioning:
+   - Use semantic versioning
+   - Maintain backwards compatibility
+   - Document breaking changes
+   - Use type namespaces
+
+4. Build Configuration:
+   - Share base configs
+   - Optimize build times
+   - Use project references
+   - Configure proper outDir
+
+5. Dependency Management:
+   - Use peer dependencies appropriately
+   - Lock versions in monorepos
+   - Share common dependencies
+   - Use workspace protocols
+
+6. Development Workflow:
+   - Configure proper source maps
+   - Set up monorepo scripts
+   - Use watch mode effectively
+   - Configure proper testing
+
+7. File Naming Conventions:
+   - Use `.ts` for logic files
+   - Use `.tsx` for React components
+   - Use `.test.ts` or `.spec.ts` for tests
+   - Use `.d.ts` for type declarations
+
+8. Module Dependencies:
+   - Core modules should not depend on feature modules
+   - Feature modules can depend on core modules
+   - Shared utilities should be dependency-free
+   - Use dependency injection for flexible architecture
+
+9. Type Organization:
+   - Place shared types in `types/`
