@@ -1,0 +1,21 @@
+{
+  "version": 4,
+  "routes": {
+    "/": {
+      "experimentalBypassFor": [
+        { "type": "header", "key": "Next-Action" },
+        { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/",
+      "dataRoute": "/index.rsc"
+    }
+  },
+  "dynamicRoutes": {},
+  "notFoundRoutes": [],
+  "preview": {
+    "previewModeId": "267dcc7b991174e9b70879617f0aa489",
+    "previewModeSigningKey": "4ebe485bee1ac57d6f2297268fb2e20ede6483053f5e0138e52fe48c74bd82ca",
+    "previewModeEncryptionKey": "571c2e3ed60b1dbd7efa296a5f6bd3110230dfecaba7144b7a52487e0a453141"
+  }
+}

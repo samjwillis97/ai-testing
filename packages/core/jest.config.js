@@ -28,4 +28,4 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
   testMatch: ['**/*.test.ts'],
-}; 
+};

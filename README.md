@@ -22,7 +22,7 @@ const authPlugin: HttpClientPlugin = {
   onPreRequest: (config) => {
     const token = getAuthToken();
     config.headers['Authorization'] = `Bearer ${token}`;
-  }
+  },
 };
 
 const client = new HttpClient('https://api.example.com');
@@ -70,7 +70,7 @@ const loggingPlugin: HttpClientPlugin = {
   onPreRequest: (config) => {
     console.log('Sending request', config.url);
     config.headers['X-Request-ID'] = generateRequestId();
-  }
+  },
 };
 ```
 
@@ -83,9 +83,9 @@ const transformPlugin: HttpClientPlugin = {
   onPostRequest: (response) => {
     return {
       ...response,
-      data: camelCaseKeys(response.data)
+      data: camelCaseKeys(response.data),
     };
-  }
+  },
 };
 ```
 
@@ -100,7 +100,7 @@ const errorPlugin: HttpClientPlugin = {
       refreshToken();
     }
     logErrorToMonitoringService(error);
-  }
+  },
 };
 ```
 

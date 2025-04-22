@@ -1,5 +1,5 @@
 {
-  "name": "shc",
+  "name": "@shc/root",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -20,4 +20,4 @@
     "turbo": "^1.10.0",
     "typescript": "^5.0.0"
   }
-} 
+}

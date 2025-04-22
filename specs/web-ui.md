@@ -1,9 +1,11 @@
 # Web UI Package (@shc/web-ui) Specification
 
 ## Overview
+
 The Web UI package provides a modern, feature-rich interface for managing and executing HTTP requests. Built on top of @shc/core.
 
 ## Dependencies
+
 - @shc/core: Core HTTP client and extension system
 - React + React DOM
 - TypeScript
@@ -15,6 +17,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 ## Core Features
 
 ### Request Management Interface
+
 - Visual request builder
 - Collection management
 - Real-time request preview
@@ -23,6 +26,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Workspace management
 
 ### Collection Editor
+
 - Tree-based collection navigation
 - YAML/JSON import/export
 - Collection version control
@@ -31,6 +35,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Authentication setup wizard
 
 ### Request Builder Components
+
 - Method selector with descriptions
 - URL builder with validation
 - Dynamic base URL support
@@ -43,6 +48,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
   - File upload support
 
 ### Response Viewer
+
 - Status code and timing info
 - Header inspector
 - Response body display:
@@ -53,6 +59,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Performance metrics visualization
 
 ### Environment Management
+
 - Environment selector
 - Variable editor
 - Secret management UI
@@ -60,12 +67,14 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Variable inheritance viewer
 
 ### Extension Integration
+
 - Extension marketplace UI
 - Plugin configuration interface
 - Custom visualizer support
 - Extension management dashboard
 
 ## Technical Requirements
+
 - Responsive design system
 - Dark/light theme support
 - Keyboard shortcuts
@@ -74,12 +83,14 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Progressive Web App support
 
 ## State Management
+
 - React Query for server state
 - Zustand for local state
 - Persistent storage strategy
 - Real-time synchronization
 
 ## Performance Optimization
+
 - Code splitting
 - Lazy loading
 - Caching strategy
@@ -87,6 +98,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Bundle size management
 
 ## Testing Strategy
+
 - Unit tests (Jest + Testing Library)
 - Integration tests
 - E2E tests (Playwright)
@@ -94,6 +106,7 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
 - Accessibility testing
 
 ## Build and Development
+
 - Vite-based build system
 - Hot module replacement
 - Development tools integration

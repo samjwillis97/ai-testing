@@ -1,25 +1,18 @@
-/** @type {import('@jest/types').Config.InitialOptions} */
-const config = {
-  preset: 'ts-jest/presets/default-esm',
+/** @type {import('jest').Config} */
+module.exports = {
   testEnvironment: 'node',
-  moduleFileExtensions: ['ts', 'js'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: './tsconfig.test.json',
-      useESM: true
-    }]
-  },
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-    '^@shc/core$': '<rootDir>/../core/src'
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
   extensionsToTreatAsEsm: ['.ts'],
-  testEnvironmentOptions: {
-    customExportConditions: ['node', 'node-addons']
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!@shc/core)'
-  ],
   coverageThreshold: {
     global: {
       branches: 80,
@@ -28,12 +21,9 @@ const config = {
       statements: 80,
     },
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/*.test.ts',
-  ],
-  testMatch: ['<rootDir>/tests/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testMatch: ['**/tests/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!src/**/*.d.ts', '!src/types/**/*'],
+  transformIgnorePatterns: ['node_modules/(?!(ora|chalk|commander|inquirer|conf)/)'],
 };
-
-module.exports = config; 

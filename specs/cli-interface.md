@@ -1,9 +1,11 @@
 # CLI Package (@shc/cli) Specification
 
 ## Overview
+
 The Command-Line Interface package provides a powerful, scriptable interface for interacting with HTTP services. Built on top of @shc/core.
 
 ## Dependencies
+
 - @shc/core: Core HTTP client and extension system
 - Commander.js: CLI framework
 - Inquirer: Interactive prompts
@@ -14,16 +16,19 @@ The Command-Line Interface package provides a powerful, scriptable interface for
 ## Command Structure
 
 ### Direct Request Mode
+
 ```bash
 shc [options] <method> <url>
 ```
 
 ### Collection Mode
+
 ```bash
 shc [options] <collection> <request>
 ```
 
 ### Interactive Mode
+
 ```bash
 shc interactive
 ```
@@ -31,6 +36,7 @@ shc interactive
 ## Core Features
 
 ### Request Execution
+
 - Direct HTTP request execution
 - Collection-based request running
 - Environment-aware execution
@@ -38,6 +44,7 @@ shc interactive
 - Authentication handling
 
 ### Collection Management
+
 - Collection file operations
 - Request organization
 - Environment configuration
@@ -45,6 +52,7 @@ shc interactive
 - Authentication setup
 
 ### Interactive Features
+
 - Request builder TUI
 - Collection browser
 - Environment selector
@@ -54,6 +62,7 @@ shc interactive
 ## Command Options
 
 ### Global Options
+
 - `-c, --config <path>`: Config file path
 - `-e, --env <name>`: Environment name
 - `-v, --verbose`: Verbose output
@@ -61,6 +70,7 @@ shc interactive
 - `--no-color`: Disable colors
 
 ### Request Options
+
 - `-H, --header <header>`: Add header
 - `-d, --data <data>`: Request body
 - `-q, --query <query>`: Query parameter
@@ -68,12 +78,14 @@ shc interactive
 - `-o, --output <format>`: Output format
 
 ### Collection Options
+
 - `--collection-dir <dir>`: Collection directory
 - `--save`: Save request to collection
 - `--export <path>`: Export collection
 - `--import <path>`: Import collection
 
 ## Output Formats
+
 - JSON (default)
 - YAML
 - Raw
@@ -81,6 +93,7 @@ shc interactive
 - Custom formats via plugins
 
 ## Integration Features
+
 - Pipe support (stdin/stdout)
 - Shell completion
 - Exit codes
@@ -88,6 +101,7 @@ shc interactive
 - Config file support
 
 ## Extension Support
+
 - Custom commands
 - Output formatters
 - Authentication providers
@@ -95,6 +109,7 @@ shc interactive
 - Response handlers
 
 ## Development
+
 - TypeScript-based
 - Modular command structure
 - Plugin architecture
@@ -102,6 +117,7 @@ shc interactive
 - CI/CD integration
 
 ## Documentation
+
 - Man pages
 - Command help
 - Examples

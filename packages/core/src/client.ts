@@ -4,13 +4,15 @@ import type { EventEmitter as EventEmitterType } from 'eventemitter3';
 import { RequestConfig, ResponseData, Plugin, Environment } from './types.js';
 
 interface ClientEvents {
-  'response': (response: ResponseData) => void;
-  'error': (error: Error) => void;
+  response: (response: ResponseData) => void;
+  error: (error: Error) => void;
   'plugin:added': (plugin: Plugin) => void;
   'environment:changed': (env: Environment) => void;
 }
 
-export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitterType<ClientEvents> }) {
+export class HttpClient extends (EventEmitter as unknown as {
+  new (): EventEmitterType<ClientEvents>;
+}) {
   private axios: AxiosInstance;
   private plugins: Plugin[] = [];
   private currentEnvironment?: Environment;
@@ -56,7 +58,7 @@ export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitte
     } catch (error) {
       // Handle errors through plugins
       const err = error instanceof Error ? error : new Error(String(error));
-      
+
       for (const plugin of this.plugins) {
         if (plugin.onError) {
           await plugin.onError(err);
@@ -75,12 +77,12 @@ export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitte
 
   setEnvironment(env: Environment): void {
     this.currentEnvironment = env;
-    
+
     // Update axios instance with new base URL
     if (env.baseUrl) {
       this.axios = axios.create({ baseURL: env.baseUrl });
     }
-    
+
     this.emit('environment:changed', env);
   }
 
@@ -95,7 +97,7 @@ export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitte
     // Apply environment variables to headers
     if (config.environmentVariables) {
       const headers = config.headers || {};
-      
+
       Object.entries(config.environmentVariables).forEach(([key, value]) => {
         if (typeof value === 'string') {
           let resolvedValue = value;
@@ -105,11 +107,11 @@ export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitte
           headers[key] = resolvedValue;
         }
       });
-      
+
       newConfig.headers = headers;
       delete newConfig.environmentVariables;
     }
 
     return newConfig;
   }
-} 
+}

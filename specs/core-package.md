@@ -1,11 +1,13 @@
 # Core Package (@shc/core) Specification
 
 ## Overview
+
 The core package (@shc/core) is the foundation of SHC, providing HTTP client functionality, extension system, configuration management, and supporting features for other packages.
 
 ## Components
 
 ### HTTP Client
+
 - Support for standard HTTP methods: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
 - Request customization:
   - Headers
@@ -26,6 +28,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
   - Rate limiting
 
 ### Extension System
+
 - Pluggable architecture:
   - Request preprocessors
   - Response transformers
@@ -39,6 +42,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Extension discovery and loading
 
 ### Configuration Management
+
 - YAML/JSON configuration parsing
 - Environment variable support
 - Configuration validation
@@ -47,6 +51,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Configuration inheritance
 
 ### Template Engine
+
 - Variable interpolation
 - Dynamic request templating
 - Environment-aware substitution
@@ -54,6 +59,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Expression evaluation
 
 ### Request/Response Pipeline
+
 - Middleware architecture
 - Hook system:
   - Pre-request hooks
@@ -64,6 +70,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Logging and monitoring
 
 ## Technical Specifications
+
 - Language: TypeScript
 - Base HTTP library: Axios
 - Module system: ES Modules
@@ -72,6 +79,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Documentation: TypeDoc
 
 ## Security Features
+
 - Secure credential storage
 - Token management
 - Certificate validation
@@ -80,6 +88,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Audit logging
 
 ## Integration Points
+
 - Exports TypeScript types and interfaces
 - Event system for cross-package communication
 - Plugin API for extensions
@@ -87,6 +96,7 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Authentication providers
 
 ## Error Handling
+
 - Detailed error reporting
 - Custom error types
 - Error recovery mechanisms
@@ -94,7 +104,8 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 - Error event propagation
 
 ## Package Dependencies
+
 - Minimal external dependencies
 - Peer dependency management
 - Version compatibility checking
-- Security vulnerability scanning 
+- Security vulnerability scanning

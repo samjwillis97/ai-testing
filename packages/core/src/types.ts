@@ -55,4 +55,4 @@ export interface Plugin {
   onRequest?(config: RequestConfig): Promise<RequestConfig>;
   onResponse?(response: ResponseData): Promise<ResponseData>;
   onError?(error: Error): Promise<void>;
-} 
+}

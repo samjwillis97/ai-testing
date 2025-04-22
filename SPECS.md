@@ -9,7 +9,9 @@ This document provides an overview of the specifications for Sam's HTTP Client (
 The application is organized as a monorepo with the following packages:
 
 ### @shc/core
+
 Core functionality including:
+
 - HTTP client implementation
 - Extension/plugin system
 - Configuration and environment management
@@ -17,14 +19,18 @@ Core functionality including:
 - Request/response pipeline
 
 ### @shc/web-ui
+
 Modern web interface built on React, providing:
+
 - Request builder and manager
 - Collection management
 - Environment configuration
 - Response visualization
 
 ### @shc/cli
+
 Command-line interface offering:
+
 - Direct request execution
 - Collection-based operations
 - Interactive TUI mode
@@ -32,18 +38,18 @@ Command-line interface offering:
 
 ## Specification Index
 
-| Package | Description | Link |
-|---------|-------------|------|
-| @shc/core | Core HTTP client and foundational features | [Core Package](/specs/core-package.md) |
-| @shc/web-ui | Web user interface | [Web UI](/specs/web-ui.md) |
-| @shc/cli | Command-line interface | [CLI Interface](/specs/cli-interface.md) |
+| Package     | Description                                | Link                                     |
+| ----------- | ------------------------------------------ | ---------------------------------------- |
+| @shc/core   | Core HTTP client and foundational features | [Core Package](/specs/core-package.md)   |
+| @shc/web-ui | Web user interface                         | [Web UI](/specs/web-ui.md)               |
+| @shc/cli    | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
 
 ## Supporting Specifications
 
-| Component | Description | Link |
-|-----------|-------------|------|
-| Request Management | Collection and request organization | [Request Management](/specs/request-management.md) |
-| Authentication | Authentication system and providers | [Authentication](/specs/authentication.md) |
+| Component             | Description                           | Link                                                     |
+| --------------------- | ------------------------------------- | -------------------------------------------------------- |
+| Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
+| Authentication        | Authentication system and providers   | [Authentication](/specs/authentication.md)               |
 | Environment Variables | Configuration and variable management | [Environment Variables](/specs/environment-variables.md) |
 
 ## Package Dependencies
@@ -53,7 +59,7 @@ graph TD
     Core[@shc/core]
     Web[@shc/web-ui]
     CLI[@shc/cli]
-    
+
     Web --> Core
     CLI --> Core
 ```
@@ -61,6 +67,7 @@ graph TD
 ## Extension System
 
 The extension system is a core feature that lives within the @shc/core package, providing:
+
 - Pluggable architecture for all major components
 - Standard interfaces for extending functionality
 - Hook system for request/response pipeline
