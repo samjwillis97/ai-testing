@@ -54,7 +54,7 @@ coverage/
 .turbo/
 
 # Next.js build files
-.next/
+.next
 
 # OS files
 Thumbs.db
