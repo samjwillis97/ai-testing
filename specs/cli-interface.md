@@ -1,56 +1,109 @@
-# CLI Interface Specification
+# CLI Package (@shc/cli) Specification
 
 ## Overview
-The Command-Line Interface (CLI) for SHC provides a powerful, scriptable way to interact with HTTP services.
+The Command-Line Interface package provides a powerful, scriptable interface for interacting with HTTP services. Built on top of @shc/core.
 
-## Command Structures
+## Dependencies
+- @shc/core: Core HTTP client and extension system
+- Commander.js: CLI framework
+- Inquirer: Interactive prompts
+- chalk: Terminal styling
+- ora: Spinner indicators
+- boxen: Terminal boxes
+
+## Command Structure
+
 ### Direct Request Mode
-```
+```bash
 shc [options] <method> <url>
 ```
 
-### Collection-Based Mode
+### Collection Mode
+```bash
+shc [options] <collection> <request>
 ```
-shc [options] <collection_file> <endpoint_name>
+
+### Interactive Mode
+```bash
+shc interactive
 ```
 
 ## Core Features
-- Send HTTP requests directly from the terminal
-- Execute requests from collection files
-- Support for all HTTP methods
-- Ability to specify headers, body, and query parameters
-- Output response in various formats (JSON, YAML, raw)
 
-## Options
-- `-H, --header`: Add custom headers
-- `-d, --data`: Specify request body
-- `-q, --query`: Add query parameters
-- `-o, --output`: Specify output format
-- `-v, --verbose`: Detailed logging
-- `--config`: Use specific configuration file
-- `--env`: Specify environment for collection-based requests
+### Request Execution
+- Direct HTTP request execution
+- Collection-based request running
+- Environment-aware execution
+- Variable substitution
+- Authentication handling
 
-## Collection File Execution
-- Load entire API collection from YAML/JSON
-- Select specific endpoint by name
-- Override collection-level configurations
-- Support environment-specific variables
-- Dynamic script hook execution
+### Collection Management
+- Collection file operations
+- Request organization
+- Environment configuration
+- Variable management
+- Authentication setup
 
-## Authentication
-- Support for basic auth
-- Bearer token authentication
-- Environment variable-based credentials
-- Collection-level authentication support
+### Interactive Features
+- Request builder TUI
+- Collection browser
+- Environment selector
+- Variable editor
+- Response viewer
 
-## Use Cases
-- API testing
-- Scripting
-- Quick debugging
-- Automation workflows
-- Reproducible API interactions
+## Command Options
 
-## Integration
-- Pipe-friendly output
-- Compatible with standard Unix tools
-- Supports both ad-hoc and collection-based requests
+### Global Options
+- `-c, --config <path>`: Config file path
+- `-e, --env <name>`: Environment name
+- `-v, --verbose`: Verbose output
+- `-s, --silent`: Silent mode
+- `--no-color`: Disable colors
+
+### Request Options
+- `-H, --header <header>`: Add header
+- `-d, --data <data>`: Request body
+- `-q, --query <query>`: Query parameter
+- `-u, --auth <auth>`: Authentication
+- `-o, --output <format>`: Output format
+
+### Collection Options
+- `--collection-dir <dir>`: Collection directory
+- `--save`: Save request to collection
+- `--export <path>`: Export collection
+- `--import <path>`: Import collection
+
+## Output Formats
+- JSON (default)
+- YAML
+- Raw
+- Table
+- Custom formats via plugins
+
+## Integration Features
+- Pipe support (stdin/stdout)
+- Shell completion
+- Exit codes
+- Environment variables
+- Config file support
+
+## Extension Support
+- Custom commands
+- Output formatters
+- Authentication providers
+- Request transformers
+- Response handlers
+
+## Development
+- TypeScript-based
+- Modular command structure
+- Plugin architecture
+- Comprehensive testing
+- CI/CD integration
+
+## Documentation
+- Man pages
+- Command help
+- Examples
+- API documentation
+- Plugin development guide
