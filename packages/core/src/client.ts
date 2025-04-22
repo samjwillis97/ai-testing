@@ -74,6 +74,12 @@ export class HttpClient extends EventEmitter<ClientEvents> {
 
   setEnvironment(env: Environment): void {
     this.currentEnvironment = env;
+    
+    // Update axios instance with new base URL
+    if (env.baseUrl) {
+      this.axios = axios.create({ baseURL: env.baseUrl });
+    }
+    
     this.emit('environment:changed', env);
   }
 
@@ -82,25 +88,25 @@ export class HttpClient extends EventEmitter<ClientEvents> {
       return config;
     }
 
-    const { variables, baseUrl } = this.currentEnvironment;
+    const { variables } = this.currentEnvironment;
     const newConfig = { ...config };
 
-    // Apply base URL if set
-    if (baseUrl && !config.baseURL) {
-      newConfig.baseURL = baseUrl;
-    }
-
-    // Apply environment variables
+    // Apply environment variables to headers
     if (config.environmentVariables) {
+      const headers = config.headers || {};
+      
       Object.entries(config.environmentVariables).forEach(([key, value]) => {
         if (typeof value === 'string') {
           let resolvedValue = value;
           Object.entries(variables).forEach(([envKey, envValue]) => {
             resolvedValue = resolvedValue.replace(`\${${envKey}}`, envValue);
           });
-          config.environmentVariables![key] = resolvedValue;
+          headers[key] = resolvedValue;
         }
       });
+      
+      newConfig.headers = headers;
+      delete newConfig.environmentVariables;
     }
 
     return newConfig;
