@@ -50,6 +50,12 @@ Changes were generated based on the following prompts:
 2. "Ensure consistent indentation across all files"
 ```
 
+Example Git Command:
+```bash
+git commit -m "feat(ide): implement automatic code formatting" -m "- Added automatic formatting for Python files\n- Implemented consistent indentation rules\n- Added support for line length limits" -m "Changes were generated based on the following prompts:\n1. \"Format the code according to PEP 8 standards\"\n2. \"Ensure consistent indentation across all files\""
+```
+
+
 ❌ Incorrect Commit Message:
 ```
 Updated some files
