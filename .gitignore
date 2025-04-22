@@ -52,3 +52,9 @@ coverage/
 
 # Turbo
 .turbo/
+
+# Next.js build files
+.next/
+
+# OS files
+Thumbs.db

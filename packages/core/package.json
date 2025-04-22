@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --config jest.config.cjs",
     "lint": "eslint src --ext .ts",
     "dev": "tsc -w"
   },
