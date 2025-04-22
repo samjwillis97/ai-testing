@@ -37,6 +37,7 @@ After Cursor IDE performs automatic changes:
 - Automates the commit process for better workflow efficiency
 
 ## Examples
+
 ✅ Correct Commit Message:
 ```
 feat(ide): implement automatic code formatting
@@ -48,6 +49,30 @@ feat(ide): implement automatic code formatting
 Changes were generated based on the following prompts:
 1. "Format the code according to PEP 8 standards"
 2. "Ensure consistent indentation across all files"
+
+```✅ Correct Commit Message Format:
+```bash
+git commit -m "feat(ide): implement automatic code formatting" \
+  -m "Added automatic formatting for Python files" \
+  -m "Implemented consistent indentation rules" \
+  -m "Added support for line length limits" \
+  -m "Changes were generated based on the following prompts:" \
+  -m "1. Format the code according to PEP 8 standards" \
+  -m "2. Ensure consistent indentation across all files"
+```
+
+Note: Each line of the commit message should use a separate `-m` flag. Do not use `\n` characters within a single `-m` argument.
+
+❌ Incorrect Commit Message Formats:
+```bash
+# Don't use \n characters within -m arguments
+git commit -m "feat(ide): implement automatic formatting\n- Added formatting\n- Added rules"
+
+# Don't combine multiple lines in a single -m
+git commit -m "Updated some files
+
+- Made changes to formatting
+- Fixed some issues"
 ```
 
 Example Git Command:
