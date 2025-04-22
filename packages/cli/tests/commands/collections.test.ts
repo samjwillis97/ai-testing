@@ -1,86 +1,105 @@
-import { jest } from '@jest/globals';
-import { collections } from '../../src/commands/collections.js';
-import type { Collection, Request } from '@shc/core';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createCollectionsCommand, createConfig } from '../../src/commands/collections.js';
+import inquirer from 'inquirer';
 
-// Mock process.exit
-const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-// Mock inquirer
-const mockPrompt = jest.fn<(questions: unknown) => Promise<unknown>>();
-jest.unstable_mockModule('inquirer', () => ({
-  prompt: mockPrompt
-}));
-
-// Mock conf
-const mockGet = jest.fn();
-const mockSet = jest.fn();
-const mockConf = jest.fn(() => ({
-  get: mockGet,
-  set: mockSet
-}));
-
-jest.unstable_mockModule('conf', () => mockConf);
+vi.mock('inquirer');
 
 describe('collections command', () => {
-  const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
-  const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-  const mockCollection: Collection = {
-    id: '1',
-    name: 'Test Collection',
-    description: 'Test description',
-    requests: [
-      {
-        id: '1',
-        name: 'Test Request',
-        description: 'Test request description',
-        config: {
-          url: 'https://api.example.com',
-          method: 'GET',
-          headers: {}
-        }
-      } as Request
-    ]
-  };
+  const mockConfig = createConfig();
+  const collections = createCollectionsCommand(mockConfig);
+  const consoleSpy = vi.spyOn(console, 'log');
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockGet.mockReturnValue([mockCollection]);
-    mockPrompt.mockResolvedValue({ action: 'list' });
+    mockConfig.set('collections', []);
+    consoleSpy.mockClear();
+    vi.clearAllMocks();
   });
 
   it('should list collections', async () => {
-    mockPrompt.mockResolvedValueOnce({ action: 'list' });
-    await collections.parseAsync(['list']);
-    expect(mockConsoleLog).toHaveBeenCalled();
+    mockConfig.set('collections', [
+      {
+        id: '1',
+        name: 'Test Collection',
+        description: 'Test Description',
+        requests: [
+          {
+            id: '1',
+            name: 'Test Request',
+            description: 'Test Request Description',
+            config: {
+              method: 'GET',
+              url: 'http://example.com',
+            },
+          },
+        ],
+      },
+    ]);
+
+    await collections.parseAsync(['node', 'shc.js', 'list']);
+
+    expect(consoleSpy).toHaveBeenCalledWith('\nTest Collection');
+    expect(consoleSpy).toHaveBeenCalledWith('-'.repeat('Test Collection'.length));
+    expect(consoleSpy).toHaveBeenCalledWith('Test Description');
+    expect(consoleSpy).toHaveBeenCalledWith('\nRequests:');
+    expect(consoleSpy).toHaveBeenCalledWith('- Test Request: GET http://example.com');
   });
 
-  it('should create a new collection', async () => {
-    mockPrompt.mockResolvedValueOnce({
+  it('should create a collection', async () => {
+    const mockDate = new Date('2024-01-01');
+    vi.setSystemTime(mockDate);
+
+    vi.mocked(inquirer.prompt).mockResolvedValueOnce({
       name: 'New Collection',
-      description: 'Test description'
+      description: 'New Description',
     });
 
-    await collections.parseAsync(['create']);
-    expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Collection created'));
+    await collections.parseAsync(['node', 'shc.js', 'create']);
+
+    const savedCollections = mockConfig.get('collections');
+    expect(savedCollections).toHaveLength(1);
+    expect(savedCollections[0]).toEqual({
+      id: mockDate.getTime().toString(),
+      name: 'New Collection',
+      description: 'New Description',
+      requests: [],
+    });
+    expect(consoleSpy).toHaveBeenCalledWith('Collection created: New Collection');
+
+    vi.useRealTimers();
   });
 
   it('should delete a collection', async () => {
-    mockPrompt.mockResolvedValueOnce({
+    mockConfig.set('collections', [
+      {
+        id: '1',
+        name: 'Test Collection',
+        description: 'Test Description',
+        requests: [],
+      },
+    ]);
+
+    vi.mocked(inquirer.prompt).mockResolvedValueOnce({
       collection: 'Test Collection',
-      confirm: true
+      confirm: true,
     });
 
-    await collections.parseAsync(['delete']);
-    expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Collection deleted'));
+    await collections.parseAsync(['node', 'shc.js', 'delete']);
+
+    const savedCollections = mockConfig.get('collections');
+    expect(savedCollections).toHaveLength(0);
+    expect(consoleSpy).toHaveBeenCalledWith('Collection deleted: Test Collection');
   });
 
-  it('should handle errors gracefully', async () => {
-    mockConf.mockImplementationOnce(() => {
-      throw new Error('Configuration error');
-    });
+  it('should handle unknown commands', async () => {
+    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const consoleErrorSpy = vi.spyOn(console, 'error');
 
-    await collections.parseAsync(['list']);
-    expect(mockConsoleError).toHaveBeenCalled();
+    await collections.parseAsync(['node', 'shc.js', 'unknown']);
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Unknown command');
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    mockExit.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
-}); 
+});
