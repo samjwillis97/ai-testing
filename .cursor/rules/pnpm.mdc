@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
- ## Description
+## Description
 This rule ensures that `pnpm` is consistently used as the package manager across the project instead of `npm` or `yarn`.
 
 ## Rule
@@ -68,4 +68,4 @@ yarn test
     "lint": "npm eslint"
   }
 }
-```
+``` 
