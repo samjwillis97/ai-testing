@@ -1,6 +1,7 @@
 /// <reference types="jest" />
-import { HttpClient } from '../src'
+import { HttpClient } from '../src/index.js'
 import axios from 'axios'
+import type { RequestConfig, ResponseData } from '../src/types.js'
 
 jest.mock('axios')
 
@@ -96,11 +97,11 @@ describe('HttpClient', () => {
     client.use({
       name: 'plugin1',
       version: '1.0.0',
-      onRequest: async (config) => {
+      onRequest: async (config: RequestConfig) => {
         operations.push('plugin1-request')
         return config
       },
-      onResponse: async (response) => {
+      onResponse: async (response: ResponseData) => {
         operations.push('plugin1-response')
         return response
       },
@@ -109,11 +110,11 @@ describe('HttpClient', () => {
     client.use({
       name: 'plugin2',
       version: '1.0.0',
-      onRequest: async (config) => {
+      onRequest: async (config: RequestConfig) => {
         operations.push('plugin2-request')
         return config
       },
-      onResponse: async (response) => {
+      onResponse: async (response: ResponseData) => {
         operations.push('plugin2-response')
         return response
       },

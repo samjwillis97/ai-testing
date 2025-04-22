@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import EventEmitter from 'eventemitter3';
-import { RequestConfig, ResponseData, Plugin, Environment } from './types';
+import type { EventEmitter as EventEmitterType } from 'eventemitter3';
+import { RequestConfig, ResponseData, Plugin, Environment } from './types.js';
 
 interface ClientEvents {
   'response': (response: ResponseData) => void;
@@ -9,7 +10,7 @@ interface ClientEvents {
   'environment:changed': (env: Environment) => void;
 }
 
-export class HttpClient extends EventEmitter<ClientEvents> {
+export class HttpClient extends (EventEmitter as unknown as { new(): EventEmitterType<ClientEvents> }) {
   private axios: AxiosInstance;
   private plugins: Plugin[] = [];
   private currentEnvironment?: Environment;
@@ -99,7 +100,7 @@ export class HttpClient extends EventEmitter<ClientEvents> {
         if (typeof value === 'string') {
           let resolvedValue = value;
           Object.entries(variables).forEach(([envKey, envValue]) => {
-            resolvedValue = resolvedValue.replace(`\${${envKey}}`, envValue);
+            resolvedValue = resolvedValue.replace(`\${${envKey}}`, String(envValue));
           });
           headers[key] = resolvedValue;
         }

@@ -4,9 +4,9 @@
     "outDir": "dist",
     "rootDir": ".",
     "declaration": true,
-    "moduleResolution": "node16",
-    "module": "node16",
-    "target": "es2018",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "target": "es2022",
     "types": ["jest", "node"],
     "composite": true,
     "isolatedModules": true

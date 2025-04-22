@@ -4,6 +4,8 @@ node_modules/
 # Build output
 dist/
 dist-test/
+**/src/build/
+**/build/
 
 # Environment files
 .env
