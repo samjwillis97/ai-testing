@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides an overview of the specifications for Sam's HTTP Client (SHC), a versatile HTTP client application.
+This document provides an overview of the specifications for Sam's HTTP Client (SHC), a versatile, pluggable HTTP client application.
 
 ## Specification Index
 
