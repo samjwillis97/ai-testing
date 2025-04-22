@@ -3,7 +3,7 @@ node_modules/
 
 # Build output
 dist/
-build/
+dist-test/
 
 # Environment files
 .env
@@ -41,3 +41,9 @@ devenv.local.nix
 .aider*
 .aider.chat.history.md
 aider_chat_history.md
+
+# Coverage
+coverage/
+
+# DS_Store
+.DS_Store

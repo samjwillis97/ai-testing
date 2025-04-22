@@ -9,6 +9,7 @@
     pkgs.git
     pkgs.aider-chat
     pkgs.nodejs_20
+    pkgs.pnpm
   ];
 
   # https://devenv.sh/languages/
