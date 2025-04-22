@@ -8,6 +8,7 @@
   packages = [ 
     pkgs.git
     pkgs.aider-chat
+    pkgs.nodejs_20
   ];
 
   # https://devenv.sh/languages/
