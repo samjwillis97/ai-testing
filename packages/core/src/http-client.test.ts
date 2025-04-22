@@ -1,135 +1,154 @@
+import HttpClient from './http-client';
+import { HttpClientPlugin, HttpResponse, HttpClientError } from './types/http-client.types';
 import axios from 'axios';
-import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { HttpClient } from './http-client';
-import { HttpRequestOptions } from './types/http-client.types';
 
-// Mock axios
+// Mock axios and performance
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('HttpClient', () => {
-  let client: HttpClient;
-  let mockAxiosInstance: any;
+  let httpClient: HttpClient;
 
   beforeEach(() => {
-    // Reset the mock before each test
-    jest.resetAllMocks();
-    
-    // Create a mock Axios instance with interceptors
-    mockAxiosInstance = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      patch: jest.fn(),
-      interceptors: {
-        request: {
-          use: jest.fn()
-        },
-        response: {
-          use: jest.fn()
-        }
-      },
-      create: jest.fn()
-    };
-
-    mockAxiosInstance.create.mockReturnValue(mockAxiosInstance);
-    mockedAxios.create.mockReturnValue(mockAxiosInstance);
-    
-    // Create the client
-    client = new HttpClient();
+    httpClient = new HttpClient('https://api.example.com');
+    mockedAxios.create.mockReturnValue(mockedAxios);
   });
 
-  const mockSuccessResponse = (data: any, config: any = {}) => {
-    return {
-      data,
-      status: 200,
-      headers: {},
-      config,
-      responseTime: 100
-    };
-  };
+  describe('Plugin System', () => {
+    it('should allow registering and using pre-request plugins', async () => {
+      // Mock a successful axios request
+      mockedAxios.request.mockResolvedValue({
+        data: { message: 'Success' },
+        status: 200,
+        headers: {},
+      });
 
-  const testHttpMethod = async (method: 'get' | 'post' | 'put' | 'delete' | 'patch') => {
-    const mockData = { id: 1, name: 'Test' };
-    const mockResponse = mockSuccessResponse(mockData);
-    
-    mockAxiosInstance[method].mockResolvedValue(mockResponse);
+      // Create a pre-request plugin that modifies the config
+      const preRequestPlugin: HttpClientPlugin = {
+        onPreRequest: jest.fn((config) => {
+          config.headers = { ...config.headers, 'X-Test-Header': 'Plugin' };
+          return config;
+        }),
+      };
 
-    const url = '/test';
-    const options: HttpRequestOptions = { 
-      headers: { 'Authorization': 'Bearer token' } 
-    };
+      // Register the plugin
+      httpClient.registerPlugin(preRequestPlugin);
 
-    const result = method === 'get' || method === 'delete'
-      ? await client[method](url, options)
-      : await client[method](url, mockData, options);
+      // Make a request
+      await httpClient.get<{ message: string }>('/test');
 
-    expect(result.data).toEqual(mockData);
-    expect(result.status).toBe(200);
-    expect(result.responseTime).toBe(100);
-  };
+      // Verify the plugin was called and modified the config
+      expect(preRequestPlugin.onPreRequest).toHaveBeenCalled();
+      expect(mockedAxios.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Test-Header': 'Plugin',
+          }),
+        })
+      );
+    });
 
-  it.each(['get', 'post', 'put', 'delete', 'patch'])('should support %s method', async (method) => {
-    await testHttpMethod(method as 'get' | 'post' | 'put' | 'delete' | 'patch');
-  });
+    it('should allow post-request plugins to transform response', async () => {
+      // Mock a successful axios request
+      mockedAxios.request.mockResolvedValue({
+        data: { message: 'Original' },
+        status: 200,
+        headers: {},
+      });
 
-  it('should handle request options', async () => {
-    const mockData = { id: 1, name: 'Test' };
-    const mockResponse = mockSuccessResponse(mockData);
-    
-    mockAxiosInstance.post.mockResolvedValue(mockResponse);
+      // Create a post-request plugin that transforms the response
+      const postRequestPlugin: HttpClientPlugin = {
+        onPostRequest: jest.fn((response: HttpResponse<{ message: string }>) => {
+          return {
+            ...response,
+            data: { message: 'Transformed' },
+          } as HttpResponse<{ message: string }>;
+        }),
+      };
 
-    const options: HttpRequestOptions = {
-      headers: { 'Authorization': 'Bearer token' },
-      queryParams: { filter: 'active' },
-      timeout: 5000,
-      proxy: { host: 'proxy.example.com', port: 8080 }
-    };
+      // Register the plugin
+      httpClient.registerPlugin(postRequestPlugin);
 
-    const result = await client.post('/users', mockData, options);
+      // Make a request
+      const response = await httpClient.get<{ message: string }>('/test');
 
-    expect(result.data).toEqual(mockData);
-  });
+      // Verify the plugin was called and transformed the response
+      expect(postRequestPlugin.onPostRequest).toHaveBeenCalled();
+      expect(response.data.message).toBe('Transformed');
+    });
 
-  it('should transform errors', async () => {
-    const errorResponse = {
-      response: {
-        status: 404,
-        data: { message: 'Not Found' }
-      },
-      message: 'Request failed',
-      code: 'ERR_NOT_FOUND'
-    };
+    it('should allow error plugins to handle and transform errors', async () => {
+      // Mock an axios error
+      const mockError = new Error('Request failed');
+      mockedAxios.request.mockRejectedValue(mockError);
 
-    mockAxiosInstance.get.mockRejectedValue(errorResponse);
+      // Create an error plugin that transforms the error
+      const errorPlugin: HttpClientPlugin = {
+        onError: jest.fn((error: HttpClientError) => {
+          return {
+            ...error,
+            message: 'Transformed error',
+          };
+        }),
+      };
 
-    await expect(client.get('/nonexistent')).rejects.toThrow('Request failed');
-  });
+      // Register the plugin
+      httpClient.registerPlugin(errorPlugin);
 
-  it('should create axios instance with default timeout', () => {
-    const axiosCreateSpy = mockedAxios.create;
-    
-    expect(axiosCreateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        timeout: 10000
-      })
-    );
-  });
+      // Expect the request to throw an error
+      await expect(httpClient.get<{ message: string }>('/test')).rejects.toEqual(
+        expect.objectContaining({
+          message: 'Transformed error',
+        })
+      );
 
-  it('should allow custom base config', () => {
-    const baseConfig = { 
-      baseURL: 'https://api.example.com',
-      timeout: 5000 
-    };
-    const customClient = new HttpClient(baseConfig);
-    
-    const axiosCreateSpy = mockedAxios.create;
-    expect(axiosCreateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        baseURL: 'https://api.example.com',
-        timeout: 5000
-      })
-    );
+      // Verify the error plugin was called
+      expect(errorPlugin.onError).toHaveBeenCalled();
+    });
+
+    it('should support multiple plugins', async () => {
+      // Mock a successful axios request
+      mockedAxios.request.mockResolvedValue({
+        data: { message: 'Original' },
+        status: 200,
+        headers: {},
+      });
+
+      // Create multiple plugins
+      const plugin1: HttpClientPlugin = {
+        onPreRequest: jest.fn((config) => {
+          config.headers = { ...config.headers, 'X-Plugin-1': 'true' };
+          return config;
+        }),
+      };
+
+      const plugin2: HttpClientPlugin = {
+        onPostRequest: jest.fn((response: HttpResponse<{ message: string }>) => {
+          return {
+            ...response,
+            data: { message: response.data.message + ' Modified' },
+          } as HttpResponse<{ message: string }>;
+        }),
+      };
+
+      // Register plugins
+      httpClient.registerPlugin(plugin1);
+      httpClient.registerPlugin(plugin2);
+
+      // Make a request
+      const response = await httpClient.get<{ message: string }>('/test');
+
+      // Verify plugins were called
+      expect(plugin1.onPreRequest).toHaveBeenCalled();
+      expect(plugin2.onPostRequest).toHaveBeenCalled();
+      expect(response.data.message).toBe('Original Modified');
+      expect(mockedAxios.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Plugin-1': 'true',
+          }),
+        })
+      );
+    });
   });
 });

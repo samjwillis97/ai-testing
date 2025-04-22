@@ -10,15 +10,40 @@ export interface HttpRequestOptions {
   };
 }
 
-export interface HttpClientInterface {
-  get<T>(url: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
-  post<T>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
-  put<T>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
-  delete<T>(url: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
-  patch<T>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+export interface HttpClientPlugin {
+  /**
+   * Executed before the request is sent
+   * Can modify the request configuration
+   */
+  onPreRequest?: (config: AxiosRequestConfig) => AxiosRequestConfig | void;
+
+  /**
+   * Executed after a successful request
+   * Can transform or log the response
+   */
+  onPostRequest?: <T = any>(response: HttpResponse<T>) => HttpResponse<T> | void;
+
+  /**
+   * Executed when an error occurs during the request
+   * Can handle or transform errors
+   */
+  onError?: (error: HttpClientError) => HttpClientError | void;
 }
 
-export interface HttpResponse<T> {
+export interface HttpClientInterface {
+  get<T = any>(url: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+  post<T = any>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+  put<T = any>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+  delete<T = any>(url: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+  patch<T = any>(url: string, data: any, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
+  
+  /**
+   * Register a plugin to extend HTTP client functionality
+   */
+  registerPlugin(plugin: HttpClientPlugin): void;
+}
+
+export interface HttpResponse<T = any> {
   data: T;
   status: number;
   headers: Record<string, string>;
