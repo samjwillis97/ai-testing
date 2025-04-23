@@ -14,11 +14,11 @@ Core functionality including:
 
 - HTTP client implementation
 - Extension/plugin system
-- Configuration and environment management
-- Authentication system
-- Request/response pipeline
+- Configuration management
 - Variable sets management
 - Collection management
+- Request/response pipeline
+- Authentication system
 
 ### @shc/web-ui
 
@@ -76,6 +76,7 @@ These plugins are maintained in the `/plugins` directory at the root of the repo
 
 | Component             | Description                           | Link                                                     |
 | --------------------- | ------------------------------------- | -------------------------------------------------------- |
+| Monorepo Architecture | Monorepo structure and configuration  | [Monorepo](/specs/monorepo.md)                          |
 | Configuration         | Global configuration and variable sets | [Configuration](/specs/configuration.md)                 |
 | Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
 
