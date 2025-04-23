@@ -1,0 +1,67 @@
+# PNPM Package Manager Rule
+
+## Description
+This rule ensures that `pnpm` is consistently used as the package manager across the project instead of `npm` or `yarn`.
+
+## Rule
+1. Always use `pnpm` commands instead of `npm` or `yarn`
+2. Use `pnpm` for all package management operations:
+   - Installing dependencies: `pnpm install`
+   - Adding dependencies: `pnpm add`
+   - Removing dependencies: `pnpm remove`
+   - Running scripts: `pnpm run` or `pnpm test`, etc.
+   - Global installations: `pnpm add -g`
+
+## Implementation
+- Replace any occurrences of `npm` or `yarn` commands with their `pnpm` equivalents
+- Ensure `package.json` scripts use `pnpm` when calling other package managers
+- Use `pnpm-lock.yaml` for dependency locking
+- Include `.npmrc` with appropriate pnpm settings if needed
+
+## Benefits
+- Consistent package management across the project
+- Better disk space usage through pnpm's content-addressable store
+- Strict dependency management preventing phantom dependencies
+- Faster installations through efficient caching
+
+## Examples
+
+✅ Correct Usage:
+```bash
+pnpm install
+pnpm add lodash
+pnpm remove moment
+pnpm run build
+pnpm test
+```
+
+❌ Incorrect Usage:
+```bash
+npm install
+yarn add lodash
+npm run build
+yarn test
+```
+
+## Package.json Examples
+
+✅ Correct:
+```json
+{
+  "scripts": {
+    "build": "pnpm run compile",
+    "test": "pnpm jest",
+    "lint": "pnpm eslint"
+  }
+}
+```
+
+❌ Incorrect:
+```json
+{
+  "scripts": {
+    "build": "npm run compile",
+    "test": "yarn jest",
+    "lint": "npm eslint"
+  }
+}

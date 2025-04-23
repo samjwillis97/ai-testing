@@ -1,0 +1,113 @@
+# TypeScript Project Structure Rule
+
+## Description
+This rule establishes the standard directory structure and organization for TypeScript projects in the monorepo.
+
+## Rule
+When organizing TypeScript projects:
+
+1. MUST follow this directory structure:
+   ```
+   packages/[package-name]/
+   ├── src/              # Source code
+   │   ├── index.ts      # Main entry point
+   │   ├── types/        # Type definitions
+   │   ├── utils/        # Utility functions
+   │   ├── services/     # Business logic
+   │   └── models/       # Data models
+   ├── tests/            # Test files
+   │   ├── unit/        # Unit tests
+   │   └── integration/ # Integration tests
+   ├── package.json     # Package manifest
+   ├── tsconfig.json    # TypeScript config
+   └── tsconfig.test.json # Test TypeScript config
+   ```
+
+2. MUST use proper file naming conventions:
+   - Source files: `kebab-case.ts`
+   - Test files: `*.test.ts`
+   - Type definition files: `*.types.ts`
+   - Index files for barrels: `index.ts`
+
+3. MUST use proper import paths:
+   - Use `@/*` alias for imports from src directory
+   - Use relative paths for imports within the same directory
+   - Use absolute imports for external dependencies
+
+4. MUST organize test files:
+   - Place all tests in the `tests` directory
+   - Match test file structure to source file structure
+   - Use descriptive test file names
+
+5. MUST use proper TypeScript configuration:
+   - Separate configs for source and tests
+   - Use project references for dependencies
+   - Enable strict type checking
+   - Configure proper module resolution
+
+## Benefits
+- Consistent project structure
+- Clear separation of concerns
+- Easy navigation
+- Better maintainability
+- Clear test organization
+- Proper module resolution
+
+## Examples
+
+✅ Correct:
+```typescript
+// src/services/user-service.ts
+export class UserService {
+  // implementation
+}
+
+// tests/unit/services/user-service.test.ts
+import { UserService } from '@/services/user-service';
+
+describe('UserService', () => {
+  // tests
+});
+```
+
+❌ Incorrect:
+```typescript
+// src/UserService.test.ts (tests should be in tests directory)
+import { UserService } from './UserService';
+
+// src/utils/helpers/formatDate.ts (should be kebab-case)
+export function formatDate() {
+  // implementation
+}
+```
+
+## Additional Guidelines
+
+1. File Organization:
+   - Group related files in appropriate directories
+   - Use index files for clean exports
+   - Keep directory depth reasonable
+   - Document complex structures
+
+2. Testing Structure:
+   - Mirror source directory structure in tests
+   - Use descriptive test file names
+   - Separate unit and integration tests
+   - Keep test files close to source files in structure
+
+3. Import Management:
+   - Use consistent import ordering
+   - Prefer named exports
+   - Use barrel files appropriately
+   - Configure proper path aliases
+
+4. Configuration:
+   - Maintain separate tsconfig files
+   - Configure proper module resolution
+   - Set appropriate compiler options
+   - Use project references
+   - Shared utilities should be dependency-free
+   - Use dependency injection for flexible architecture
+
+9. Type Organization:
+   - Place shared types in `types/`

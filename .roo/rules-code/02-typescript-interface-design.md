@@ -1,0 +1,278 @@
+# TypeScript Interface and Type Design Best Practices
+
+## Description
+This rule establishes best practices for designing interfaces and types in TypeScript, ensuring type safety, readability, and maintainability.
+
+## Rule
+When designing interfaces and types in TypeScript:
+
+1. MUST use interfaces for object types that can be implemented
+   ```typescript
+   // ✅ Good
+   interface Repository<T> {
+     find(id: string): Promise<T>;
+     save(item: T): Promise<T>;
+     delete(id: string): Promise<void>;
+   }
+
+   // Implementation
+   class PostgresRepository<T> implements Repository<T> {
+     // implementation
+   }
+   ```
+
+2. MUST use type aliases for unions, intersections, and mapped types
+   ```typescript
+   // ✅ Good
+   type Result<T> = Success<T> | Error;
+   type ReadOnly<T> = {
+     readonly [P in keyof T]: T[P];
+   };
+   ```
+
+3. MUST use discriminated unions for complex type relationships
+   ```typescript
+   // ✅ Good
+   interface Success<T> {
+     kind: 'success';
+     data: T;
+   }
+
+   interface Error {
+     kind: 'error';
+     error: string;
+   }
+
+   type Result<T> = Success<T> | Error;
+   ```
+
+4. MUST use generics appropriately
+   - Use constraints to limit type parameters
+   - Provide meaningful names for type parameters
+   - Use default type parameters when appropriate
+
+   ```typescript
+   // ✅ Good
+   interface Comparable<T extends { id: string }> {
+     compareTo(other: T): number;
+   }
+
+   // ❌ Bad
+   interface Comparable<T> {
+     compareTo(other: any): number;
+   }
+   ```
+
+5. MUST use readonly modifiers for immutable properties
+   ```typescript
+   // ✅ Good
+   interface Config {
+     readonly apiKey: string;
+     readonly baseUrl: string;
+   }
+   ```
+
+6. MUST use utility types effectively
+   ```typescript
+   // ✅ Good: Using built-in utility types
+   type UserUpdate = Partial<User>;
+   type ReadOnlyUser = Readonly<User>;
+   type UserKeys = keyof User;
+   type NameOnly = Pick<User, 'name'>;
+   type WithoutPassword = Omit<User, 'password'>;
+
+   // Custom utility types
+   type DeepPartial<T> = {
+     [P in keyof T]?: T[P] extends object
+       ? DeepPartial<T[P]>
+       : T[P];
+   };
+
+   type DeepReadonly<T> = {
+     readonly [P in keyof T]: T[P] extends object
+       ? DeepReadonly<T[P]>
+       : T[P];
+   };
+   ```
+
+7. MUST use branded types for type safety
+   ```typescript
+   // ✅ Good: Using branded types
+   type UserId = string & { readonly brand: unique symbol };
+   type EmailAddress = string & { readonly brand: 'email' };
+
+   function createUserId(id: string): UserId {
+     return id as UserId;
+   }
+
+   function sendEmail(email: EmailAddress, message: string) {
+     // Type-safe email handling
+   }
+
+   // Usage
+   const userId = createUserId('123');
+   const email = 'user@example.com' as EmailAddress;
+
+   // Error: Type 'string' is not assignable to type 'EmailAddress'
+   const invalidEmail: EmailAddress = 'invalid';
+   ```
+
+8. MUST use conditional types appropriately
+   ```typescript
+   // ✅ Good: Using conditional types
+   type ArrayType<T> = T extends Array<infer U> ? U : never;
+   type PromiseType<T> = T extends Promise<infer U> ? U : T;
+
+   // Advanced conditional types
+   type NonNullableKeys<T> = {
+     [P in keyof T]: null extends T[P] ? never : P
+   }[keyof T];
+
+   type RequiredKeys<T> = {
+     [P in keyof T]: {} extends Pick<T, P> ? never : P
+   }[keyof T];
+   ```
+
+## Benefits
+- Better type safety
+- Improved code maintainability
+- Clear contracts between components
+- Better IDE support and tooling
+- Easier refactoring
+- Self-documenting code
+- Enhanced type expressiveness
+- Reduced runtime errors
+
+## Examples
+
+✅ Correct:
+```typescript
+// Advanced utility types
+type DeepRequired<T> = {
+  [P in keyof T]-?: T[P] extends object
+    ? DeepRequired<T[P]>
+    : T[P];
+};
+
+// Branded type with validation
+type ValidatedEmail = string & { readonly brand: 'email' };
+
+function validateEmail(email: string): ValidatedEmail {
+  if (!email.includes('@')) {
+    throw new Error('Invalid email');
+  }
+  return email as ValidatedEmail;
+}
+
+// Conditional type with constraints
+type ExtractProps<T extends { props: any }> = T['props'];
+
+interface ComponentA {
+  props: { name: string };
+}
+
+type PropsA = ExtractProps<ComponentA>; // { name: string }
+
+// Advanced mapped types
+type OptionalizeMethod<T> = {
+  [P in keyof T]: T[P] extends Function
+    ? T[P] | undefined
+    : T[P];
+};
+```
+
+❌ Incorrect:
+```typescript
+// Bad: Not using branded types
+type UserId = string; // No type safety
+
+// Bad: Complex conditional type without explanation
+type Magic<T> = T extends { [P in keyof T]: infer U }
+  ? U extends object
+    ? Magic<U>
+    : U
+  : never;
+
+// Bad: Not using utility types
+interface PartialUser {
+  name?: string;
+  email?: string;
+  age?: number;
+} // Should use Partial<User>
+
+// Bad: Unnecessary type complexity
+type Wrapper<T> = T extends any ? { value: T } : never;
+```
+
+## Additional Guidelines
+
+1. Utility Types:
+   - Use built-in utility types when possible
+   - Create custom utility types for common patterns
+   - Document complex utility types
+   - Test utility types with different inputs
+
+2. Branded Types:
+   - Use for type-safe identifiers
+   - Add validation when creating branded types
+   - Use unique symbols for better type safety
+   - Document branded type constraints
+
+3. Conditional Types:
+   - Use for type inference
+   - Keep conditions simple and readable
+   - Add type constraints when possible
+   - Document complex conditions
+
+4. Type Composition:
+   - Compose types using intersections
+   - Use unions for variants
+   - Layer types for complex structures
+   - Document type relationships
+
+## Examples
+
+✅ Correct:
+```typescript
+// Generic constraint
+interface HasId {
+  id: string;
+}
+
+interface Repository<T extends HasId> {
+  findById(id: string): Promise<T>;
+  save(item: T): Promise<T>;
+}
+
+// Discriminated union
+type ValidationResult =
+  | { kind: 'valid'; value: string }
+  | { kind: 'invalid'; errors: string[] };
+
+// Mapped type with modifiers
+type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object
+    ? DeepReadonly<T[P]>
+    : T[P];
+};
+```
+
+❌ Incorrect:
+```typescript
+// Bad: Using I prefix
+interface IRepository {
+  // implementation
+}
+
+// Bad: No type safety
+interface DataContainer {
+  data: any;
+}
+
+// Bad: No discriminator
+type Result = Success | Error; // How to distinguish?
+
+// Bad: Not using readonly
+interface Credentials {
+  apiKey: string;  // Should be readonly
+}
