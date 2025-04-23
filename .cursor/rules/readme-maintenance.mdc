@@ -1,9 +1,9 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
- ## Description
+## Description
 This rule ensures that every package in the project maintains a comprehensive and up-to-date README.md file that follows a consistent format and contains all necessary information for users and contributors.
 
 ## Rule
@@ -147,4 +147,4 @@ Installation: npm install
 5. Verify pnpm usage
 6. Check dependencies match package.json
 7. Validate command examples
-8. Ensure proper markdown formatting
+8. Ensure proper markdown formatting 
