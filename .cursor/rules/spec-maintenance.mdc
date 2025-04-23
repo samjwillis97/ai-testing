@@ -1,0 +1,116 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ ## Description
+This rule ensures that the functionality specifications in SPECS.md and the specs/ directory are consistently maintained, synchronized, and updated as the codebase evolves.
+
+## Rule
+1. All code changes MUST be reflected in the relevant specification documents:
+   - New features require specification updates
+   - API changes must be documented
+   - Architectural changes must be reflected
+   - Package structure changes must be updated
+
+2. SPECS.md Requirements:
+   - Must maintain an accurate overview of the system
+   - Must list all packages and their primary responsibilities
+   - Must maintain an up-to-date specification index
+   - Must reflect current package dependencies
+   - Must document the extension system capabilities
+
+3. Individual Specification Files:
+   - Must exist for each major component/package
+   - Must be detailed and comprehensive
+   - Must include API documentation
+   - Must document configuration options
+   - Must specify dependencies and requirements
+   - Must include examples where appropriate
+
+4. Specification Format:
+   - Must use consistent Markdown formatting
+   - Must include clear section headers
+   - Must maintain table of contents where applicable
+   - Must use code blocks for examples
+   - Must use tables for structured data
+   - Must include diagrams where helpful (using Mermaid)
+
+## Implementation
+The Cursor IDE will:
+- Track changes to implementation files
+- Identify affected specification documents
+- Prompt for specification updates
+- Validate specification format
+- Ensure cross-references are maintained
+- Verify specification completeness
+
+## Benefits
+- Maintains accurate and up-to-date documentation
+- Ensures consistency between code and specifications
+- Facilitates onboarding and development
+- Provides clear architectural guidance
+- Supports maintainable codebase
+
+## Examples
+
+✅ Correct Specification Update:
+```markdown
+## API Reference
+
+### addAuthentication(provider: AuthProvider)
+Adds a new authentication provider to the system.
+
+Parameters:
+- provider: AuthProvider - The authentication provider implementation
+
+Returns:
+- boolean - True if provider was successfully added
+
+Example:
+```typescript
+const basicAuth = new BasicAuthProvider();
+const success = addAuthentication(basicAuth);
+```
+```
+
+❌ Incorrect Specification:
+```markdown
+## API
+
+addAuthentication - adds auth provider
+```
+
+## Validation Checklist
+- [ ] All packages have corresponding spec files
+- [ ] SPECS.md reflects current architecture
+- [ ] Package dependencies are up to date
+- [ ] API documentation is complete
+- [ ] Configuration options are documented
+- [ ] Examples are provided and accurate
+- [ ] Cross-references are valid
+- [ ] Formatting is consistent
+
+## Required Sections in Package Specs
+1. Overview
+2. Installation
+3. Configuration
+4. API Reference
+5. Examples
+6. Dependencies
+7. Extension Points (if applicable)
+8. Error Handling
+9. Security Considerations
+10. Performance Considerations
+
+## Mermaid Diagram Requirements
+- Package dependencies must use graph TD
+- Workflows must use flowchart or sequence diagrams
+- State machines must use stateDiagram
+- Complex processes must include visual representation
+
+## Cross-Reference Format
+- Use relative links: [Component Name](/specs/component-name.md)
+- Include section anchors where applicable
+- Maintain bidirectional references
+- Update all affected documents
