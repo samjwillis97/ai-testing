@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import type { Collection, VariableSet, Request } from '@shc/core';
 import { createConfig } from '../config.js';
-import { loadCollection, saveCollection, deleteCollection } from '../storage.js';
+import { saveCollection, deleteCollection } from '../storage.js';
 import crypto from 'crypto';
 import inquirer from 'inquirer';
 
@@ -104,7 +104,7 @@ export function createCollectionsCommand(config: ReturnType<typeof createConfig>
         }
       } else {
         const collections = config.get('collections');
-        const collection = collections.find(c => c.name === name);
+        const collection = collections.find((c: Collection) => c.name === name);
         if (!collection) {
           console.error(`Collection not found: ${name}`);
           process.exit(1);
@@ -120,7 +120,7 @@ export function createCollectionsCommand(config: ReturnType<typeof createConfig>
     .description('Add a variable set to a collection')
     .action((collectionName: string, variableSetName: string) => {
       const collections = config.get('collections');
-      const collection = collections.find(c => c.name === collectionName);
+      const collection = collections.find((c: Collection) => c.name === collectionName);
       if (!collection) {
         console.error(`Collection not found: ${collectionName}`);
         process.exit(1);
@@ -147,7 +147,7 @@ export function createCollectionsCommand(config: ReturnType<typeof createConfig>
     .description('Remove a variable set from a collection')
     .action((collectionName: string, variableSetId: string) => {
       const collections = config.get('collections');
-      const collection = collections.find(c => c.name === collectionName);
+      const collection = collections.find((c: Collection) => c.name === collectionName);
       if (!collection) {
         console.error(`Collection not found: ${collectionName}`);
         process.exit(1);
@@ -175,7 +175,7 @@ export function createCollectionsCommand(config: ReturnType<typeof createConfig>
     .description('List all variable sets in a collection')
     .action((collectionName: string) => {
       const collections = config.get('collections');
-      const collection = collections.find(c => c.name === collectionName);
+      const collection = collections.find((c: Collection) => c.name === collectionName);
       if (!collection) {
         console.error(`Collection not found: ${collectionName}`);
         process.exit(1);
