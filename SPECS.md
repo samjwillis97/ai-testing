@@ -36,13 +36,24 @@ Command-line interface offering:
 - Interactive TUI mode
 - Shell integration
 
+### @shc/neovim-ui
+
+Neovim-based interface providing:
+
+- Native Neovim integration
+- Vim-style keybindings and navigation
+- Collection and environment management
+- Advanced response manipulation
+- Plugin system integration
+
 ## Specification Index
 
-| Package     | Description                                | Link                                     |
-| ----------- | ------------------------------------------ | ---------------------------------------- |
-| @shc/core   | Core HTTP client and foundational features | [Core Package](/specs/core-package.md)   |
-| @shc/web-ui | Web user interface                         | [Web UI](/specs/web-ui.md)               |
-| @shc/cli    | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
+| Package        | Description                                | Link                                     |
+| -------------- | ------------------------------------------ | ---------------------------------------- |
+| @shc/core      | Core HTTP client and foundational features | [Core Package](/specs/core-package.md)   |
+| @shc/web-ui    | Web user interface                         | [Web UI](/specs/web-ui.md)               |
+| @shc/cli       | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
+| @shc/neovim-ui | Neovim-based interface                    | [Neovim UI](/specs/neovim-ui.md)        |
 
 ## Supporting Specifications
 
@@ -59,9 +70,11 @@ graph TD
     Core[@shc/core]
     Web[@shc/web-ui]
     CLI[@shc/cli]
+    Neovim[@shc/neovim-ui]
 
     Web --> Core
     CLI --> Core
+    Neovim --> Core
 ```
 
 ## Extension System
