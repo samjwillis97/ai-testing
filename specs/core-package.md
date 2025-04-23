@@ -617,3 +617,209 @@ class PluginLoadError extends Error implements PluginError {
 - Peer dependency management
 - Version compatibility checking
 - Security vulnerability scanning
+
+### Config Templating
+
+The core package is responsible for handling configuration templating and resolution. This includes:
+
+- Template syntax parsing and validation
+- Plugin function resolution and execution
+- Environment variable substitution
+- Dynamic value generation
+- Recursive object resolution
+
+#### Template Syntax
+
+```typescript
+// Basic template syntax
+${plugin.function()}
+${plugin.function(arg1, arg2)}
+
+// Examples
+url: "https://api.example.com/${env.get('API_PATH')}"
+headers:
+  X-Request-ID: "${uuid.generate()}"
+  Authorization: "Bearer ${auth.getToken()}"
+body:
+  timestamp: "${datetime.now()}"
+  data: "${crypto.encrypt(payload, env.KEY)}"
+```
+
+#### Template Resolution Process
+
+1. **Template Parsing**
+   ```typescript
+   interface TemplateFunctionCall {
+     plugin: string;
+     function: string;
+     arguments: any[];
+   }
+
+   // Example parsing
+   "${plugin.function(arg1, arg2)}" -> {
+     plugin: "plugin",
+     function: "function",
+     arguments: ["arg1", "arg2"]
+   }
+   ```
+
+2. **Function Resolution**
+   - Locate plugin by name
+   - Validate function exists
+   - Validate function arguments
+   - Execute function with provided arguments
+
+3. **Value Substitution**
+   - Replace template expressions with resolved values
+   - Handle type conversion
+   - Maintain value types where possible
+
+4. **Recursive Resolution**
+   - Process nested objects and arrays
+   - Resolve all template expressions at any depth
+   - Preserve object structure
+
+#### Template Function Types
+
+1. **Environment Functions**
+   ```yaml
+   # Configuration
+   database:
+     host: "${env.get('DB_HOST', 'localhost')}"
+     port: "${env.get('DB_PORT', 5432)}"
+     credentials:
+       username: "${env.required('DB_USER')}"
+       password: "${env.required('DB_PASS')}"
+   ```
+
+2. **Dynamic Value Functions**
+   ```yaml
+   # Configuration
+   request:
+     headers:
+       X-Request-ID: "${uuid.v4()}"
+       X-Timestamp: "${datetime.now('ISO')}"
+     body:
+       correlationId: "${random.string(16)}"
+       signature: "${crypto.hash(payload)}"
+   ```
+
+3. **Data Transformation Functions**
+   ```yaml
+   # Configuration
+   request:
+     body:
+       data: "${transform.base64(input)}"
+       encrypted: "${crypto.encrypt(sensitive, key)}"
+       normalized: "${format.lowercase(value)}"
+   ```
+
+#### Error Handling
+
+```typescript
+class TemplateResolutionError extends Error {
+  constructor(
+    public readonly template: string,
+    message: string,
+    public readonly cause?: Error
+  ) {
+    super(`Failed to resolve template "${template}": ${message}`);
+  }
+}
+
+// Error scenarios:
+// - Plugin not found
+// - Function not found
+// - Invalid arguments
+// - Function execution error
+// - Type conversion error
+```
+
+#### Configuration Loading
+
+1. **File Loading**
+   - Support for YAML and JSON formats
+   - File path resolution
+   - Include directive processing
+   - Environment-specific configs
+
+2. **Validation**
+   - Schema validation
+   - Type checking
+   - Required field validation
+   - Format validation
+
+3. **Processing**
+   - Template resolution
+   - Environment variable substitution
+   - Default value handling
+   - Cross-reference resolution
+
+### Plugin System
+
+#### Plugin Configuration Resolution
+
+The core package is responsible for resolving plugin configurations:
+
+1. **Plugin Source Resolution**
+   ```yaml
+   plugins:
+     auth:
+       - name: oauth2
+         # NPM package
+         package: "@shc/oauth2-plugin"
+         version: "^1.0.0"
+       
+       - name: custom-auth
+         # Local path
+         path: "./plugins/custom-auth"
+       
+       - name: enterprise-auth
+         # Git repository
+         git: "https://github.com/org/auth-plugin.git"
+         ref: "v1.2.0"
+   ```
+
+2. **Plugin Configuration Resolution**
+   ```yaml
+   plugins:
+     preprocessors:
+       - name: request-transformer
+         config:
+           # Template resolution in plugin config
+           logLevel: "${env.get('LOG_LEVEL', 'info')}"
+           apiKey: "${secrets.get('API_KEY')}"
+           rules:
+             - match: "/api/users"
+               headers:
+                 X-Tenant: "${tenant.current()}"
+   ```
+
+3. **Plugin Dependencies**
+   ```yaml
+   plugins:
+     auth:
+       - name: oauth2
+         package: "@shc/oauth2-plugin"
+         dependencies:
+           - name: cache
+             package: "@shc/cache-plugin"
+           - name: crypto
+             package: "@shc/crypto-plugin"
+   ```
+
+4. **Plugin Permissions**
+   ```yaml
+   plugins:
+     transformers:
+       - name: data-processor
+         permissions:
+           filesystem:
+             read: ["config/*", "data/*"]
+             write: ["cache/*", "logs/*"]
+           network:
+             - "api.example.com"
+           env:
+             - "API_*"
+             - "APP_*"
+   ```
