@@ -17,6 +17,6 @@ program
   .option('-d, --data <data>', 'Request body data')
   .action(send);
 
-program.command('collections').description('Manage request collections').addCommand(collections);
+program.addCommand(collections);
 
 program.parse();
