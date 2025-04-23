@@ -8,9 +8,17 @@ The core package (@shc/core) is the foundation of SHC, providing HTTP client fun
 
 - Language: TypeScript
 - Base HTTP library: Axios
-- Module system: ES Modules
+- Module system: ES Modules with dual CJS support
+  - Primary: ES Modules for modern environments
+  - Secondary: CommonJS build for legacy support
+  - Build tool: Rollup for dual-format compilation
+  - Rationale:
+    - Maximizes compatibility across Next.js and CLI environments
+    - Enables modern ESM features while maintaining backwards compatibility
+    - Allows gradual adoption in existing projects
+    - Provides better tree-shaking and build optimization
 - Package manager: pnpm
-- Testing framework: Jest
+- Testing framework: Vitest
 - Documentation: TypeDoc
 
 ## Public API
