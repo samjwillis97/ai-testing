@@ -603,6 +603,201 @@ class PluginLoadError extends Error implements PluginError {
 - Configuration API
 - Authentication providers
 
+## Public API
+
+The core package exposes several key APIs for consumers to interact with the HTTP client, plugin system, and configuration management.
+
+### HTTP Client API
+
+```typescript
+interface SHCClient {
+  // Create a new HTTP client instance with optional configuration
+  static create(config?: SHCConfig): SHCClient;
+  
+  // Send HTTP requests
+  request<T>(config: RequestConfig): Promise<Response<T>>;
+  get<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
+  post<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
+  put<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
+  delete<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
+  patch<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
+  head<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
+  options<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
+
+  // Configure defaults for all requests
+  setDefaultHeader(name: string, value: string): void;
+  setTimeout(timeout: number): void;
+  setBaseURL(url: string): void;
+  
+  // Plugin management
+  use(plugin: SHCPlugin): void;
+  removePlugin(pluginName: string): void;
+  
+  // Event handling
+  on(event: SHCEvent, handler: EventHandler): void;
+  off(event: SHCEvent, handler: EventHandler): void;
+}
+
+// Example Usage:
+const client = SHCClient.create({
+  baseURL: 'https://api.example.com',
+  timeout: 5000,
+  plugins: [
+    new OAuth2Plugin({
+      clientId: 'your-client-id',
+      clientSecret: 'your-client-secret'
+    })
+  ]
+});
+
+// Making requests
+const response = await client.get('/users', {
+  headers: {
+    'Accept': 'application/json'
+  },
+  query: {
+    page: 1,
+    limit: 10
+  }
+});
+
+// Using with TypeScript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const user = await client.post<User>('/users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+```
+
+### Plugin System API
+
+```typescript
+interface PluginManager {
+  // Register plugins
+  register(plugin: SHCPlugin): void;
+  registerFromConfig(config: PluginConfig): Promise<void>;
+  
+  // Plugin lifecycle management
+  initialize(): Promise<void>;
+  destroy(): Promise<void>;
+  
+  // Plugin utilities
+  getPlugin(name: string): SHCPlugin | undefined;
+  listPlugins(): SHCPlugin[];
+  isPluginEnabled(name: string): boolean;
+  
+  // Dynamic loading
+  loadFromNpm(packageName: string, version?: string): Promise<void>;
+  loadFromPath(path: string): Promise<void>;
+  loadFromGit(url: string, ref?: string): Promise<void>;
+}
+
+// Example Usage:
+const pluginManager = new PluginManager();
+
+// Register a plugin
+await pluginManager.registerFromConfig({
+  name: 'request-logger',
+  package: '@shc/request-logger',
+  config: {
+    logLevel: 'debug',
+    outputFormat: 'json'
+  }
+});
+
+// Load plugin from npm
+await pluginManager.loadFromNpm('@shc/oauth2-plugin', '^1.0.0');
+
+// Get plugin instance
+const logger = pluginManager.getPlugin('request-logger');
+```
+
+### Configuration API
+
+```typescript
+interface ConfigManager {
+  // Load and parse configuration
+  loadFromFile(path: string): Promise<void>;
+  loadFromString(content: string): Promise<void>;
+  
+  // Configuration access
+  get<T>(path: string, defaultValue?: T): T;
+  set(path: string, value: any): void;
+  has(path: string): boolean;
+  
+  // Environment variables
+  getEnv(name: string, defaultValue?: string): string;
+  requireEnv(name: string): string;
+  
+  // Template resolution
+  resolve(template: string): Promise<string>;
+  resolveObject<T>(obj: T): Promise<T>;
+}
+
+// Example Usage:
+const config = new ConfigManager();
+
+// Load configuration
+await config.loadFromFile('config.yaml');
+
+// Access configuration values
+const apiKey = config.get('api.key');
+const dbConfig = config.get('database', { host: 'localhost' });
+
+// Resolve templates
+const resolvedUrl = await config.resolve(
+  'https://${env.get("API_HOST")}/v1'
+);
+
+// Resolve entire configuration object
+const requestConfig = await config.resolveObject({
+  url: '${env.get("API_URL")}',
+  headers: {
+    'X-API-Key': '${secrets.get("API_KEY")}',
+    'X-Request-ID': '${uuid.v4()}'
+  }
+});
+```
+
+### Event System API
+
+```typescript
+interface EventEmitter {
+  // Event subscription
+  on(event: string, handler: EventHandler): void;
+  once(event: string, handler: EventHandler): void;
+  off(event: string, handler: EventHandler): void;
+  
+  // Event emission
+  emit(event: string, ...args: any[]): void;
+  
+  // Utilities
+  listenerCount(event: string): number;
+  removeAllListeners(event?: string): void;
+}
+
+// Example Usage:
+const client = SHCClient.create();
+
+// Subscribe to events
+client.on('request', (config) => {
+  console.log(`Making request to ${config.url}`);
+});
+
+client.on('response', (response) => {
+  console.log(`Received response with status ${response.status}`);
+});
+
+client.on('error', (error) => {
+  console.error('Request failed:', error);
+});
+```
+
 ## Error Handling
 
 - Detailed error reporting
