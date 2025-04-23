@@ -54,9 +54,9 @@ The Cursor IDE will:
 ✅ Correct Quality Check Workflow:
 ```bash
 # After making changes
-pnpm build
-pnpm lint
-pnpm test
+pnpm run build
+pnpm run lint
+pnpm run test
 
 # If all checks pass, proceed with commit
 git add .
@@ -75,38 +75,38 @@ git commit -m "quick fix"
 ### Build
 ```bash
 # Full build
-pnpm build
+pnpm run build
 
 # Watch mode for development
-pnpm build:watch
+pnpm run build:watch
 ```
 
 ### Lint
 ```bash
 # Run all linters
-pnpm lint
+pnpm run lint
 
 # Fix auto-fixable issues
-pnpm lint:fix
+pnpm run lint:fix
 
 # Run specific linter
-pnpm lint:ts     # TypeScript
-pnpm lint:style  # Style/CSS
-pnpm lint:test   # Test files
+pnpm run lint:ts     # TypeScript
+pnpm run lint:style  # Style/CSS
+pnpm run lint:test   # Test files
 ```
 
 ### Test
 ```bash
 # Run all tests
-pnpm test
+pnpm run test
 
 # Run tests in watch mode
-pnpm test:watch
+pnpm run test:watch
 
 # Run specific test suite
-pnpm test:unit
-pnpm test:integration
-pnpm test:e2e
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:e2e
 ```
 
 ## Quality Check Results
