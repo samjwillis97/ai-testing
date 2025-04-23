@@ -1,13 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
 import EventEmitter from 'eventemitter3';
 import type { EventEmitter as EventEmitterType } from 'eventemitter3';
-import { RequestConfig, ResponseData, Plugin, Environment } from './types.js';
+import { RequestConfig, ResponseData, Plugin, Environment, VariableSet } from './types.js';
 
 interface ClientEvents {
   response: (response: ResponseData) => void;
   error: (error: Error) => void;
   'plugin:added': (plugin: Plugin) => void;
   'environment:changed': (env: Environment) => void;
+  'variableset:changed': (variableSet: VariableSet) => void;
 }
 
 export class HttpClient extends (EventEmitter as unknown as {
@@ -16,6 +17,8 @@ export class HttpClient extends (EventEmitter as unknown as {
   private axios: AxiosInstance;
   private plugins: Plugin[] = [];
   private currentEnvironment?: Environment;
+  private variableSets: Map<string, VariableSet> = new Map();
+  private activeVariableSets: Set<string> = new Set();
 
   constructor(config?: RequestConfig) {
     super();
@@ -26,7 +29,7 @@ export class HttpClient extends (EventEmitter as unknown as {
     const startTime = Date.now();
 
     try {
-      // Apply environment variables
+      // Apply environment variables and variable sets
       config = this.applyEnvironment(config);
 
       // Run request through plugins
@@ -83,7 +86,44 @@ export class HttpClient extends (EventEmitter as unknown as {
       this.axios = axios.create({ baseURL: env.baseUrl });
     }
 
+    // Activate variable sets associated with the environment
+    this.activeVariableSets.clear();
+    if (env.variableSets) {
+      env.variableSets.forEach((id) => this.activeVariableSets.add(id));
+    }
+
     this.emit('environment:changed', env);
+  }
+
+  addGlobalVariableSet(variableSet: VariableSet): void {
+    this.variableSets.set(variableSet.id, variableSet);
+    if (variableSet.isGlobal) {
+      this.activeVariableSets.add(variableSet.id);
+    }
+    this.emit('variableset:changed', variableSet);
+  }
+
+  activateVariableSet(variableSetId: string): void {
+    this.activeVariableSets.add(variableSetId);
+  }
+
+  deactivateVariableSet(variableSetId: string): void {
+    this.activeVariableSets.delete(variableSetId);
+  }
+
+  private getActiveVariableSets(): VariableSet[] {
+    return Array.from(this.variableSets.values()).filter(
+      (vs) => vs.isGlobal || this.activeVariableSets.has(vs.id)
+    );
+  }
+
+  private resolveVariables(value: string, variables: Record<string, string>): string {
+    let resolvedValue = value;
+    Object.entries(variables).forEach(([key, val]) => {
+      const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+      resolvedValue = resolvedValue.replace(regex, String(val));
+    });
+    return resolvedValue;
   }
 
   private applyEnvironment(config: RequestConfig): RequestConfig {
@@ -91,25 +131,34 @@ export class HttpClient extends (EventEmitter as unknown as {
       return config;
     }
 
-    const { variables } = this.currentEnvironment;
     const newConfig = { ...config };
+    const headers = config.headers || {};
 
-    // Apply environment variables to headers
+    // Collect all variables from environment and active variable sets
+    const allVariables: Record<string, string> = {
+      ...this.currentEnvironment.variables,
+    };
+
+    // Add variables from active variable sets (later sets override earlier ones)
+    this.getActiveVariableSets().forEach((variableSet) => {
+      Object.assign(allVariables, variableSet.variables);
+    });
+
+    // Apply variables to headers
     if (config.environmentVariables) {
-      const headers = config.headers || {};
-
       Object.entries(config.environmentVariables).forEach(([key, value]) => {
         if (typeof value === 'string') {
-          let resolvedValue = value;
-          Object.entries(variables).forEach(([envKey, envValue]) => {
-            resolvedValue = resolvedValue.replace(`\${${envKey}}`, String(envValue));
-          });
-          headers[key] = resolvedValue;
+          headers[key] = this.resolveVariables(value, allVariables);
         }
       });
 
       newConfig.headers = headers;
       delete newConfig.environmentVariables;
+    }
+
+    // Apply variables to URL if present
+    if (newConfig.url) {
+      newConfig.url = this.resolveVariables(newConfig.url, allVariables);
     }
 
     return newConfig;

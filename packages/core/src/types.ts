@@ -21,10 +21,20 @@ export interface AuthProvider {
   getAuthHeaders(): Record<string, string>;
 }
 
+export interface VariableSet {
+  id: string;
+  name: string;
+  description?: string;
+  variables: Record<string, string>;
+  isGlobal?: boolean;
+}
+
 export interface Environment {
+  id: string;
   name: string;
   variables: Record<string, string>;
   baseUrl?: string;
+  variableSets?: string[]; // References to VariableSet IDs
 }
 
 export interface Collection {
@@ -33,6 +43,7 @@ export interface Collection {
   description?: string;
   requests: Request[];
   environments?: Environment[];
+  variableSets?: VariableSet[]; // Collection-specific variable sets
 }
 
 export interface Request {
