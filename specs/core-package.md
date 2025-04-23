@@ -798,6 +798,137 @@ client.on('error', (error) => {
 });
 ```
 
+### Collections API
+
+```typescript
+interface CollectionManager {
+  // Collection operations
+  loadCollection(path: string): Promise<Collection>;
+  saveCollection(collection: Collection): Promise<void>;
+  createCollection(name: string, config?: CollectionConfig): Promise<Collection>;
+  deleteCollection(name: string): Promise<void>;
+  
+  // Request management
+  addRequest(collection: string, request: Request): Promise<void>;
+  updateRequest(collection: string, requestId: string, request: Request): Promise<void>;
+  deleteRequest(collection: string, requestId: string): Promise<void>;
+  
+  // Variable set management
+  addVariableSet(collection: string, variableSet: VariableSet): Promise<void>;
+  updateVariableSet(collection: string, name: string, variableSet: VariableSet): Promise<void>;
+  getActiveVariableSet(collection: string): Promise<VariableSet>;
+  
+  // Environment management
+  setEnvironment(collection: string, environment: string): Promise<void>;
+  getEnvironments(collection: string): Promise<string[]>;
+  
+  // Request execution
+  executeRequest(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response>;
+}
+
+interface Collection {
+  name: string;
+  version: string;
+  variableSets: VariableSet[];
+  requests: Request[];
+  baseUrl?: string;
+  authentication?: AuthConfig;
+}
+
+interface Request {
+  id: string;
+  name: string;
+  method: HTTPMethod;
+  path: string;
+  headers?: Record<string, string>;
+  query?: Record<string, string>;
+  body?: any;
+  authentication?: AuthConfig;
+  variables?: Record<string, any>;
+}
+
+interface VariableSet {
+  name: string;
+  global?: Record<string, any>;
+  environments: Record<string, Record<string, any>>;
+  nested?: Record<string, any>;
+}
+
+interface ExecuteOptions {
+  environment?: string;
+  variableOverrides?: Record<string, any>;
+  timeout?: number;
+}
+
+// Example Usage:
+const collectionManager = new CollectionManager();
+
+// Load a collection
+const collection = await collectionManager.loadCollection('./api-collection.yaml');
+
+// Create a new collection
+const newCollection = await collectionManager.createCollection('my-api', {
+  baseUrl: 'https://api.example.com',
+  variableSets: [{
+    name: 'default',
+    environments: {
+      development: {
+        apiKey: 'dev-key',
+        timeout: 5000
+      },
+      production: {
+        apiKey: 'prod-key',
+        timeout: 3000
+      }
+    }
+  }]
+});
+
+// Add a request to the collection
+await collectionManager.addRequest('my-api', {
+  id: 'get-users',
+  name: 'Get Users',
+  method: 'GET',
+  path: '/users',
+  headers: {
+    'Accept': 'application/json',
+    'X-API-Key': '${variables.apiKey}'
+  },
+  query: {
+    limit: '10',
+    offset: '0'
+  }
+});
+
+// Set the environment
+await collectionManager.setEnvironment('my-api', 'development');
+
+// Execute a request from the collection
+const response = await collectionManager.executeRequest('my-api', 'get-users', {
+  variableOverrides: {
+    limit: '20'
+  }
+});
+
+// Working with variable sets
+const variableSet: VariableSet = {
+  name: 'test-users',
+  environments: {
+    development: {
+      users: [
+        { id: 1, name: 'Test User 1' },
+        { id: 2, name: 'Test User 2' }
+      ]
+    }
+  }
+};
+
+await collectionManager.addVariableSet('my-api', variableSet);
+
+// Get active variable set
+const activeVars = await collectionManager.getActiveVariableSet('my-api');
+```
+
 ## Error Handling
 
 - Detailed error reporting
