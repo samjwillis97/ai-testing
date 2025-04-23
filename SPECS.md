@@ -46,6 +46,20 @@ Neovim-based interface providing:
 - Advanced response manipulation
 - Plugin system integration
 
+### Base Plugins
+
+A collection of example plugins showcasing the plugin system capabilities:
+
+- Request/Response Logging
+- Request Rate Limiting
+- Response Caching
+- Request Retry
+- OAuth2 Authentication
+- Response Transform
+- Request Template
+
+These plugins are maintained in the `/plugins` directory at the root of the repository, with each plugin in its own subdirectory. This structure allows them to serve as examples for custom plugin development and enables easy importing of external plugins.
+
 ## Specification Index
 
 | Package        | Description                                | Link                                     |
@@ -54,6 +68,7 @@ Neovim-based interface providing:
 | @shc/web-ui    | Web user interface                         | [Web UI](/specs/web-ui.md)               |
 | @shc/cli       | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
 | @shc/neovim-ui | Neovim-based interface                    | [Neovim UI](/specs/neovim-ui.md)        |
+| Base Plugins   | Example plugin implementations             | [Base Plugins](/specs/base-plugins.md)   |
 
 ## Supporting Specifications
 
@@ -62,6 +77,7 @@ Neovim-based interface providing:
 | Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
 | Authentication        | Authentication system and providers   | [Authentication](/specs/authentication.md)               |
 | Environment Variables | Configuration and variable management | [Environment Variables](/specs/environment-variables.md) |
+| Plugin System        | Plugin architecture and development   | [Plugin System](/specs/plugin-system.md)                |
 
 ## Package Dependencies
 
@@ -71,10 +87,12 @@ graph TD
     Web[@shc/web-ui]
     CLI[@shc/cli]
     Neovim[@shc/neovim-ui]
+    Plugins[Base Plugins]
 
     Web --> Core
     CLI --> Core
     Neovim --> Core
+    Plugins -.-> Core
 ```
 
 ## Extension System
@@ -87,3 +105,5 @@ The extension system is a core feature that lives within the @shc/core package, 
 - Configuration extension points
 - Custom authentication providers
 - Response transformers and visualizers
+
+For detailed information about the base plugins and plugin development, see the [Base Plugins](/specs/base-plugins.md) specification.
