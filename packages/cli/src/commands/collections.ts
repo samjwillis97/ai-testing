@@ -1,28 +1,28 @@
 import { Command } from 'commander';
+import type { Collection, VariableSet, Request } from '@shc/core';
+import { createConfig } from '../config.js';
+import { loadCollection, saveCollection, deleteCollection } from '../storage.js';
+import crypto from 'crypto';
 import inquirer from 'inquirer';
-import Conf from 'conf';
-import type { Collection, Request } from '@shc/core';
 
-export const createConfig = () =>
-  new Conf<{ collections: Collection[] }>({
-    projectName: 'shc',
-    defaults: {
-      collections: [],
-    },
-  });
+export function createCollectionsCommand(config: ReturnType<typeof createConfig>) {
+  const command = new Command('collections');
 
-export const createCollectionsCommand = (config: Conf<{ collections: Collection[] }>) => {
-  const listCollections = () => {
-    try {
+  command
+    .command('list')
+    .description('List all collections')
+    .action(() => {
       const collections = config.get('collections');
+      console.log('\nCollections');
+      console.log('---------------');
+      
       if (collections.length === 0) {
         console.log('No collections found');
         return;
       }
 
-      collections.forEach((collection) => {
+      collections.forEach((collection: Collection) => {
         console.log(`\n${collection.name}`);
-        console.log('-'.repeat(collection.name.length));
         if (collection.description) {
           console.log(collection.description);
         }
@@ -31,154 +31,183 @@ export const createCollectionsCommand = (config: Conf<{ collections: Collection[
           console.log(`- ${request.name}: ${request.config.method} ${request.config.url}`);
         });
       });
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : 'Unknown error');
-    }
-  };
-
-  const createCollection = async () => {
-    const { name, description } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'name',
-        message: 'Collection name:',
-        validate: (input) => input.length > 0,
-      },
-      {
-        type: 'input',
-        name: 'description',
-        message: 'Collection description (optional):',
-      },
-    ]);
-
-    const collection: Collection = {
-      id: Date.now().toString(),
-      name,
-      description,
-      requests: [],
-    };
-
-    const collections = config.get('collections');
-    collections.push(collection);
-    config.set('collections', collections);
-
-    console.log(`Collection created: ${name}`);
-  };
-
-  const addRequest = async () => {
-    const collections = config.get('collections');
-    if (collections.length === 0) {
-      console.log('No collections found. Create a collection first.');
-      return;
-    }
-
-    const { collectionId } = await inquirer.prompt({
-      type: 'list',
-      name: 'collectionId',
-      message: 'Select a collection:',
-      choices: collections.map((c) => ({ name: c.name, value: c.id })),
     });
 
-    const { name, method, url, description } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'name',
-        message: 'Request name:',
-        validate: (input) => input.length > 0,
-      },
-      {
-        type: 'input',
-        name: 'description',
-        message: 'Request description (optional):',
-      },
-      {
-        type: 'list',
-        name: 'method',
-        message: 'HTTP method:',
-        choices: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      },
-      {
-        type: 'input',
-        name: 'url',
-        message: 'URL:',
-        validate: (input) => input.length > 0,
-      },
-    ]);
+  command
+    .command('create [name]')
+    .description('Create a new collection')
+    .action(async (name?: string) => {
+      let collectionName = name;
+      if (!collectionName) {
+        const answers = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'name',
+            message: 'Collection name:',
+            validate: (input) => input.length > 0 || 'Name is required'
+          },
+          {
+            type: 'input',
+            name: 'description',
+            message: 'Collection description (optional):'
+          }
+        ]) as { name: string; description?: string };
+        collectionName = answers.name;
+        const collection: Collection = {
+          id: Date.now().toString(),
+          name: collectionName,
+          description: answers.description || undefined,
+          requests: [],
+        };
+        saveCollection(config, collection);
+      } else {
+        const collection: Collection = {
+          id: Date.now().toString(),
+          name: collectionName,
+          requests: [],
+        };
+        saveCollection(config, collection);
+      }
+      console.log(`Collection created: ${collectionName}`);
+    });
 
-    const request: Request = {
-      id: Date.now().toString(),
-      name,
-      description,
-      config: {
-        method,
-        url,
-      },
-    };
-
-    const collectionIndex = collections.findIndex((c) => c.id === collectionId);
-    collections[collectionIndex].requests.push(request);
-    config.set('collections', collections);
-
-    console.log('Request added successfully');
-  };
-
-  const deleteCollection = async () => {
-    const collections = config.get('collections');
-    if (collections.length === 0) {
-      console.log('No collections found');
-      return;
-    }
-
-    const { collection, confirm } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'collection',
-        message: 'Select a collection to delete:',
-        choices: collections.map((c) => c.name),
-      },
-      {
-        type: 'confirm',
-        name: 'confirm',
-        message: 'Are you sure you want to delete this collection?',
-        default: false,
-      },
-    ]);
-
-    if (!confirm) {
-      console.log('Operation cancelled');
-      return;
-    }
-
-    const updatedCollections = collections.filter((c) => c.name !== collection);
-    config.set('collections', updatedCollections);
-    console.log(`Collection deleted: ${collection}`);
-  };
-
-  const collections = new Command()
-    .name('collections')
-    .description('Manage request collections')
-    .argument('<command>', 'Command to execute')
-    .action(async (command) => {
-      switch (command) {
-        case 'list':
-          listCollections();
-          break;
-        case 'create':
-          await createCollection();
-          break;
-        case 'add-request':
-          await addRequest();
-          break;
-        case 'delete':
-          await deleteCollection();
-          break;
-        default:
-          console.error('Unknown command');
+  command
+    .command('delete [name]')
+    .description('Delete a collection')
+    .action(async (name?: string) => {
+      if (!name) {
+        const collections = config.get('collections');
+        if (collections.length === 0) {
+          console.error('No collections found');
           process.exit(1);
+          return;
+        }
+
+        const answers = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'collection',
+            message: 'Select collection to delete:',
+            choices: collections.map(c => c.name)
+          },
+          {
+            type: 'confirm',
+            name: 'confirm',
+            message: 'Are you sure you want to delete this collection?',
+            default: false
+          }
+        ]);
+
+        if (answers.confirm) {
+          deleteCollection(config, answers.collection);
+          console.log(`Collection deleted: ${answers.collection}`);
+        }
+      } else {
+        const collections = config.get('collections');
+        const collection = collections.find(c => c.name === name);
+        if (!collection) {
+          console.error(`Collection not found: ${name}`);
+          process.exit(1);
+          return;
+        }
+        deleteCollection(config, name);
+        console.log(`Collection deleted: ${name}`);
       }
     });
 
-  return collections;
-};
+  command
+    .command('add-variable-set <collection> <n>')
+    .description('Add a variable set to a collection')
+    .action((collectionName: string, variableSetName: string) => {
+      const collections = config.get('collections');
+      const collection = collections.find(c => c.name === collectionName);
+      if (!collection) {
+        console.error(`Collection not found: ${collectionName}`);
+        process.exit(1);
+        return;
+      }
+
+      if (!collection.variableSets) {
+        collection.variableSets = [];
+      }
+
+      const variableSet: VariableSet = {
+        id: crypto.randomUUID(),
+        name: variableSetName,
+        variables: {},
+      };
+
+      collection.variableSets.push(variableSet);
+      saveCollection(config, collection);
+      console.log(`Variable set created: ${variableSetName}`);
+    });
+
+  command
+    .command('remove-variable-set <collection> <id>')
+    .description('Remove a variable set from a collection')
+    .action((collectionName: string, variableSetId: string) => {
+      const collections = config.get('collections');
+      const collection = collections.find(c => c.name === collectionName);
+      if (!collection) {
+        console.error(`Collection not found: ${collectionName}`);
+        process.exit(1);
+        return;
+      }
+
+      if (!collection.variableSets) {
+        collection.variableSets = [];
+      }
+
+      const index = collection.variableSets.findIndex((vs: VariableSet) => vs.id === variableSetId);
+      if (index === -1) {
+        console.error(`Variable set not found: ${variableSetId}`);
+        process.exit(1);
+        return;
+      }
+
+      collection.variableSets.splice(index, 1);
+      saveCollection(config, collection);
+      console.log(`Variable set removed: ${variableSetId}`);
+    });
+
+  command
+    .command('list-variable-sets <collection>')
+    .description('List all variable sets in a collection')
+    .action((collectionName: string) => {
+      const collections = config.get('collections');
+      const collection = collections.find(c => c.name === collectionName);
+      if (!collection) {
+        console.error(`Collection not found: ${collectionName}`);
+        process.exit(1);
+        return;
+      }
+
+      console.log(`\nVariable Sets for ${collection.name}`);
+      console.log('---------------');
+
+      if (!collection.variableSets || collection.variableSets.length === 0) {
+        console.log('No variable sets found');
+        return;
+      }
+
+      collection.variableSets.forEach((vs: VariableSet) => {
+        console.log(`\n${vs.name} (${vs.id})`);
+        if (vs.description) {
+          console.log(vs.description);
+        }
+        console.log('\nVariables:');
+        Object.entries(vs.variables).forEach(([key, value]) => {
+          console.log(`- ${key}: ${value}`);
+        });
+      });
+    });
+
+  command.on('command:*', () => {
+    console.error('Unknown command');
+    process.exit(1);
+  });
+
+  return command;
+}
 
 export const collections = createCollectionsCommand(createConfig());
