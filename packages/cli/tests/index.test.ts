@@ -56,10 +56,7 @@ describe('CLI entry point', () => {
   });
 
   it('should register the collections command', () => {
-    const commandInstance = mockProgram.command.mock.results[1].value;
-    expect(mockProgram.command).toHaveBeenCalledWith('collections');
-    expect(commandInstance.description).toHaveBeenCalledWith('Manage request collections');
-    expect(commandInstance.addCommand).toHaveBeenCalledWith(collections);
+    expect(mockProgram.addCommand).toHaveBeenCalledWith(collections);
   });
 
   it('should parse command line arguments', () => {
