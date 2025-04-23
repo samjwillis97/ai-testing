@@ -6,153 +6,156 @@ Comprehensive system for saving, organizing, and managing HTTP requests across d
 
 ## Collection File Format
 
-- YAML or JSON support
-- Standardized structure for API collections
-- Version-controlled and human-readable
+Collections are stored in YAML or JSON format, providing a standardized structure for organizing API requests and their configurations.
 
-## Variable Sets
-
-### Concept
-
-Variable sets are powerful, nested configuration files that provide dynamic templating and environment-specific configurations.
-
-### Key Features
-
-- Nested value support
-- Environment-driven configuration
-- Hierarchical variable resolution
-- Flexible interpolation
-- Reusable across collections
-
-### Variable Set File Structure
-
-```yaml
-name: Environment Variable Set
-version: 1.0.0
-
-# Top-level variables
-global:
-  company: 'MyCompany'
-
-# Environment-specific configurations
-environments:
-  dev:
-    base_url: 'http://localhost:3000'
-    user:
-      fullname: 'Development User'
-      role: 'developer'
-    database:
-      host: 'localhost'
-      port: 5432
-
-  prod:
-    base_url: 'https://api.mycompany.com'
-    user:
-      fullname: 'Production Admin'
-      role: 'admin'
-    database:
-      host: 'prod-db.mycompany.com'
-      port: 5432
-
-# Nested variable support
-nested:
-  deep:
-    value: 'Deeply nested configuration'
-```
-
-### Variable Set Usage in Collections
-
-```yaml
-# Reference variable sets in collection files
-variable_sets:
-  - dev_config.yaml
-  - shared_variables.yaml
-
-# Dynamic variable resolution
-base_url: '{{ variable_sets.base_url }}'
-username: '{{ variable_sets.user.fullname }}'
-```
-
-### Variable Resolution Mechanism
-
-1. Prioritize environment-specific variables
-2. Support nested variable access
-3. Fallback to global variables
-4. Allow runtime overrides
-
-## Collection Structure
+### Structure
 
 ```yaml
 name: API Collection Name
 version: 1.0.0
 
-# Variable set integration
+# Base URL for all requests in this collection
+base_url: 'https://api.example.com'
+
+# Variable set configuration
+# See configuration.md for detailed variable sets documentation
 variable_sets:
-  - dev_environment.yaml
-  - global_variables.yaml
+  - name: user
+    description: "User information for requests"
+    defaultValue: "john"
+    activeValue: "john"
+    values:
+      john:
+        firstName: "John"
+        lastName: "Doe"
+        email: "john@example.com"
+      jane:
+        firstName: "Jane"
+        lastName: "Smith"
+        email: "jane@example.com"
 
-# Dynamic base URL from variable set
-base_url: '{{ variable_sets.base_url }}'
+# Override global variable sets at collection level
+variable_set_overrides:
+  api: "staging"
+  auth: "admin"
 
+# Authentication configuration
 authentication:
   type: bearer
-  pre_request_script: |
-    # Use variable sets for dynamic authentication
-    token = "{{ variable_sets.auth.token }}"
+  token: "${variables.auth.token}"
 
-environments:
-  development:
-    variables:
-      # Override or extend variable sets
-      custom_var: additional_value
-
-endpoints:
-  - name: User Endpoint
+# Requests in this collection
+requests:
+  - id: get-user-profile
+    name: Get User Profile
+    description: "Retrieve the current user's profile"
     method: GET
-    path: '/users/{{ variable_sets.user.id }}'
+    path: '/users/profile'
     headers:
-      Authorization: 'Bearer {{ variable_sets.auth.token }}'
+      Accept: 'application/json'
+      Authorization: 'Bearer ${variables.auth.token}'
+      X-User-Email: '${variables.user.email}'
+    query:
+      debug: '${variables.api.debug}'
 ```
 
 ## Core Features
 
-- Comprehensive variable set definition
-- Nested configuration support
-- Dynamic templating
-- Environment-specific overrides
-- Flexible variable resolution
+### Request Organization
 
-## Variable Set Management
+- Logical grouping of related requests
+- Clear request naming and descriptions
+- Request categorization and tagging
+- Search and filter capabilities
 
-- Create, edit, delete variable sets
-- Import/export (YAML/JSON)
-- Version control integration
-- Secure secret management
+### Request Properties
+
+- HTTP method specification
+- URL and path configuration
+- Header management
+- Query parameter handling
+- Request body templates
+- Authentication settings
+- Response handling rules
+
+### Collection Management
+
+- Create, read, update, delete collections
+- Import/export functionality
+- Version control support
+- Collection sharing and collaboration
+- Collection-level settings
 
 ## Advanced Features
 
-- Environment-aware interpolation
-- Nested value access
-- Runtime variable substitution
-- Conditional configuration
+### Request Dependencies
+
+- Pre-request scripts
+- Post-request scripts
+- Request chaining
+- Conditional execution
+
+### Response Handling
+
+- Response validation
+- Response transformation
+- Response storage
+- Error handling
+
+### Testing Support
+
+- Request validation
+- Response assertions
+- Test case generation
+- Test suite organization
+- Test reporting
 
 ## Security Considerations
 
-- Sensitive value protection
-- Encryption support
-- Granular access controls
-- Audit logging for variable access
+- Secure storage of collection data
+- Authentication handling
+- Sensitive data protection
+- Access control for collections
+- Audit logging
 
-## Collaboration
+## Collaboration Features
 
-- Shared variable sets
-- Read/write permissions
-- Version tracking
-- Diff and merge support
+- Shared collections
+- Team workspaces
+- Access control
+- Change tracking
+- Comments and documentation
 
-## Use Cases
+## Integration
 
-- Environment configuration management
-- Dynamic API endpoint configuration
-- Secure credential management
-- Complex, nested configuration scenarios
+- Version control systems
+- CI/CD pipelines
+- Documentation systems
+- Monitoring tools
+- Testing frameworks
+
+## Best Practices
+
+1. Organization
+   - Logical collection structure
+   - Clear request naming
+   - Comprehensive documentation
+   - Consistent formatting
+
+2. Security
+   - Secure authentication handling
+   - Sensitive data protection
+   - Access control implementation
+   - Regular security reviews
+
+3. Maintenance
+   - Regular updates
+   - Deprecated request handling
+   - Documentation maintenance
+   - Version control
+
+4. Testing
+   - Comprehensive test coverage
+   - Regular test execution
+   - Test result monitoring
+   - Test case maintenance

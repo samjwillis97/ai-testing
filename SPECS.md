@@ -17,6 +17,8 @@ Core functionality including:
 - Configuration and environment management
 - Authentication system
 - Request/response pipeline
+- Variable sets management
+- Collection management
 
 ### @shc/web-ui
 
@@ -24,7 +26,7 @@ Modern web interface built on React, providing:
 
 - Request builder and manager
 - Collection management
-- Environment configuration
+- Variable set configuration
 - Response visualization
 
 ### @shc/cli
@@ -42,13 +44,13 @@ Neovim-based interface providing:
 
 - Native Neovim integration
 - Vim-style keybindings and navigation
-- Collection and environment management
+- Collection and variable set management
 - Advanced response manipulation
 - Plugin system integration
 
 ### Base Plugins
 
-A collection of example plugins showcasing the plugin system capabilities:
+A collection of core plugins providing essential functionality:
 
 - Request/Response Logging
 - Request Rate Limiting
@@ -58,7 +60,7 @@ A collection of example plugins showcasing the plugin system capabilities:
 - Response Transform
 - Request Template
 
-These plugins are maintained in the `/plugins` directory at the root of the repository, with each plugin in its own subdirectory. This structure allows them to serve as examples for custom plugin development and enables easy importing of external plugins.
+These plugins are maintained in the `/plugins` directory at the root of the repository, with each plugin in its own subdirectory.
 
 ## Specification Index
 
@@ -68,16 +70,14 @@ These plugins are maintained in the `/plugins` directory at the root of the repo
 | @shc/web-ui    | Web user interface                         | [Web UI](/specs/web-ui.md)               |
 | @shc/cli       | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
 | @shc/neovim-ui | Neovim-based interface                    | [Neovim UI](/specs/neovim-ui.md)        |
-| Base Plugins   | Example plugin implementations             | [Base Plugins](/specs/base-plugins.md)   |
+| Base Plugins   | Core plugin implementations                | [Base Plugins](/specs/base-plugins.md)   |
 
 ## Supporting Specifications
 
 | Component             | Description                           | Link                                                     |
 | --------------------- | ------------------------------------- | -------------------------------------------------------- |
+| Configuration         | Global configuration and variable sets | [Configuration](/specs/configuration.md)                 |
 | Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
-| Authentication        | Authentication system and providers   | [Authentication](/specs/authentication.md)               |
-| Environment Variables | Configuration and variable management | [Environment Variables](/specs/environment-variables.md) |
-| Plugin System        | Plugin architecture and development   | [Plugin System](/specs/plugin-system.md)                |
 
 ## Package Dependencies
 
@@ -95,15 +95,41 @@ graph TD
     Plugins -.-> Core
 ```
 
-## Extension System
+## Core Features
 
-The extension system is a core feature that lives within the @shc/core package, providing:
+### HTTP Client
 
-- Pluggable architecture for all major components
-- Standard interfaces for extending functionality
-- Hook system for request/response pipeline
-- Configuration extension points
-- Custom authentication providers
-- Response transformers and visualizers
+- Standard HTTP method support (GET, POST, PUT, DELETE, etc.)
+- Request customization (headers, query params, body)
+- Response handling and parsing
+- Advanced features (SSL/TLS, redirects, retries)
 
-For detailed information about the base plugins and plugin development, see the [Base Plugins](/specs/base-plugins.md) specification.
+### Variable Sets
+
+- Global and collection-specific variable sets
+- Value switching for different contexts
+- Collection-level overrides
+- Template resolution and substitution
+
+### Plugin System
+
+- Pluggable architecture for core components
+- Standard interfaces for extensions
+- Request/response pipeline hooks
+- Multiple plugin sources (npm, local, git)
+- Plugin lifecycle management
+
+### Collection Management
+
+- Request organization and grouping
+- Variable set integration
+- Request templating
+- Collection-level configuration
+
+### Configuration
+
+- YAML/JSON configuration format
+- Environment variable support
+- Plugin configuration
+- Storage configuration
+- Core settings management
