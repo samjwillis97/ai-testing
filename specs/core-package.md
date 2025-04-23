@@ -97,14 +97,17 @@ interface CollectionManager {
   updateRequest(collection: string, requestId: string, request: Request): Promise<void>;
   deleteRequest(collection: string, requestId: string): Promise<void>;
   
-  // Variable set management
+  // Global variable set management
+  addGlobalVariableSet(variableSet: VariableSet): Promise<void>;
+  updateGlobalVariableSet(name: string, variableSet: VariableSet): Promise<void>;
+  getGlobalVariableSet(name: string): Promise<VariableSet>;
+  setGlobalVariableSetValue(setName: string, valueName: string): Promise<void>;
+  
+  // Collection variable set management
   addVariableSet(collection: string, variableSet: VariableSet): Promise<void>;
   updateVariableSet(collection: string, name: string, variableSet: VariableSet): Promise<void>;
-  getActiveVariableSet(collection: string): Promise<VariableSet>;
-  
-  // Environment management
-  setEnvironment(collection: string, environment: string): Promise<void>;
-  getEnvironments(collection: string): Promise<string[]>;
+  getVariableSet(collection: string, name: string): Promise<VariableSet>;
+  setVariableSetValue(collection: string, setName: string, valueName: string): Promise<void>;
   
   // Request execution
   executeRequest(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response>;
@@ -114,6 +117,7 @@ interface Collection {
   name: string;
   version: string;
   variableSets: VariableSet[];
+  variableSetOverrides?: Record<string, string>;  // Maps variable set name to active value override
   requests: Request[];
   baseUrl?: string;
   authentication?: AuthConfig;
@@ -133,13 +137,13 @@ interface Request {
 
 interface VariableSet {
   name: string;
-  global?: Record<string, any>;
-  environments: Record<string, Record<string, any>>;
-  nested?: Record<string, any>;
+  description?: string;
+  defaultValue?: string;
+  activeValue: string;
+  values: Record<string, Record<string, any>>;
 }
 
 interface ExecuteOptions {
-  environment?: string;
   variableOverrides?: Record<string, any>;
   timeout?: number;
 }
@@ -147,70 +151,115 @@ interface ExecuteOptions {
 // Example Usage:
 const collectionManager = new CollectionManager();
 
-// Load a collection
-const collection = await collectionManager.loadCollection('./api-collection.yaml');
+// Create global variable sets
+await collectionManager.addGlobalVariableSet({
+  name: 'api',
+  description: 'Global API configuration',
+  defaultValue: 'development',
+  activeValue: 'development',
+  values: {
+    development: {
+      url: 'http://localhost:3000',
+      timeout: 5000,
+      debug: true
+    },
+    staging: {
+      url: 'https://staging-api.example.com',
+      timeout: 3000,
+      debug: true
+    },
+    production: {
+      url: 'https://api.example.com',
+      timeout: 3000,
+      debug: false
+    }
+  }
+});
 
-// Create a new collection
+await collectionManager.addGlobalVariableSet({
+  name: 'auth',
+  description: 'Global authentication configuration',
+  defaultValue: 'default',
+  activeValue: 'default',
+  values: {
+    default: {
+      tokenEndpoint: '/oauth/token',
+      clientId: 'default-client',
+      scopes: ['read', 'write']
+    },
+    admin: {
+      tokenEndpoint: '/oauth/token',
+      clientId: 'admin-client',
+      scopes: ['read', 'write', 'admin']
+    }
+  }
+});
+
+// Create a new collection with variable sets and overrides
 const newCollection = await collectionManager.createCollection('my-api', {
   baseUrl: 'https://api.example.com',
-  variableSets: [{
-    name: 'default',
-    environments: {
-      development: {
-        apiKey: 'dev-key',
-        timeout: 5000
-      },
-      production: {
-        apiKey: 'prod-key',
-        timeout: 3000
+  // Override global variable set values at collection level
+  variableSetOverrides: {
+    'api': 'staging',     // Override global api variable set to use staging
+    'auth': 'admin'       // Override global auth variable set to use admin
+  },
+  variableSets: [
+    {
+      name: 'user',
+      description: 'User information for requests',
+      defaultValue: 'john',
+      activeValue: 'john',
+      values: {
+        john: {
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          apiKey: 'johns-api-key'
+        },
+        jane: {
+          firstName: 'Jane',
+          lastName: 'Smith',
+          email: 'jane@example.com',
+          apiKey: 'janes-api-key'
+        }
       }
     }
-  }]
+  ]
 });
 
-// Add a request to the collection
+// Add a request that uses both global and collection variable sets
 await collectionManager.addRequest('my-api', {
-  id: 'get-users',
-  name: 'Get Users',
+  id: 'get-user-profile',
+  name: 'Get User Profile',
   method: 'GET',
-  path: '/users',
+  path: '/users/profile',
   headers: {
     'Accept': 'application/json',
-    'X-API-Key': '${variables.apiKey}'
+    'X-API-Key': '${variables.user.apiKey}',
+    'X-User-Email': '${variables.user.email}'
   },
   query: {
-    limit: '10',
-    offset: '0'
+    debug: '${variables.api.debug}',
+    client_id: '${variables.auth.clientId}'
   }
 });
 
-// Set the environment
-await collectionManager.setEnvironment('my-api', 'development');
+// Set global variable set value
+await collectionManager.setGlobalVariableSetValue('api', 'production');
 
-// Execute a request from the collection
-const response = await collectionManager.executeRequest('my-api', 'get-users', {
+// Override global variable set value for specific collection
+await collectionManager.setVariableSetValue('my-api', 'api', 'staging');
+
+// Execute a request - it will use:
+// - Collection's user variable set
+// - Collection's override of api variable set (staging)
+// - Collection's override of auth variable set (admin)
+const response = await collectionManager.executeRequest('my-api', 'get-user-profile', {
   variableOverrides: {
-    limit: '20'
+    // Override specific variables if needed
+    'api.timeout': 10000
   }
 });
-
-// Working with variable sets
-const variableSet: VariableSet = {
-  name: 'test-users',
-  environments: {
-    development: {
-      users: [
-        { id: 1, name: 'Test User 1' },
-        { id: 2, name: 'Test User 2' }
-      ]
-    }
-  }
-};
-
-await collectionManager.addVariableSet('my-api', variableSet);
-
-// Get active variable set
-const activeVars = await collectionManager.getActiveVariableSet('my-api');
 ```
 
 ### Configuration API
