@@ -7,6 +7,7 @@ export interface RequestConfig extends AxiosRequestConfig {
   url?: string;
   method?: string;
   baseURL?: string;
+  plugins?: Record<string, Record<string, unknown>>;
 }
 
 export interface ResponseData extends AxiosResponse {
