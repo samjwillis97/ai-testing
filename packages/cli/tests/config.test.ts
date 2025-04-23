@@ -20,9 +20,31 @@ describe('config', () => {
     expect(config.get('collections')).toEqual([]);
     expect(Conf).toHaveBeenCalledWith({
       projectName: 'shc',
+      projectSuffix: '',
+      schema: {
+        collections: {
+          type: 'array',
+          items: {
+            type: 'object'
+          }
+        },
+        plugins: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              config: { type: 'object' }
+            },
+            required: ['name']
+          },
+          default: []
+        }
+      },
       defaults: {
         collections: [],
-      },
+        plugins: []
+      }
     });
   });
 

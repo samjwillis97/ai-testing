@@ -16,6 +16,7 @@ export interface SHCPlugin {
   type: PluginType;
   initialize?: () => Promise<void>;
   destroy?: () => Promise<void>;
+  execute: (...args: any[]) => Promise<any>;
 }
 
 /**
@@ -34,8 +35,13 @@ export interface TemplateFunctionParameter {
 export interface TemplateFunction {
   name: string;
   description: string;
-  parameters?: TemplateFunctionParameter[];
   execute: (...args: any[]) => Promise<any>;
+  parameters?: {
+    name: string;
+    type: string;
+    description: string;
+    required?: boolean;
+  }[];
 }
 
 /**
@@ -138,4 +144,27 @@ export interface PluginConfig {
     };
     env?: string[];
   };
+}
+
+export interface PluginError extends Error {
+  pluginName: string;
+  pluginType: PluginType;
+  severity: 'warning' | 'error' | 'fatal';
+  recoverable: boolean;
+}
+
+export class PluginLoadError extends Error implements PluginError {
+  pluginName: string;
+  pluginType: PluginType;
+  severity: 'warning' | 'error' | 'fatal';
+  recoverable: boolean;
+
+  constructor(pluginName: string, pluginType: PluginType, cause: Error) {
+    super(`Failed to load plugin ${pluginName}: ${cause.message}`);
+    this.pluginName = pluginName;
+    this.pluginType = pluginType;
+    this.severity = 'error';
+    this.recoverable = false;
+    this.cause = cause;
+  }
 } 

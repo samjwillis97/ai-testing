@@ -1,8 +1,14 @@
 import type { Collection } from '@shc/core';
 import Conf from 'conf';
+import type { PluginConfig } from './plugins.js';
 
-export const createConfig = () => {
-  const config = new Conf<{ collections: Collection[] }>({
+export interface CLIConfig {
+  collections: Collection[];
+  plugins?: PluginConfig[];
+}
+
+export function createConfig() {
+  return new Conf<CLIConfig>({
     projectName: 'shc',
     projectSuffix: '',
     schema: {
@@ -11,11 +17,23 @@ export const createConfig = () => {
         items: {
           type: 'object'
         }
+      },
+      plugins: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            config: { type: 'object' }
+          },
+          required: ['name']
+        },
+        default: []
       }
     },
     defaults: {
       collections: [],
+      plugins: []
     }
   });
-  return config;
-};
+}

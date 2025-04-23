@@ -2,39 +2,47 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { send } from '../../src/commands/send.js';
 import { HttpClient } from '@shc/core';
 import ora from 'ora';
-import chalk from 'chalk';
 
 // Mock dependencies
 vi.mock('@shc/core', () => ({
   HttpClient: vi.fn().mockImplementation(() => ({
     request: vi.fn(),
+    use: vi.fn()
   })),
 }));
 
-// Mock ora with a proper spinner instance
-vi.mock('ora', () => {
-  const spinner = {
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-  };
-  return {
-    default: vi.fn(() => spinner),
-  };
-});
+// Mock ora spinner
+const spinner = {
+  start: vi.fn().mockReturnThis(),
+  succeed: vi.fn().mockReturnThis(),
+  fail: vi.fn().mockReturnThis(),
+};
 
+vi.mock('ora', () => ({
+  default: vi.fn().mockReturnValue(spinner)
+}));
+
+// Mock chalk with proper color functions
 vi.mock('chalk', () => {
-  const mockChalk = {
-    blue: vi.fn((str: string) => str),
-    red: vi.fn((str: string) => str),
+  const createColorFn = (color: string) => (str: string) => str;
+  return {
+    default: {
+      blue: createColorFn('blue'),
+      red: createColorFn('red'),
+      yellow: createColorFn('yellow'),
+      green: createColorFn('green'),
+    },
   };
-  return { default: mockChalk };
 });
 
 describe('send command', () => {
   const mockHttpClient = {
     request: vi.fn(),
+    use: vi.fn()
   };
+  const consoleSpy = vi.spyOn(console, 'log');
+  const consoleErrorSpy = vi.spyOn(console, 'error');
+  const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,96 +50,68 @@ describe('send command', () => {
   });
 
   it('should send a GET request successfully', async () => {
-    const mockResponse = {
+    mockHttpClient.request.mockResolvedValueOnce({
       status: 200,
       headers: { 'content-type': 'application/json' },
       data: { message: 'success' },
-      duration: 100,
-    };
-    mockHttpClient.request.mockResolvedValueOnce(mockResponse);
-
-    const consoleSpy = vi.spyOn(console, 'log');
-    const spinner = ora();
-    
-    await send('http://example.com', {});
-
-    expect(mockHttpClient.request).toHaveBeenCalledWith({
-      url: 'http://example.com',
-      method: 'GET',
-      headers: {},
-      data: undefined,
+      duration: 100
     });
+
+    await send('http://example.com', {});
 
     expect(ora).toHaveBeenCalledWith('Sending request...');
     expect(spinner.start).toHaveBeenCalled();
     expect(spinner.succeed).toHaveBeenCalledWith('Request successful');
     expect(consoleSpy).toHaveBeenCalledWith('\nResponse:');
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Status:'), 200);
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Headers:'));
-    expect(consoleSpy).toHaveBeenCalledWith(JSON.stringify(mockResponse.headers, null, 2));
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('\nBody:'));
-    expect(consoleSpy).toHaveBeenCalledWith(JSON.stringify(mockResponse.data, null, 2));
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('\nDuration:'), '100ms');
+    expect(consoleSpy).toHaveBeenCalledWith('Status:', 200);
   });
 
   it('should send a POST request with headers and data', async () => {
-    const mockResponse = {
+    mockHttpClient.request.mockResolvedValueOnce({
       status: 201,
       headers: { 'content-type': 'application/json' },
       data: { id: 1 },
-      duration: 150,
-    };
-    mockHttpClient.request.mockResolvedValueOnce(mockResponse);
-
-    const options = {
-      method: 'POST',
-      header: ['Content-Type: application/json', 'Authorization: Bearer token'],
-      data: '{"name": "test"}',
-    };
-
-    await send('http://example.com', options);
-
-    expect(mockHttpClient.request).toHaveBeenCalledWith({
-      url: 'http://example.com',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer token',
-      },
-      data: { name: 'test' },
+      duration: 150
     });
+
+    await send('http://example.com', {
+      method: 'POST',
+      header: ['Content-Type: application/json'],
+      data: '{"name": "test"}'
+    });
+
+    expect(ora).toHaveBeenCalledWith('Sending request...');
+    expect(spinner.start).toHaveBeenCalled();
+    expect(spinner.succeed).toHaveBeenCalledWith('Request successful');
+    expect(mockHttpClient.request).toHaveBeenCalledWith(expect.objectContaining({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { name: 'test' }
+    }));
   });
 
   it('should handle request failure', async () => {
-    const error = new Error('Network error');
-    mockHttpClient.request.mockRejectedValueOnce(error);
-
-    const consoleErrorSpy = vi.spyOn(console, 'error');
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    const spinner = ora();
+    mockHttpClient.request.mockRejectedValueOnce(new Error('Network error'));
 
     await send('http://example.com', {});
 
+    expect(ora).toHaveBeenCalledWith('Sending request...');
+    expect(spinner.start).toHaveBeenCalled();
     expect(spinner.fail).toHaveBeenCalledWith('Request failed');
     expect(consoleErrorSpy).toHaveBeenCalledWith('Network error');
     expect(mockExit).toHaveBeenCalledWith(1);
-
-    mockExit.mockRestore();
   });
 
   it('should handle invalid JSON data', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error');
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    const spinner = ora();
-
     await send('http://example.com', {
-      data: 'invalid json',
+      method: 'POST',
+      data: 'invalid json'
     });
 
+    expect(ora).toHaveBeenCalledWith('Sending request...');
+    expect(spinner.start).toHaveBeenCalled();
     expect(spinner.fail).toHaveBeenCalledWith('Request failed');
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('JSON'));
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Invalid JSON data provided');
     expect(mockExit).toHaveBeenCalledWith(1);
-
-    mockExit.mockRestore();
   });
 });

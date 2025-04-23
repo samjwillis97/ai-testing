@@ -20,10 +20,13 @@ export class PluginManager {
   private plugins: Map<string, SHCPlugin> = new Map();
   private pluginConfigs: Map<string, PluginConfig> = new Map();
 
-  constructor(private readonly options: {
-    packageManager: 'npm' | 'pnpm' | 'yarn';
-    pluginsDir: string;
-  }) {}
+  constructor(
+    private readonly options: {
+      packageManager: 'npm' | 'pnpm' | 'yarn';
+      pluginsDir: string;
+    },
+    private readonly importModule: (path: string) => Promise<any> = (path) => import(path)
+  ) {}
 
   /**
    * Load a plugin from its configuration
@@ -106,7 +109,7 @@ export class PluginManager {
       throw new Error('No valid plugin source specified');
     }
 
-    const module = await import(modulePath);
+    const module = await this.importModule(modulePath);
     return module.default as SHCPlugin;
   }
 
