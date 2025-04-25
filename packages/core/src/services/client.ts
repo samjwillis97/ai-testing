@@ -11,6 +11,11 @@ import { RequestConfig } from '../types/config.types';
 import { SHCPlugin, PluginType } from '../types/plugin.types';
 import { PluginManager } from '../types/plugin-manager.types';
 import { createPluginManager } from './plugin-manager';
+import { CollectionManager } from '../types/collection.types';
+import { CollectionManagerImpl, createCollectionManager } from './collection-manager';
+import { ConfigManagerImpl } from '../config-manager';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 /**
  * Implementation of the SHC HTTP Client
@@ -21,6 +26,8 @@ export class SHCClient implements ISHCClient {
   private eventEmitter: EventEmitter;
   private plugins: Map<string, SHCPlugin>;
   private pluginManager: PluginManager;
+  private collectionManager: CollectionManager;
+  private configManager: ConfigManagerImpl;
 
   /**
    * Create a new HTTP client instance with optional configuration
@@ -43,8 +50,19 @@ export class SHCClient implements ISHCClient {
     // Initialize plugins
     this.plugins = new Map<string, SHCPlugin>();
     
+    // Initialize config manager
+    this.configManager = new ConfigManagerImpl();
+    
     // Initialize plugin manager
     this.pluginManager = createPluginManager();
+    
+    // Initialize collection manager with this client instance
+    const storagePath = config?.storage?.collections?.path || './collections';
+    this.collectionManager = createCollectionManager({
+      storagePath,
+      client: this,
+      configManager: this.configManager
+    });
 
     // Register initial plugins if provided
     if (config?.plugins) {
@@ -58,6 +76,13 @@ export class SHCClient implements ISHCClient {
       if (config.plugins.transformers) {
         config.plugins.transformers.forEach(plugin => this.use(plugin));
       }
+    }
+
+    // Load collections if provided in the config
+    if (config?.collections) {
+      this.loadCollectionsFromConfig(config).catch((error: Error) => {
+        this.eventEmitter.emit('error', new Error(`Failed to load collections from config: ${error.message}`));
+      });
     }
 
     // Set up request interceptor
@@ -134,6 +159,73 @@ export class SHCClient implements ISHCClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Load collections from the configuration
+   */
+  private async loadCollectionsFromConfig(config: SHCConfig): Promise<void> {
+    // Load collections from items array
+    if (config.collections?.items && config.collections.items.length > 0) {
+      for (const collection of config.collections.items) {
+        try {
+          // Add the collection to the manager
+          await this.collectionManager.createCollection(collection.name, collection);
+          this.eventEmitter.emit('collection:loaded', collection.name);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.eventEmitter.emit('error', new Error(`Failed to load collection ${collection.name}: ${errorMessage}`));
+        }
+      }
+    }
+
+    // Load collections from specific file paths
+    if (config.collections?.paths && config.collections.paths.length > 0) {
+      for (const filePath of config.collections.paths) {
+        try {
+          const collection = await this.collectionManager.loadCollection(filePath);
+          this.eventEmitter.emit('collection:loaded', collection.name);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.eventEmitter.emit('error', new Error(`Failed to load collection from ${filePath}: ${errorMessage}`));
+        }
+      }
+    }
+
+    // Load collections from directory
+    if (config.collections?.directory) {
+      try {
+        const directoryPath = config.collections.directory;
+        
+        // Check if directory exists
+        try {
+          await fs.access(directoryPath);
+        } catch (error) {
+          // Create directory if it doesn't exist
+          await fs.mkdir(directoryPath, { recursive: true });
+        }
+        
+        // Read all files in the directory
+        const files = await fs.readdir(directoryPath);
+        
+        // Load each JSON file as a collection
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            try {
+              const filePath = path.join(directoryPath, file);
+              const collection = await this.collectionManager.loadCollection(filePath);
+              this.eventEmitter.emit('collection:loaded', collection.name);
+            } catch (error: unknown) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              this.eventEmitter.emit('error', new Error(`Failed to load collection from ${file}: ${errorMessage}`));
+            }
+          }
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.eventEmitter.emit('error', new Error(`Failed to load collections from directory ${config.collections.directory}: ${errorMessage}`));
+      }
+    }
   }
 
   /**
@@ -352,7 +444,7 @@ export class SHCClient implements ISHCClient {
     
     // Initialize the plugin if it has an initialize method
     if (plugin.initialize) {
-      plugin.initialize().catch(error => {
+      plugin.initialize().catch((error: Error) => {
         this.eventEmitter.emit('error', new Error(`Failed to initialize plugin ${plugin.name}: ${error.message}`));
       });
     }
@@ -373,7 +465,7 @@ export class SHCClient implements ISHCClient {
     if (plugin) {
       // Call the destroy method if it exists
       if (plugin.destroy) {
-        plugin.destroy().catch(error => {
+        plugin.destroy().catch((error: Error) => {
           this.eventEmitter.emit('error', new Error(`Failed to destroy plugin ${pluginName}: ${error.message}`));
         });
       }
@@ -398,5 +490,12 @@ export class SHCClient implements ISHCClient {
    */
   off(event: SHCEvent, handler: EventHandler): void {
     this.eventEmitter.off(event, handler);
+  }
+
+  /**
+   * Get the collection manager instance
+   */
+  getCollectionManager(): CollectionManager {
+    return this.collectionManager;
   }
 }

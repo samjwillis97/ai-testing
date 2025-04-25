@@ -1,5 +1,6 @@
 import { RequestConfig } from './config.types';
 import { SHCPlugin, AuthProviderPlugin, RequestPreprocessorPlugin, ResponseTransformerPlugin } from './plugin.types';
+import { Collection } from './collection.types';
 
 export interface SHCClient {
   // Send HTTP requests
@@ -63,7 +64,15 @@ export interface SHCConfig {
     collections?: {
       type?: string;
       path?: string;
+      files?: string[];
+      directories?: string[];
+      autoload?: boolean;
     };
+  };
+  collections?: {
+    items?: Collection[];
+    paths?: string[];
+    directory?: string;
   };
 }
 
@@ -72,7 +81,11 @@ export type SHCEvent =
   | 'response'
   | 'error'
   | 'plugin:registered'
-  | 'plugin:removed';
+  | 'plugin:removed'
+  | 'collection:loaded'
+  | 'collection:created'
+  | 'collection:updated'
+  | 'collection:deleted';
 
 export type EventHandler = (...args: any[]) => void;
 
