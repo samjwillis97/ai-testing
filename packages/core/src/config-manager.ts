@@ -236,6 +236,36 @@ export class ConfigManagerImpl implements IConfigManager {
       }
     }
 
+    // Check logging configuration
+    if (config.core?.logging) {
+      const logging = config.core.logging;
+      
+      if (logging.level !== undefined && typeof logging.level !== 'string') {
+        throw new Error('Logging level must be a string');
+      }
+      
+      if (logging.format !== undefined && typeof logging.format !== 'string') {
+        throw new Error('Logging format must be a string');
+      }
+      
+      if (logging.output !== undefined && typeof logging.output !== 'string') {
+        throw new Error('Logging output must be a string');
+      }
+    }
+
+    // Check storage configuration
+    if (config.storage?.collections) {
+      const collections = config.storage.collections;
+      
+      if (collections.type !== undefined && typeof collections.type !== 'string') {
+        throw new Error('Storage collections type must be a string');
+      }
+      
+      if (collections.path !== undefined && typeof collections.path !== 'string') {
+        throw new Error('Storage collections path must be a string');
+      }
+    }
+
     // All validations passed
     return true;
   }

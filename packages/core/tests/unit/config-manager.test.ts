@@ -302,6 +302,185 @@ version: 2.0.0
     });
   });
   
+  describe('validateConfig method', () => {
+    it('should validate HTTP configuration with various edge cases', async () => {
+      const configManager = createConfigManager();
+      
+      // Test invalid HTTP timeout (string instead of number)
+      const invalidTimeoutConfig = {
+        core: {
+          http: {
+            timeout: 'invalid'
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidTimeoutConfig)).rejects.toThrow(/HTTP timeout must be a number/);
+      
+      // Test invalid HTTP max_redirects (string instead of number)
+      const invalidRedirectsConfig = {
+        core: {
+          http: {
+            max_redirects: 'invalid'
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidRedirectsConfig)).rejects.toThrow(/HTTP max_redirects must be a number/);
+      
+      // Test invalid HTTP retry attempts (string instead of number)
+      const invalidRetryAttemptsConfig = {
+        core: {
+          http: {
+            retry: {
+              attempts: 'invalid'
+            }
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidRetryAttemptsConfig)).rejects.toThrow(/HTTP retry attempts must be a number/);
+      
+      // Test invalid HTTP retry backoff (number instead of string)
+      const invalidRetryBackoffConfig = {
+        core: {
+          http: {
+            retry: {
+              backoff: 123
+            }
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidRetryBackoffConfig)).rejects.toThrow(/HTTP retry backoff must be a string/);
+    });
+    
+    it('should validate logging configuration with various edge cases', async () => {
+      const configManager = createConfigManager();
+      
+      // Test invalid logging level (number instead of string)
+      const invalidLevelConfig = {
+        core: {
+          logging: {
+            level: 123
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidLevelConfig)).rejects.toThrow(/Logging level must be a string/);
+      
+      // Test invalid logging format (number instead of string)
+      const invalidFormatConfig = {
+        core: {
+          logging: {
+            format: 123
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidFormatConfig)).rejects.toThrow(/Logging format must be a string/);
+      
+      // Test invalid logging output (number instead of string)
+      const invalidOutputConfig = {
+        core: {
+          logging: {
+            output: 123
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidOutputConfig)).rejects.toThrow(/Logging output must be a string/);
+    });
+    
+    it('should validate storage configuration with various edge cases', async () => {
+      const configManager = createConfigManager();
+      
+      // Test invalid storage collections type (number instead of string)
+      const invalidTypeConfig = {
+        storage: {
+          collections: {
+            type: 123
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidTypeConfig)).rejects.toThrow(/Storage collections type must be a string/);
+      
+      // Test invalid storage collections path (number instead of string)
+      const invalidPathConfig = {
+        storage: {
+          collections: {
+            path: 123
+          }
+        }
+      };
+      await expect(configManager.validateConfig(invalidPathConfig)).rejects.toThrow(/Storage collections path must be a string/);
+    });
+  });
+
+  describe('resolveObject method with edge cases', () => {
+    it('should handle circular references gracefully', async () => {
+      const configManager = createConfigManager();
+      
+      // Create an object with circular reference
+      const circular: any = { name: 'test' };
+      circular.self = circular;
+      
+      // Should not throw an error
+      await expect(configManager.resolveObject(circular)).resolves.toBeDefined();
+    });
+    
+    it('should handle null and undefined values', async () => {
+      const configManager = createConfigManager();
+      
+      const obj = {
+        nullValue: null,
+        undefinedValue: undefined,
+        nestedNull: {
+          value: null
+        },
+        array: [null, undefined, 'value']
+      };
+      
+      const resolved = await configManager.resolveObject(obj);
+      expect(resolved.nullValue).toBeNull();
+      expect(resolved.undefinedValue).toBeUndefined();
+      expect(resolved.nestedNull.value).toBeNull();
+      expect(resolved.array[0]).toBeNull();
+      expect(resolved.array[1]).toBeUndefined();
+      expect(resolved.array[2]).toBe('value');
+    });
+    
+    it('should handle complex nested objects with arrays', async () => {
+      const configManager = createConfigManager();
+      
+      // Register a template function
+      configManager.registerTemplateFunction('math', {
+        name: 'add',
+        description: 'Add two numbers together',
+        parameters: [
+          { name: 'a', type: 'number', description: 'First number', required: true },
+          { name: 'b', type: 'number', description: 'Second number', required: true }
+        ],
+        execute: async (a: number, b: number) => {
+          return String(Number(a) + Number(b));
+        }
+      });
+      
+      const complexObj = {
+        simple: '${math.add(1, 2)}',
+        array: ['${math.add(3, 4)}', '${math.add(5, 6)}'],
+        nested: {
+          value: '${math.add(7, 8)}',
+          array: [
+            { calc: '${math.add(9, 10)}' },
+            { calc: '${math.add(11, 12)}' }
+          ]
+        }
+      };
+      
+      const resolved = await configManager.resolveObject(complexObj);
+      expect(resolved.simple).toBe('3');
+      expect(resolved.array[0]).toBe('7');
+      expect(resolved.array[1]).toBe('11');
+      expect(resolved.nested.value).toBe('15');
+      expect(resolved.nested.array[0].calc).toBe('19');
+      expect(resolved.nested.array[1].calc).toBe('23');
+    });
+  });
+  
   describe('saveToFile', () => {
     it('should save configuration to YAML file', async () => {
       await configManager.saveToFile('/path/to/config.yaml');

@@ -348,4 +348,233 @@ describe('CollectionManager', () => {
       });
     });
   });
+  
+  describe('Variable resolution and template handling', () => {
+    it('should resolve nested variable paths in overrides', async () => {
+      // Setup
+      await collectionManager.loadCollection('./test-collections/test-collection.json');
+      
+      // Execute with nested variable overrides
+      const result = await collectionManager.executeRequest('test-collection', 'get-user-profile', {
+        variableOverrides: {
+          'user.firstName': 'Alice',
+          'user.apiKey': 'alice-special-key'
+        }
+      });
+      
+      // Verify the client was called with the correct resolved variables
+      expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'alice-special-key'
+        })
+      }));
+    });
+
+    it('should handle missing variables gracefully', async () => {
+      // Setup
+      await collectionManager.loadCollection('./test-collections/test-collection.json');
+      
+      // Execute with a non-existent variable
+      const result = await collectionManager.executeRequest('test-collection', 'get-user-profile', {
+        variableOverrides: {
+          'nonexistent': 'value'
+        }
+      });
+      
+      // The original template should remain unchanged
+      expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'johns-api-key' // Default value from the mock collection
+        })
+      }));
+    });
+
+    it('should resolve templates in different parts of the request', async () => {
+      // Setup a collection with templates in various parts
+      const complexCollection: Collection = {
+        name: 'complex-collection',
+        version: '1.0.0',
+        baseUrl: 'https://api.example.com',
+        variableSets: [
+          {
+            name: 'api',
+            description: 'API settings',
+            defaultValue: 'default',
+            activeValue: 'default',
+            values: {
+              default: {
+                version: 'v1',
+                key: 'test-key',
+                params: {
+                  limit: '10',
+                  format: 'json'
+                }
+              }
+            }
+          }
+        ],
+        requests: [
+          {
+            id: 'complex-request',
+            name: 'Complex Request',
+            method: 'POST',
+            path: '/${variables.api.version}/data',
+            headers: {
+              'Accept': 'application/json',
+              'X-API-Key': '${variables.api.key}',
+              'Content-Type': 'application/json'
+            },
+            query: {
+              limit: '${variables.api.params.limit}',
+              format: '${variables.api.params.format}'
+            },
+            body: {
+              request: {
+                type: 'data',
+                apiVersion: '${variables.api.version}',
+                params: {
+                  customParam: '${variables.api.params.format}'
+                }
+              }
+            }
+          }
+        ]
+      };
+      
+      // Mock the file read to return our complex collection
+      (fs.readFile as any).mockResolvedValueOnce(JSON.stringify(complexCollection));
+      
+      // Load the collection
+      await collectionManager.loadCollection('./test-collections/complex-collection.json');
+      
+      // Execute the request
+      await collectionManager.executeRequest('complex-collection', 'complex-request');
+      
+      // Verify all templates were resolved correctly
+      expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+        url: 'https://api.example.com/v1/data',
+        headers: expect.objectContaining({
+          'X-API-Key': 'test-key'
+        }),
+        query: expect.objectContaining({
+          limit: '10',
+          format: 'json'
+        }),
+        body: expect.objectContaining({
+          request: expect.objectContaining({
+            apiVersion: 'v1',
+            params: expect.objectContaining({
+              customParam: 'json'
+            })
+          })
+        })
+      }));
+    });
+
+    it('should handle array values in request body', async () => {
+      // Setup a collection with array in body
+      const arrayCollection: Collection = {
+        name: 'array-collection',
+        version: '1.0.0',
+        baseUrl: 'https://api.example.com',
+        variableSets: [
+          {
+            name: 'items',
+            description: 'Item values',
+            defaultValue: 'default',
+            activeValue: 'default',
+            values: {
+              default: {
+                id1: 'item1',
+                id2: 'item2',
+                id3: 'item3'
+              }
+            }
+          }
+        ],
+        requests: [
+          {
+            id: 'array-request',
+            name: 'Array Request',
+            method: 'POST',
+            path: '/items',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: {
+              items: [
+                { id: '${variables.items.id1}' },
+                { id: '${variables.items.id2}' },
+                { id: '${variables.items.id3}' }
+              ]
+            }
+          }
+        ]
+      };
+      
+      // Mock the file read to return our array collection
+      (fs.readFile as any).mockResolvedValueOnce(JSON.stringify(arrayCollection));
+      
+      // Load the collection
+      await collectionManager.loadCollection('./test-collections/array-collection.json');
+      
+      // Execute the request
+      await collectionManager.executeRequest('array-collection', 'array-request');
+      
+      // Verify array templates were resolved correctly
+      expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+        body: expect.objectContaining({
+          items: [
+            { id: 'item1' },
+            { id: 'item2' },
+            { id: 'item3' }
+          ]
+        })
+      }));
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should throw an error when collection validation fails', async () => {
+      // Create an invalid collection missing required fields
+      const invalidCollection = {
+        name: 'invalid-collection'
+        // Missing version, requests, etc.
+      };
+      
+      // Mock the file read to return our invalid collection
+      (fs.readFile as any).mockResolvedValueOnce(JSON.stringify(invalidCollection));
+      
+      // Attempt to load the invalid collection
+      await expect(collectionManager.loadCollection('./test-collections/invalid-collection.json'))
+        .rejects.toThrow();
+    });
+    
+    it('should throw an error when request is not found in collection', async () => {
+      // First load a valid collection
+      await collectionManager.loadCollection('./test-collections/test-collection.json');
+      
+      // Attempt to execute a non-existent request
+      await expect(collectionManager.executeRequest('test-collection', 'non-existent-request'))
+        .rejects.toThrow(/non-existent-request not found/);
+    });
+    
+    it('should handle file system errors when loading collections', async () => {
+      // Mock a file system error
+      (fs.readFile as any).mockRejectedValueOnce(new Error('File not found'));
+      
+      // Attempt to load a collection that will trigger a file system error
+      await expect(collectionManager.loadCollection('./test-collections/missing-file.json'))
+        .rejects.toThrow(/Failed to load collection/);
+    });
+    
+    it('should throw an error when attempting to access a non-existent collection', async () => {
+      // Setup the collections map to be empty
+      (collectionManager as any).collections = new Map();
+      
+      // Attempt to execute a request on a non-existent collection
+      await expect(collectionManager.executeRequest('non-existent-collection', 'some-request'))
+        .rejects.toThrow(/non-existent-collection/);
+    });
+  });
 });

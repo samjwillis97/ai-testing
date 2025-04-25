@@ -137,7 +137,7 @@ describe('SHC Client Plugin Integration', () => {
       expect(responseTransformerPlugin.initialize).toHaveBeenCalled();
     });
 
-    it('should handle plugin initialization failures gracefully', () => {
+    it('should handle plugin initialization failures gracefully', async () => {
       // Create a plugin that fails to initialize
       const failingPlugin: RequestPreprocessorPlugin = {
         name: 'failing-plugin',
@@ -145,6 +145,7 @@ describe('SHC Client Plugin Integration', () => {
         type: PluginType.REQUEST_PREPROCESSOR,
         execute: vi.fn(),
         initialize: vi.fn().mockRejectedValue(new Error('Initialization failed')),
+        destroy: vi.fn().mockResolvedValue(undefined),
       };
 
       // Create a config with the failing plugin
@@ -154,9 +155,17 @@ describe('SHC Client Plugin Integration', () => {
         },
       };
 
-      // Mock the event emitter to catch the error
-      const mockEmit = vi.fn();
-      vi.spyOn(EventEmitter.prototype, 'emit').mockImplementation(mockEmit);
+      // Create a promise that resolves when the error event is emitted
+      let emitSpy: any;
+      const errorPromise = new Promise<unknown>((resolve) => {
+        // Mock the event emitter to catch the error
+        emitSpy = vi.spyOn(EventEmitter.prototype, 'emit').mockImplementation((event, ...args) => {
+          if (event === 'error') {
+            resolve(args[0]);
+          }
+          return true;
+        });
+      });
 
       // Create the client with the config
       const client = SHCClient.create(config);
@@ -165,13 +174,29 @@ describe('SHC Client Plugin Integration', () => {
       // Verify that the plugin initialization was attempted
       expect(failingPlugin.initialize).toHaveBeenCalled();
       
-      // The error will be emitted asynchronously, so we need to wait for it
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(mockEmit).toHaveBeenCalledWith('error', expect.any(Error));
-          resolve();
-        }, 100); // Set a short timeout of 100ms to ensure the error is caught
+      // Wait for the error event to be emitted with a timeout
+      const timeoutPromise = new Promise<unknown>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout waiting for error event')), 1000);
       });
+      
+      const error = await Promise.race([errorPromise, timeoutPromise]).catch(err => {
+        // If we timeout, still return something to prevent test hanging
+        return new Error('Test timed out waiting for error event');
+      });
+      
+      // Cleanup
+      emitSpy.mockRestore();
+      
+      // Verify the error was emitted with the correct message
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain('Failed to initialize plugin failing-plugin');
+      expect((error as Error).message).toContain('Initialization failed');
+      
+      // Clean up the client to prevent any lingering promises
+      if (client) {
+        // Remove the plugin to trigger cleanup
+        client.removePlugin(failingPlugin.name);
+      }
     });
   });
 

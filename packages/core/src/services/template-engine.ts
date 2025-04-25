@@ -274,7 +274,7 @@ export class TemplateEngine {
    * @param context The context for template resolution
    * @returns The resolved object
    */
-  async resolveObject<T>(obj: T, context: Partial<TemplateContext> = {}): Promise<T> {
+  async resolveObject<T>(obj: T, context: Partial<TemplateContext> = {}, visited: WeakMap<object, boolean> = new WeakMap()): Promise<T> {
     if (obj === null || obj === undefined) {
       return obj;
     }
@@ -284,16 +284,28 @@ export class TemplateEngine {
     }
 
     if (Array.isArray(obj)) {
+      // Check for circular references in arrays
+      if (visited.has(obj)) {
+        return obj; // Return the object as is to break the circular reference
+      }
+      visited.set(obj, true);
+      
       return await Promise.all(
-        obj.map(item => this.resolveObject(item, context))
+        obj.map(item => this.resolveObject(item, context, visited))
       ) as unknown as T;
     }
 
     if (typeof obj === 'object') {
+      // Check for circular references in objects
+      if (visited.has(obj)) {
+        return obj; // Return the object as is to break the circular reference
+      }
+      visited.set(obj, true);
+      
       const result: Record<string, any> = {};
       
       for (const [key, value] of Object.entries(obj)) {
-        result[key] = await this.resolveObject(value, context);
+        result[key] = await this.resolveObject(value, context, visited);
       }
       
       return result as T;

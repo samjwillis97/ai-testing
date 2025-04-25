@@ -20,9 +20,16 @@ export default defineConfig({
       ],
       thresholds: {
         statements: 80,
-        branches: 65,
+        branches: 80,
         functions: 80,
         lines: 80
+      }
+    },
+    // Increase memory limit to avoid out of memory errors
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        execArgv: ['--max-old-space-size=4096']
       }
     }
   }
