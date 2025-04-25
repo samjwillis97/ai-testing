@@ -27,10 +27,44 @@ export interface SHCClient {
 }
 
 export interface SHCConfig {
+  name?: string;
+  version?: string;
   baseURL?: string;
   timeout?: number;
-  plugins?: SHCPlugin[];
   headers?: Record<string, string>;
+  core?: {
+    http?: {
+      timeout?: number;
+      max_redirects?: number;
+      retry?: {
+        attempts?: number;
+        backoff?: string;
+      };
+      tls?: {
+        verify?: boolean;
+      };
+    };
+    logging?: {
+      level?: string;
+      format?: string;
+      output?: string;
+    };
+  };
+  variable_sets?: {
+    global?: Record<string, any>;
+    collection_defaults?: Record<string, any>;
+  };
+  plugins?: {
+    auth?: any[];
+    preprocessors?: any[];
+    transformers?: any[];
+  };
+  storage?: {
+    collections?: {
+      type?: string;
+      path?: string;
+    };
+  };
 }
 
 export type SHCEvent = 

@@ -42,7 +42,16 @@ export class SHCClient implements ISHCClient {
 
     // Register initial plugins if provided
     if (config?.plugins) {
-      config.plugins.forEach(plugin => this.use(plugin));
+      // Handle the new plugins structure
+      if (config.plugins.auth) {
+        config.plugins.auth.forEach(plugin => this.use(plugin));
+      }
+      if (config.plugins.preprocessors) {
+        config.plugins.preprocessors.forEach(plugin => this.use(plugin));
+      }
+      if (config.plugins.transformers) {
+        config.plugins.transformers.forEach(plugin => this.use(plugin));
+      }
     }
 
     // Set up request interceptor
@@ -224,7 +233,7 @@ export class SHCClient implements ISHCClient {
   /**
    * Set a default header for all requests
    */
-setDefaultHeader(name: string, value: string): void {
+  setDefaultHeader(name: string, value: string): void {
     this.axiosInstance.defaults.headers.common[name] = value;
   }
 

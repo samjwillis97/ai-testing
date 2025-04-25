@@ -1,4 +1,5 @@
 import { AuthConfig } from './plugin.types';
+import { Response } from './client.types';
 
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
@@ -63,5 +64,5 @@ export interface CollectionManager {
   setVariableSetValue(collection: string, setName: string, valueName: string): Promise<void>;
   
   // Request execution
-  executeRequest(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response>;
+  executeRequest<T = any>(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>>;
 }

@@ -11,7 +11,7 @@ export const SHCClient = {
   create: SHCClientImpl.create
 };
 export { ConfigManagerImpl as ConfigManager } from './config-manager';
+export { CollectionManagerImpl, createCollectionManager } from './services/collection-manager';
 
 // Placeholder exports for future implementation
-export const CollectionManager = null;
 export const PluginManager = null;

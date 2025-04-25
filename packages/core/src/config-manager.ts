@@ -178,52 +178,65 @@ export class ConfigManagerImpl implements IConfigManager {
   private mergeConfigs(base: SHCConfig, update?: Partial<SHCConfig>): SHCConfig {
     if (!update) return base;
 
-    return {
+    // Create a deep copy of the base config to avoid modifying it directly
+    const result: SHCConfig = {
       ...base,
       ...update,
       core: {
         ...base.core,
         ...update.core,
         http: {
-          ...base.core.http,
-          ...update.core?.http,
+          ...(base.core?.http || {}),
+          ...(update.core?.http || {}),
           retry: {
-            ...base.core.http.retry,
-            ...update.core?.http?.retry
+            ...(base.core?.http?.retry || {}),
+            ...(update.core?.http?.retry || {})
           },
           tls: {
-            ...base.core.http.tls,
-            ...update.core?.http?.tls
+            ...(base.core?.http?.tls || {}),
+            ...(update.core?.http?.tls || {})
           }
         },
         logging: {
-          ...base.core.logging,
-          ...update.core?.logging
+          ...(base.core?.logging || {}),
+          ...(update.core?.logging || {})
         }
       },
       variable_sets: {
-        global: { ...base.variable_sets.global, ...update.variable_sets?.global },
+        global: { 
+          ...(base.variable_sets?.global || {}), 
+          ...(update.variable_sets?.global || {}) 
+        },
         collection_defaults: { 
-          ...base.variable_sets.collection_defaults, 
-          ...update.variable_sets?.collection_defaults 
+          ...(base.variable_sets?.collection_defaults || {}), 
+          ...(update.variable_sets?.collection_defaults || {}) 
         }
       },
       plugins: {
-        auth: [...(base.plugins.auth || []), ...(update.plugins?.auth || [])],
+        auth: [
+          ...(base.plugins?.auth || []), 
+          ...(update.plugins?.auth || [])
+        ],
         preprocessors: [
-          ...(base.plugins.preprocessors || []), 
+          ...(base.plugins?.preprocessors || []), 
           ...(update.plugins?.preprocessors || [])
         ],
         transformers: [
-          ...(base.plugins.transformers || []), 
+          ...(base.plugins?.transformers || []), 
           ...(update.plugins?.transformers || [])
         ]
       },
       storage: {
-        ...base.storage,
-        ...update.storage
+        ...(base.storage || {}),
+        ...(update.storage || {}),
+        collections: {
+          ...(base.storage?.collections || {}),
+          ...(update.storage?.collections || {})
+        }
       }
     };
+
+    return result;
   }
 }
 
