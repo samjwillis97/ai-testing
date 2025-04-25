@@ -170,7 +170,7 @@ describe('SHC Client Plugin Integration', () => {
         setTimeout(() => {
           expect(mockEmit).toHaveBeenCalledWith('error', expect.any(Error));
           resolve();
-        }, 100);
+        }, 100); // Set a short timeout of 100ms to ensure the error is caught
       });
     });
   });
