@@ -20,6 +20,7 @@ export interface SHCPlugin {
   // Lifecycle hooks
   initialize?: () => Promise<void>;
   destroy?: () => Promise<void>;
+  configure?: (config: Record<string, any>) => Promise<void>;
   
   // Plugin-specific implementations based on type
   execute: (...args: any[]) => Promise<any>;
@@ -50,7 +51,10 @@ export interface AuthProviderPlugin extends SHCPlugin {
 
 export interface PluginConfig {
   name: string;
-  package: string;
+  package?: string;
+  path?: string;
+  git?: string;
+  ref?: string;
   version?: string;
   enabled?: boolean;
   config?: Record<string, any>;

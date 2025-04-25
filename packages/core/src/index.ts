@@ -3,6 +3,7 @@ export * from './types/client.types';
 export * from './types/collection.types';
 export * from './types/config.types';
 export * from './types/plugin.types';
+export * from './types/plugin-manager.types';
 
 // Export implementations
 import { SHCClient as SHCClientImpl } from './services/client';
@@ -12,6 +13,4 @@ export const SHCClient = {
 };
 export { ConfigManagerImpl as ConfigManager } from './config-manager';
 export { CollectionManagerImpl, createCollectionManager } from './services/collection-manager';
-
-// Placeholder exports for future implementation
-export const PluginManager = null;
+export { PluginManagerImpl, createPluginManager } from './services/plugin-manager';
