@@ -1,8 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
-import type { ConfigManager as IConfigManager } from './types/config.types';
+import type { ConfigManager as IConfigManager, TemplateFunction, TemplateContext } from './types/config.types';
 import { SHCConfig } from './types/client.types';
+import { createTemplateEngine, TemplateEngine } from './services/template-engine';
+import { EventEmitter } from 'events';
 
 // Add type declarations for Node.js global objects
 declare global {
@@ -16,6 +18,9 @@ declare global {
 export class ConfigManagerImpl implements IConfigManager {
   private config: SHCConfig;
   private env: Record<string, string>;
+  private templateEngine: TemplateEngine;
+  private eventEmitter: EventEmitter;
+  private secretStore: Map<string, string> = new Map();
 
   constructor(initialConfig?: Partial<SHCConfig>) {
     this.config = {
@@ -59,6 +64,9 @@ export class ConfigManagerImpl implements IConfigManager {
     this.env = Object.fromEntries(
       Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
     );
+
+    this.templateEngine = createTemplateEngine();
+    this.eventEmitter = new EventEmitter();
   }
 
   async loadFromFile(filePath: string): Promise<void> {
@@ -75,7 +83,11 @@ export class ConfigManagerImpl implements IConfigManager {
         throw new Error(`Unsupported file type: ${fileExt}`);
       }
 
+      // Validate the configuration
+      await this.validateConfig(parsedConfig);
+
       this.config = this.mergeConfigs(this.config, parsedConfig);
+      this.eventEmitter.emit('config:loaded', this.config);
     } catch (error) {
       throw new Error(`Failed to load configuration from ${filePath}: ${error instanceof Error ? error.message : error}`);
     }
@@ -84,7 +96,12 @@ export class ConfigManagerImpl implements IConfigManager {
   async loadFromString(content: string): Promise<void> {
     try {
       const parsedConfig = yaml.load(content) as Partial<SHCConfig>;
+      
+      // Validate the configuration
+      await this.validateConfig(parsedConfig);
+      
       this.config = this.mergeConfigs(this.config, parsedConfig);
+      this.eventEmitter.emit('config:loaded', this.config);
     } catch (error) {
       throw new Error(`Failed to parse configuration string: ${error instanceof Error ? error.message : error}`);
     }
@@ -118,6 +135,7 @@ export class ConfigManagerImpl implements IConfigManager {
     }
 
     current[keys[keys.length - 1]] = value;
+    this.eventEmitter.emit('config:updated', { path, value });
   }
 
   has(path: string): boolean {
@@ -147,32 +165,114 @@ export class ConfigManagerImpl implements IConfigManager {
     return value;
   }
 
-  async resolve(template: string): Promise<string> {
-    // Basic template resolution with environment variables
-    return template.replace(/\${env\.([^}]+)}/g, (_, envVar) => {
-      return this.getEnv(envVar);
-    });
+  async resolve(template: string, context?: Partial<TemplateContext>): Promise<string> {
+    // Create a context with config and env
+    const resolveContext: Partial<TemplateContext> = {
+      env: this.env,
+      config: this.config,
+      ...context
+    };
+    
+    return this.templateEngine.resolve(template, resolveContext);
   }
 
-  async resolveObject<T>(obj: T): Promise<T> {
-    const resolveValue = async (value: any): Promise<any> => {
-      if (typeof value === 'string') {
-        return this.resolve(value);
-      }
-      if (Array.isArray(value)) {
-        return Promise.all(value.map(resolveValue));
-      }
-      if (value && typeof value === 'object') {
-        const resolvedObj: any = {};
-        for (const [k, v] of Object.entries(value)) {
-          resolvedObj[k] = await resolveValue(v);
-        }
-        return resolvedObj;
-      }
-      return value;
+  async resolveObject<T>(obj: T, context?: Partial<TemplateContext>): Promise<T> {
+    // Create a context with config and env
+    const resolveContext: Partial<TemplateContext> = {
+      env: this.env,
+      config: this.config,
+      ...context
     };
+    
+    return this.templateEngine.resolveObject(obj, resolveContext);
+  }
 
-    return resolveValue(obj);
+  async validateConfig(config: Record<string, any>): Promise<boolean> {
+    // Basic validation
+    if (!config) {
+      throw new Error('Configuration cannot be null or undefined');
+    }
+
+    // Check version
+    if (config.version && typeof config.version !== 'string') {
+      throw new Error('Configuration version must be a string');
+    }
+
+    // Check HTTP configuration
+    if (config.core?.http) {
+      const http = config.core.http;
+      
+      if (http.timeout !== undefined && typeof http.timeout !== 'number') {
+        throw new Error('HTTP timeout must be a number');
+      }
+      
+      if (http.max_redirects !== undefined && typeof http.max_redirects !== 'number') {
+        throw new Error('HTTP max_redirects must be a number');
+      }
+      
+      if (http.retry) {
+        if (http.retry.attempts !== undefined && typeof http.retry.attempts !== 'number') {
+          throw new Error('HTTP retry attempts must be a number');
+        }
+        
+        if (http.retry.backoff !== undefined && typeof http.retry.backoff !== 'string') {
+          throw new Error('HTTP retry backoff must be a string');
+        }
+      }
+    }
+
+    // All validations passed
+    return true;
+  }
+
+  async saveToFile(filePath: string): Promise<void> {
+    try {
+      const fileExt = path.extname(filePath).toLowerCase();
+      let content: string;
+      
+      if (fileExt === '.yaml' || fileExt === '.yml') {
+        content = yaml.dump(this.config);
+      } else if (fileExt === '.json') {
+        content = JSON.stringify(this.config, null, 2);
+      } else {
+        throw new Error(`Unsupported file type: ${fileExt}`);
+      }
+      
+      await fs.writeFile(filePath, content, 'utf8');
+      this.eventEmitter.emit('config:saved', filePath);
+    } catch (error) {
+      throw new Error(`Failed to save configuration to ${filePath}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  async getSecret(key: string): Promise<string> {
+    // First check the secret store
+    const storedSecret = this.secretStore.get(key);
+    if (storedSecret) {
+      return storedSecret;
+    }
+    
+    // Then check environment variables
+    const envSecret = this.getEnv(key);
+    if (envSecret) {
+      return envSecret;
+    }
+    
+    throw new Error(`Secret '${key}' not found`);
+  }
+
+  async setSecret(key: string, value: string): Promise<void> {
+    this.secretStore.set(key, value);
+    this.eventEmitter.emit('secret:updated', key);
+  }
+
+  registerTemplateFunction(namespace: string, func: TemplateFunction): void {
+    this.templateEngine.registerFunction(namespace, func);
+    this.eventEmitter.emit('template:function:registered', { namespace, functionName: func.name });
+  }
+
+  getTemplateFunction(path: string): TemplateFunction | undefined {
+    return this.templateEngine.getFunction(path);
   }
 
   private mergeConfigs(base: SHCConfig, update?: Partial<SHCConfig>): SHCConfig {
@@ -203,28 +303,23 @@ export class ConfigManagerImpl implements IConfigManager {
         }
       },
       variable_sets: {
-        global: { 
-          ...(base.variable_sets?.global || {}), 
-          ...(update.variable_sets?.global || {}) 
+        ...(base.variable_sets || {}),
+        ...(update.variable_sets || {}),
+        global: {
+          ...(base.variable_sets?.global || {}),
+          ...(update.variable_sets?.global || {})
         },
-        collection_defaults: { 
-          ...(base.variable_sets?.collection_defaults || {}), 
-          ...(update.variable_sets?.collection_defaults || {}) 
+        collection_defaults: {
+          ...(base.variable_sets?.collection_defaults || {}),
+          ...(update.variable_sets?.collection_defaults || {})
         }
       },
       plugins: {
-        auth: [
-          ...(base.plugins?.auth || []), 
-          ...(update.plugins?.auth || [])
-        ],
-        preprocessors: [
-          ...(base.plugins?.preprocessors || []), 
-          ...(update.plugins?.preprocessors || [])
-        ],
-        transformers: [
-          ...(base.plugins?.transformers || []), 
-          ...(update.plugins?.transformers || [])
-        ]
+        ...(base.plugins || {}),
+        ...(update.plugins || {}),
+        auth: [...(base.plugins?.auth || []), ...(update.plugins?.auth || [])],
+        preprocessors: [...(base.plugins?.preprocessors || []), ...(update.plugins?.preprocessors || [])],
+        transformers: [...(base.plugins?.transformers || []), ...(update.plugins?.transformers || [])]
       },
       storage: {
         ...(base.storage || {}),
@@ -240,5 +335,6 @@ export class ConfigManagerImpl implements IConfigManager {
   }
 }
 
-export const createConfigManager = (initialConfig?: Partial<SHCConfig>) => 
-  new ConfigManagerImpl(initialConfig);
+export function createConfigManager(initialConfig?: Partial<SHCConfig>): IConfigManager {
+  return new ConfigManagerImpl(initialConfig);
+}

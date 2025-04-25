@@ -16,6 +16,35 @@ export interface RequestConfig {
 export interface ConfigManagerOptions {
   fileTypes?: string[];
   envPrefix?: string;
+  schemaValidation?: boolean;
+  secretsPath?: string;
+}
+
+/**
+ * Template function interface for dynamic template resolution
+ */
+export interface TemplateFunction {
+  name: string;
+  description: string;
+  parameters?: Array<{
+    name: string;
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description: string;
+    required?: boolean;
+    default?: any;
+  }>;
+  execute: (...args: any[]) => Promise<any>;
+}
+
+/**
+ * Template context for resolving templates
+ */
+export interface TemplateContext {
+  env: Record<string, string>;
+  config: Record<string, any>;
+  variables: Record<string, any>;
+  secrets?: Record<string, string>;
+  [key: string]: any;
 }
 
 export interface ConfigManager {
@@ -33,6 +62,20 @@ export interface ConfigManager {
   requireEnv(name: string): string;
   
   // Template resolution
-  resolve(template: string): Promise<string>;
-  resolveObject<T>(obj: T): Promise<T>;
+  resolve(template: string, context?: Partial<TemplateContext>): Promise<string>;
+  resolveObject<T>(obj: T, context?: Partial<TemplateContext>): Promise<T>;
+  
+  // Schema validation
+  validateConfig(config: Record<string, any>): Promise<boolean>;
+  
+  // Configuration persistence
+  saveToFile(path: string): Promise<void>;
+  
+  // Secret management
+  getSecret(key: string): Promise<string>;
+  setSecret(key: string, value: string): Promise<void>;
+  
+  // Template function registration
+  registerTemplateFunction(namespace: string, func: TemplateFunction): void;
+  getTemplateFunction(path: string): TemplateFunction | undefined;
 }
