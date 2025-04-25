@@ -1,5 +1,5 @@
 import { RequestConfig } from './config.types';
-import { SHCPlugin } from './plugin.types';
+import { SHCPlugin, AuthProviderPlugin, RequestPreprocessorPlugin, ResponseTransformerPlugin } from './plugin.types';
 
 export interface SHCClient {
   // Send HTTP requests
@@ -55,9 +55,9 @@ export interface SHCConfig {
     collection_defaults?: Record<string, any>;
   };
   plugins?: {
-    auth?: any[];
-    preprocessors?: any[];
-    transformers?: any[];
+    auth?: AuthProviderPlugin[];
+    preprocessors?: RequestPreprocessorPlugin[];
+    transformers?: ResponseTransformerPlugin[];
   };
   storage?: {
     collections?: {
@@ -70,7 +70,9 @@ export interface SHCConfig {
 export type SHCEvent = 
   | 'request'
   | 'response'
-  | 'error';
+  | 'error'
+  | 'plugin:registered'
+  | 'plugin:removed';
 
 export type EventHandler = (...args: any[]) => void;
 
@@ -81,4 +83,5 @@ export interface Response<T> {
   headers: Record<string, string>;
   config: RequestConfig;
   responseTime: number;
+  transformed?: boolean;
 }

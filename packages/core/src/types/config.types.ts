@@ -6,6 +6,11 @@ export interface RequestConfig {
   body?: any;
   timeout?: number;
   params?: Record<string, string | number | boolean>;
+  authentication?: {
+    type: string;
+    token?: string;
+    [key: string]: any;
+  };
 }
 
 export interface ConfigManagerOptions {

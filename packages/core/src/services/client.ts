@@ -8,7 +8,9 @@ import {
   Response 
 } from '../types/client.types';
 import { RequestConfig } from '../types/config.types';
-import { SHCPlugin } from '../types/plugin.types';
+import { SHCPlugin, PluginType } from '../types/plugin.types';
+import { PluginManager } from '../types/plugin-manager.types';
+import { createPluginManager } from './plugin-manager';
 
 /**
  * Implementation of the SHC HTTP Client
@@ -18,6 +20,7 @@ export class SHCClient implements ISHCClient {
   private axiosInstance: AxiosInstance;
   private eventEmitter: EventEmitter;
   private plugins: Map<string, SHCPlugin>;
+  private pluginManager: PluginManager;
 
   /**
    * Create a new HTTP client instance with optional configuration
@@ -39,6 +42,9 @@ export class SHCClient implements ISHCClient {
 
     // Initialize plugins
     this.plugins = new Map<string, SHCPlugin>();
+    
+    // Initialize plugin manager
+    this.pluginManager = createPluginManager();
 
     // Register initial plugins if provided
     if (config?.plugins) {
@@ -59,9 +65,32 @@ export class SHCClient implements ISHCClient {
       async (config) => {
         // Add timestamp for response time calculation
         const configWithTimestamp = { ...config, timestamp: Date.now() };
+        
+        // Apply request preprocessor plugins
+        let modifiedConfig = { ...configWithTimestamp };
+        
+        // Get all request preprocessor plugins
+        const preprocessorPlugins = Array.from(this.plugins.values())
+          .filter(plugin => plugin.type === PluginType.REQUEST_PREPROCESSOR);
+        
+        // Apply each plugin in sequence
+        for (const plugin of preprocessorPlugins) {
+          try {
+            modifiedConfig = await plugin.execute(modifiedConfig);
+          } catch (error) {
+            this.eventEmitter.emit('error', {
+              type: 'plugin-error',
+              plugin: plugin.name,
+              error: error instanceof Error ? error.message : String(error),
+              phase: 'request',
+            });
+          }
+        }
+        
         // Emit request event
-        this.eventEmitter.emit('request', configWithTimestamp);
-        return configWithTimestamp;
+        this.eventEmitter.emit('request', modifiedConfig);
+        
+        return modifiedConfig;
       },
       (error) => {
         // Emit error event
@@ -72,10 +101,32 @@ export class SHCClient implements ISHCClient {
 
     // Set up response interceptor
     this.axiosInstance.interceptors.response.use(
-      (response) => {
+      async (response) => {
+        // Apply response transformer plugins
+        let modifiedResponse = { ...response };
+        
+        // Get all response transformer plugins
+        const transformerPlugins = Array.from(this.plugins.values())
+          .filter(plugin => plugin.type === PluginType.RESPONSE_TRANSFORMER);
+        
+        // Apply each plugin in sequence
+        for (const plugin of transformerPlugins) {
+          try {
+            modifiedResponse = await plugin.execute(modifiedResponse);
+          } catch (error) {
+            this.eventEmitter.emit('error', {
+              type: 'plugin-error',
+              plugin: plugin.name,
+              error: error instanceof Error ? error.message : String(error),
+              phase: 'response',
+            });
+          }
+        }
+        
         // Emit response event
-        this.eventEmitter.emit('response', response);
-        return response;
+        this.eventEmitter.emit('response', modifiedResponse);
+        
+        return modifiedResponse;
       },
       (error) => {
         // Emit error event
@@ -103,6 +154,36 @@ export class SHCClient implements ISHCClient {
         timeout: config.timeout,
       };
 
+      // Apply authentication if needed
+      if (config.authentication) {
+        // Find an auth provider plugin that can handle this authentication type
+        const authPlugins = Array.from(this.plugins.values())
+          .filter(plugin => plugin.type === PluginType.AUTH_PROVIDER);
+        
+        for (const plugin of authPlugins) {
+          try {
+            const authResult = await plugin.execute({ 
+              type: config.authentication.type,
+              config: config.authentication
+            });
+            
+            // Apply the authentication result to the request
+            if (authResult && authResult.token) {
+              axiosConfig.headers = axiosConfig.headers || {};
+              axiosConfig.headers['Authorization'] = `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
+            }
+            
+            break; // Use the first successful auth plugin
+          } catch (error) {
+            this.eventEmitter.emit('error', {
+              type: 'auth-error',
+              plugin: plugin.name,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      }
+
       // Send the request
       const response = await this.axiosInstance.request<T>(axiosConfig);
       
@@ -110,7 +191,7 @@ export class SHCClient implements ISHCClient {
       const responseTime = Date.now() - startTime;
       
       // Convert Axios response to SHC response
-      return {
+      const shcResponse: Response<T> = {
         data: response.data,
         status: response.status,
         statusText: response.statusText,
@@ -125,6 +206,13 @@ export class SHCClient implements ISHCClient {
         },
         responseTime
       };
+      
+      // If the response has been transformed by a plugin, include those properties
+      if ('transformed' in response) {
+        (shcResponse as any).transformed = true;
+      }
+      
+      return shcResponse;
     } catch (error) {
       // Handle errors and convert to SHC error format
       if (axios.isAxiosError(error) && error.response) {
@@ -259,6 +347,9 @@ export class SHCClient implements ISHCClient {
       throw new Error('Plugin must have a name');
     }
     
+    // Register with the plugin manager
+    this.pluginManager.register(plugin);
+    
     // Initialize the plugin if it has an initialize method
     if (plugin.initialize) {
       plugin.initialize().catch(error => {
@@ -268,6 +359,9 @@ export class SHCClient implements ISHCClient {
     
     // Store the plugin
     this.plugins.set(plugin.name, plugin);
+    
+    // Emit plugin registered event
+    this.eventEmitter.emit('plugin:registered', plugin);
   }
 
   /**
@@ -286,6 +380,9 @@ export class SHCClient implements ISHCClient {
       
       // Remove the plugin
       this.plugins.delete(pluginName);
+      
+      // Emit plugin removed event
+      this.eventEmitter.emit('plugin:removed', pluginName);
     }
   }
 
