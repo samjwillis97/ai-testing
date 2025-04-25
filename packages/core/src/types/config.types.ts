@@ -47,6 +47,29 @@ export interface TemplateContext {
   [key: string]: any;
 }
 
+/**
+ * Schema validation result
+ */
+export interface ValidationResult {
+  /**
+   * Whether validation was successful
+   */
+  valid: boolean;
+
+  /**
+   * Validation errors, if any
+   */
+  errors?: string[];
+
+  /**
+   * Validated configuration, if successful
+   */
+  config?: any;
+}
+
+/**
+ * Configuration manager for SHC
+ */
 export interface ConfigManager {
   // Load and parse configuration
   loadFromFile(path: string): Promise<void>;
@@ -67,6 +90,8 @@ export interface ConfigManager {
   
   // Schema validation
   validateConfig(config: Record<string, any>): Promise<boolean>;
+  validateSchema(config: unknown): Promise<ValidationResult>;
+  validateCurrentConfig(): Promise<ValidationResult>;
   
   // Configuration persistence
   saveToFile(path: string): Promise<void>;

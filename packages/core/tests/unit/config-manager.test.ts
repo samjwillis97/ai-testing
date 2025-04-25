@@ -111,7 +111,7 @@ core:
       
       vi.mocked(fs.readFile).mockResolvedValueOnce(invalidYamlContent);
       
-      await expect(configManager.loadFromFile('/path/to/config.yaml')).rejects.toThrow('HTTP timeout must be a number');
+      await expect(configManager.loadFromFile('/path/to/config.yaml')).rejects.toThrow('Invalid configuration: core.http.timeout: Expected number');
     });
   });
   
@@ -258,6 +258,47 @@ version: 2.0.0
       };
       
       await expect(configManager.validateConfig(invalidConfig)).rejects.toThrow('Configuration version must be a string');
+    });
+
+    it('should validate against Zod schema and return validation result', async () => {
+      const validConfig = {
+        name: 'Test Config',
+        version: '1.0.0',
+        core: {
+          http: {
+            timeout: 5000
+          }
+        }
+      };
+      
+      const result = await configManager.validateSchema(validConfig);
+      expect(result.valid).toBe(true);
+      expect(result.config).toBeDefined();
+      expect(result.config?.name).toBe('Test Config');
+    });
+    
+    it('should return validation errors for invalid schema', async () => {
+      const invalidConfig = {
+        name: 123, // Should be a string
+        core: {
+          http: {
+            timeout: 'invalid' // Should be a number
+          }
+        }
+      };
+      
+      const result = await configManager.validateSchema(invalidConfig);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toBeDefined();
+      expect(result.errors?.length).toBeGreaterThan(0);
+      expect(result.errors?.some(err => err.includes('name'))).toBe(true);
+      expect(result.errors?.some(err => err.includes('timeout'))).toBe(true);
+    });
+    
+    it('should validate current configuration', async () => {
+      const result = await configManager.validateCurrentConfig();
+      expect(result.valid).toBe(true);
+      expect(result.config).toBeDefined();
     });
   });
   

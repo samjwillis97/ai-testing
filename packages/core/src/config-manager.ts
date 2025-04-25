@@ -1,10 +1,19 @@
 import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
-import type { ConfigManager as IConfigManager, TemplateFunction, TemplateContext } from './types/config.types';
+import type { ConfigManager as IConfigManager, TemplateFunction, TemplateContext, ValidationResult } from './types/config.types';
 import { SHCConfig } from './types/client.types';
 import { createTemplateEngine, TemplateEngine } from './services/template-engine';
 import { EventEmitter } from 'events';
+import { 
+  configSchema, 
+  formatValidationErrors, 
+  safeValidateConfig, 
+  validateConfig as validateConfigSchema, 
+  validatePartialConfig, 
+  SHCConfigSchema 
+} from './schemas/config.schema';
+import { z } from 'zod';
 
 // Add type declarations for Node.js global objects
 declare global {
@@ -83,8 +92,11 @@ export class ConfigManagerImpl implements IConfigManager {
         throw new Error(`Unsupported file type: ${fileExt}`);
       }
 
-      // Validate the configuration
-      await this.validateConfig(parsedConfig);
+      // Validate the configuration using Zod schema
+      const validationResult = await this.validateSchema(parsedConfig);
+      if (!validationResult.valid) {
+        throw new Error(`Invalid configuration: ${validationResult.errors?.join(', ')}`);
+      }
 
       this.config = this.mergeConfigs(this.config, parsedConfig);
       this.eventEmitter.emit('config:loaded', this.config);
@@ -97,8 +109,11 @@ export class ConfigManagerImpl implements IConfigManager {
     try {
       const parsedConfig = yaml.load(content) as Partial<SHCConfig>;
       
-      // Validate the configuration
-      await this.validateConfig(parsedConfig);
+      // Validate the configuration using Zod schema
+      const validationResult = await this.validateSchema(parsedConfig);
+      if (!validationResult.valid) {
+        throw new Error(`Invalid configuration: ${validationResult.errors?.join(', ')}`);
+      }
       
       this.config = this.mergeConfigs(this.config, parsedConfig);
       this.eventEmitter.emit('config:loaded', this.config);
@@ -188,7 +203,7 @@ export class ConfigManagerImpl implements IConfigManager {
   }
 
   async validateConfig(config: Record<string, any>): Promise<boolean> {
-    // Basic validation
+    // Basic validation for backward compatibility
     if (!config) {
       throw new Error('Configuration cannot be null or undefined');
     }
@@ -225,6 +240,37 @@ export class ConfigManagerImpl implements IConfigManager {
     return true;
   }
 
+  async validateSchema(config: unknown): Promise<ValidationResult> {
+    try {
+      // For partial configs, use validatePartialConfig
+      const validatedConfig = validatePartialConfig(config);
+      return {
+        valid: true,
+        config: validatedConfig as SHCConfigSchema
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          valid: false,
+          errors: error.errors.map(err => {
+            const path = err.path.join('.');
+            return `${path ? path + ': ' : ''}${err.message}`;
+          })
+        };
+      }
+      
+      // For non-Zod errors
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : String(error)]
+      };
+    }
+  }
+
+  async validateCurrentConfig(): Promise<ValidationResult> {
+    return this.validateSchema(this.config);
+  }
+
   async saveToFile(filePath: string): Promise<void> {
     try {
       const fileExt = path.extname(filePath).toLowerCase();
@@ -236,6 +282,14 @@ export class ConfigManagerImpl implements IConfigManager {
         content = JSON.stringify(this.config, null, 2);
       } else {
         throw new Error(`Unsupported file type: ${fileExt}`);
+      }
+      
+      // Ensure directory exists
+      const directory = path.dirname(filePath);
+      try {
+        await fs.access(directory);
+      } catch {
+        await fs.mkdir(directory, { recursive: true });
       }
       
       await fs.writeFile(filePath, content, 'utf8');
