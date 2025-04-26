@@ -23,7 +23,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "js-yaml": "^4.1.0",
-    "npm-programmatic": "^0.0.12",
+    "pacote": "^15.0.6",
     "simple-git": "^3.27.0",
     "zod": "^3.24.3"
   },
