@@ -87,7 +87,7 @@ export class SHCClient implements ISHCClient {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         // Add timestamp for response time calculation
-        const configWithTimestamp = { ...config, timestamp: Date.now() as number };
+        const configWithTimestamp = { ...config, timestamp: Date.now()};
         
         // Apply request preprocessor plugins
         let modifiedConfig = { ...configWithTimestamp };

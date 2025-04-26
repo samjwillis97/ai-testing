@@ -214,23 +214,38 @@ export class PluginManagerImpl implements IPluginManager {
       let pkgJson;
       try {
         const packageJsonPath = path.join(extractDir, 'package.json');
-        pkgJson = await import(packageJsonPath).then(module => module.default || module);
+        const importedPkg = await import(packageJsonPath);
+        const typedImportedPkg = importedPkg as { default?: Record<string, unknown> };
+        pkgJson = (typedImportedPkg.default || importedPkg) as unknown as Record<string, unknown>;
         await this.extractDependencies(pkgJson, extractDir);
       } catch (importError) {
         // Continue without package.json
         console.warn(`Could not load package.json for ${packageName}: ${importError instanceof Error ? importError.message : String(importError)}`);
       }
       // Dynamically import the plugin entry
-      let entry;
+      let entry: string;
       try {
-        entry = pkgJson && pkgJson.main ? path.join(extractDir, pkgJson.main) : path.join(extractDir, 'index.js');
+        entry = pkgJson && typeof pkgJson.main === 'string' 
+          ? path.join(extractDir, pkgJson.main) 
+          : path.join(extractDir, 'index.js');
       } catch {
         entry = path.join(extractDir, 'index.js');
       }
       const imported = await import(entry);
-      const plugin = imported.default || imported;
-      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
-      return plugin as SHCPlugin;
+      const importedModule = imported as { default?: Record<string, unknown> };
+      const pluginCandidate = (importedModule.default || imported) as unknown as Record<string, unknown>;
+      
+      // Validate that the plugin has the required properties
+      if (!pluginCandidate || typeof pluginCandidate !== 'object') {
+        throw new Error('Invalid plugin export');
+      }
+      
+      // Validate the plugin has the required properties
+      if (!this.isValidPlugin(pluginCandidate)) {
+        throw new Error('Invalid plugin structure: missing required properties');
+      }
+      
+      return pluginCandidate as unknown as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from package ${packageName}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -253,7 +268,9 @@ export class PluginManagerImpl implements IPluginManager {
       let subPkgJson: Record<string, unknown> | undefined;
       try {
         const subPackageJsonPath = path.join(depDir, 'package.json');
-        subPkgJson = await import(subPackageJsonPath).then(module => module.default || module);
+        const importedSubPkg = await import(subPackageJsonPath);
+        const typedImportedSubPkg = importedSubPkg as { default?: Record<string, unknown> };
+        subPkgJson = (typedImportedSubPkg.default || importedSubPkg) as unknown as Record<string, unknown>;
       } catch (importError) {
         // Continue without sub-package.json
         console.warn(`Could not load sub-package.json for ${dep}: ${importError instanceof Error ? importError.message : String(importError)}`);
@@ -277,9 +294,20 @@ export class PluginManagerImpl implements IPluginManager {
         : path.resolve(process.cwd(), pluginPath);
       // Dynamically import the plugin
       const imported = await import(absolutePath);
-      const plugin = imported.default || imported;
-      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
-      return plugin as SHCPlugin;
+      const importedModule = imported as { default?: Record<string, unknown> };
+      const pluginCandidate = (importedModule.default || imported) as unknown as Record<string, unknown>;
+      
+      // Validate that the plugin has the required properties
+      if (!pluginCandidate || typeof pluginCandidate !== 'object') {
+        throw new Error('Invalid plugin export');
+      }
+      
+      // Validate the plugin has the required properties
+      if (!this.isValidPlugin(pluginCandidate)) {
+        throw new Error('Invalid plugin structure: missing required properties');
+      }
+      
+      return pluginCandidate as unknown as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from path ${pluginPath}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -308,26 +336,54 @@ export class PluginManagerImpl implements IPluginManager {
       let pkgJson;
       try {
         const packageJsonPath = path.join(targetDir, 'package.json');
-        pkgJson = await import(packageJsonPath).then(module => module.default || module);
+        const importedPkg = await import(packageJsonPath);
+        const typedImportedPkg = importedPkg as { default?: Record<string, unknown> };
+        pkgJson = (typedImportedPkg.default || importedPkg) as unknown as Record<string, unknown>;
         await this.extractDependencies(pkgJson, targetDir);
       } catch (importError) {
         // Continue without package.json
         console.warn(`Could not load package.json for git repo ${url}: ${importError instanceof Error ? importError.message : String(importError)}`);
       }
       // Dynamically import the plugin (assume main entry in package.json or index.js)
-      let entry;
+      let entry: string;
       try {
-        entry = pkgJson && pkgJson.main ? path.join(targetDir, pkgJson.main) : path.join(targetDir, 'index.js');
+        entry = pkgJson && typeof pkgJson.main === 'string' 
+          ? path.join(targetDir, pkgJson.main) 
+          : path.join(targetDir, 'index.js');
       } catch {
         entry = path.join(targetDir, 'index.js');
       }
       const imported = await import(entry);
-      const plugin = imported.default || imported;
-      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
-      return plugin as SHCPlugin;
+      const importedModule = imported as { default?: Record<string, unknown> };
+      const pluginCandidate = (importedModule.default || imported) as unknown as Record<string, unknown>;
+      
+      // Validate that the plugin has the required properties
+      if (!pluginCandidate || typeof pluginCandidate !== 'object') {
+        throw new Error('Invalid plugin export');
+      }
+      
+      // Validate the plugin has the required properties
+      if (!this.isValidPlugin(pluginCandidate)) {
+        throw new Error('Invalid plugin structure: missing required properties');
+      }
+      
+      return pluginCandidate as unknown as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from git ${url}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Validates that an object has the required properties to be a SHCPlugin
+   * @private
+   */
+  private isValidPlugin(obj: Record<string, unknown>): boolean {
+    return (
+      'name' in obj && typeof obj.name === 'string' &&
+      'version' in obj && typeof obj.version === 'string' &&
+      'type' in obj && typeof obj.type === 'string' &&
+      'execute' in obj && typeof obj.execute === 'function'
+    );
   }
 }
 

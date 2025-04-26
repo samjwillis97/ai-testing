@@ -503,8 +503,8 @@ export class CollectionManagerImpl implements ICollectionManager {
     
     // Helper function to resolve template strings
     const resolveTemplate = (template: string): string => {
-      return template.replace(/\${variables\.([^}]+)}/g, (_, path) => {
-        const parts = path.split('.');
+      return template.replace(/\${variables\.([^}]+)}/g, (_, path: string) => {
+        const parts: string[] = path.split('.');
         
         if (parts.length >= 2) {
           const [setName, ...propertyPath] = parts;
