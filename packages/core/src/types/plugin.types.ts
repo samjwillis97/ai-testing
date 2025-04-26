@@ -8,7 +8,7 @@ export interface AuthConfig {
   type: string;
   token?: string;
   // Extensible for different auth mechanisms
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SHCPlugin {
@@ -20,32 +20,32 @@ export interface SHCPlugin {
   // Lifecycle hooks
   initialize?: () => Promise<void>;
   destroy?: () => Promise<void>;
-  configure?: (config: Record<string, any>) => Promise<void>;
+  configure?: (config: Record<string, unknown>) => Promise<void>;
   
   // Plugin-specific implementations based on type
-  execute: (...args: any[]) => Promise<any>;
+  execute: (...args: unknown[]) => Promise<unknown>;
   
   // Optional provided functions for template resolution
   providedFunctions?: Record<string, {
-    execute: (...args: any[]) => Promise<any>;
-    parameters?: any[];
+    execute: (...args: unknown[]) => Promise<unknown>;
+    parameters?: unknown[];
   }>;
 }
 
 export interface RequestPreprocessorPlugin extends SHCPlugin {
   type: PluginType.REQUEST_PREPROCESSOR;
-  execute: (request: any) => Promise<any>;
+  execute: (...args: unknown[]) => Promise<unknown>;
 }
 
 export interface ResponseTransformerPlugin extends SHCPlugin {
   type: PluginType.RESPONSE_TRANSFORMER;
-  execute: (response: any) => Promise<any>;
+  execute: (...args: unknown[]) => Promise<unknown>;
 }
 
 export interface AuthProviderPlugin extends SHCPlugin {
   type: PluginType.AUTH_PROVIDER;
-  execute: (context: any) => Promise<any>;
-  refresh?: (token: string) => Promise<any>;
+  execute: (...args: unknown[]) => Promise<unknown>;
+  refresh?: (token: string) => Promise<unknown>;
   validate?: (token: string) => Promise<boolean>;
 }
 
@@ -57,7 +57,7 @@ export interface PluginConfig {
   ref?: string;
   version?: string;
   enabled?: boolean;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
   dependencies?: Array<{
     name: string;
     package: string;

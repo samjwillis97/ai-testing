@@ -124,11 +124,17 @@ export class ConfigManagerImpl implements IConfigManager {
 
   get<T>(path: string, defaultValue?: T): T {
     const keys = path.split('.');
-    let current: any = this.config;
+    let current: unknown = this.config;
 
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+      if (
+        current &&
+        typeof current === 'object' &&
+        current !== null &&
+        // Check if the key exists and the object has the property (for typed objects)
+        (key in current || Object.prototype.hasOwnProperty.call(current, key))
+      ) {
+        current = (current as Record<string, unknown>)[key];
       } else {
         return defaultValue as T;
       }
@@ -137,29 +143,38 @@ export class ConfigManagerImpl implements IConfigManager {
     return current as T;
   }
 
-  set(path: string, value: any): void {
+  set(path: string, value: unknown): void {
     const keys = path.split('.');
-    let current = this.config as any;
+    let current: unknown = this.config;
 
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (!(key in current)) {
-        current[key] = {};
+      if (current && typeof current === 'object' && !(key in current)) {
+        (current as Record<string, unknown>)[key] = {};
       }
-      current = current[key];
+      if (current && typeof current === 'object') {
+        current = (current as Record<string, unknown>)[key];
+      }
     }
 
-    current[keys[keys.length - 1]] = value;
+    if (current && typeof current === 'object') {
+      (current as Record<string, unknown>)[keys[keys.length - 1]] = value;
+    }
     this.eventEmitter.emit('config:updated', { path, value });
   }
 
   has(path: string): boolean {
     const keys = path.split('.');
-    let current: any = this.config;
+    let current: unknown = this.config;
 
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+      if (
+        current &&
+        typeof current === 'object' &&
+        current !== null &&
+        (key in current || Object.prototype.hasOwnProperty.call(current, key))
+      ) {
+        current = (current as Record<string, unknown>)[key];
       } else {
         return false;
       }
@@ -202,7 +217,7 @@ export class ConfigManagerImpl implements IConfigManager {
     return this.templateEngine.resolveObject(obj, resolveContext);
   }
 
-  async validateConfig(config: Record<string, any>): Promise<boolean> {
+  async validateConfig(config: Record<string, unknown>): Promise<boolean> {
     // Basic validation for backward compatibility
     if (!config) {
       throw new Error('Configuration cannot be null or undefined');
@@ -214,54 +229,77 @@ export class ConfigManagerImpl implements IConfigManager {
     }
 
     // Check HTTP configuration
-    if (config.core?.http) {
-      const http = config.core.http;
+    if (config.core && typeof config.core === 'object' && 'http' in config.core && config.core.http) {
+      const http = config.core.http as {
+        timeout?: unknown;
+        max_redirects?: unknown;
+        retry?: {
+          attempts?: unknown;
+          backoff?: unknown;
+        };
+        tls?: {
+          verify?: unknown;
+        };
+      };
       
-      if (http.timeout !== undefined && typeof http.timeout !== 'number') {
+      if ('timeout' in http && http.timeout !== undefined && typeof http.timeout !== 'number') {
         throw new Error('HTTP timeout must be a number');
       }
       
-      if (http.max_redirects !== undefined && typeof http.max_redirects !== 'number') {
+      if ('max_redirects' in http && http.max_redirects !== undefined && typeof http.max_redirects !== 'number') {
         throw new Error('HTTP max_redirects must be a number');
       }
       
-      if (http.retry) {
-        if (http.retry.attempts !== undefined && typeof http.retry.attempts !== 'number') {
+      if ('retry' in http && http.retry) {
+        if ('attempts' in http.retry && http.retry.attempts !== undefined && typeof http.retry.attempts !== 'number') {
           throw new Error('HTTP retry attempts must be a number');
         }
         
-        if (http.retry.backoff !== undefined && typeof http.retry.backoff !== 'string') {
+        if ('backoff' in http.retry && http.retry.backoff !== undefined && typeof http.retry.backoff !== 'string') {
           throw new Error('HTTP retry backoff must be a string');
+        }
+      }
+      
+      if ('tls' in http && http.tls) {
+        if ('verify' in http.tls && http.tls.verify !== undefined && typeof http.tls.verify !== 'boolean') {
+          throw new Error('HTTP TLS verify must be a boolean');
         }
       }
     }
 
     // Check logging configuration
-    if (config.core?.logging) {
-      const logging = config.core.logging;
+    if (config.core && typeof config.core === 'object' && 'logging' in config.core && config.core.logging) {
+      const logging = config.core.logging as {
+        level?: unknown;
+        format?: unknown;
+        output?: unknown;
+      };
       
-      if (logging.level !== undefined && typeof logging.level !== 'string') {
+      if ('level' in logging && logging.level !== undefined && typeof logging.level !== 'string') {
         throw new Error('Logging level must be a string');
       }
       
-      if (logging.format !== undefined && typeof logging.format !== 'string') {
+      if ('format' in logging && logging.format !== undefined && typeof logging.format !== 'string') {
         throw new Error('Logging format must be a string');
       }
       
-      if (logging.output !== undefined && typeof logging.output !== 'string') {
+      if ('output' in logging && logging.output !== undefined && typeof logging.output !== 'string') {
         throw new Error('Logging output must be a string');
       }
     }
 
     // Check storage configuration
-    if (config.storage?.collections) {
-      const collections = config.storage.collections;
+    if (config.storage && typeof config.storage === 'object' && 'collections' in config.storage && config.storage.collections) {
+      const collections = config.storage.collections as {
+        type?: unknown;
+        path?: unknown;
+      };
       
-      if (collections.type !== undefined && typeof collections.type !== 'string') {
+      if ('type' in collections && collections.type !== undefined && typeof collections.type !== 'string') {
         throw new Error('Storage collections type must be a string');
       }
       
-      if (collections.path !== undefined && typeof collections.path !== 'string') {
+      if ('path' in collections && collections.path !== undefined && typeof collections.path !== 'string') {
         throw new Error('Storage collections path must be a string');
       }
     }

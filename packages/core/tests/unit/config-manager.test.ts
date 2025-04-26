@@ -203,7 +203,13 @@ version: 2.0.0
       const uppercase: TemplateFunction = {
         name: 'uppercase',
         description: 'Convert string to uppercase',
-        execute: async (text: string) => text.toUpperCase(),
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const [text] = args;
+          if (typeof text === 'string') {
+            return text.toUpperCase();
+          }
+          return 'Unknown';
+        },
       };
       
       configManager.registerTemplateFunction('string', uppercase);
@@ -213,7 +219,7 @@ version: 2.0.0
     });
     
     it('should resolve templates in objects', async () => {
-      const obj = {
+      const obj: Record<string, unknown> = {
         name: '${config.name}',
         env: '${env.TEST_ENV}',
         nested: {
@@ -223,15 +229,15 @@ version: 2.0.0
       
       const result = await configManager.resolveObject(obj);
       
-      expect(result.name).toBe('Test Config');
-      expect(result.env).toBe('test-env-value');
-      expect(result.nested.value).toBe('test-api-key');
+      expect((result as { name?: string }).name).toBe('Test Config');
+      expect((result as { env?: string }).env).toBe('test-env-value');
+      expect((result as { nested?: { value?: string } }).nested?.value).toBe('test-api-key');
     });
   });
   
   describe('schema validation', () => {
     it('should validate configuration schema', async () => {
-      const validConfig = {
+      const validConfig: Record<string, unknown> = {
         version: '1.0.0',
         core: {
           http: {
@@ -248,7 +254,7 @@ version: 2.0.0
     });
     
     it('should reject invalid configuration', async () => {
-      const invalidConfig = {
+      const invalidConfig: Record<string, unknown> = {
         version: 123, // Should be a string
         core: {
           http: {
@@ -261,7 +267,7 @@ version: 2.0.0
     });
 
     it('should validate against Zod schema and return validation result', async () => {
-      const validConfig = {
+      const validConfig: Record<string, unknown> = {
         name: 'Test Config',
         version: '1.0.0',
         core: {
@@ -274,11 +280,11 @@ version: 2.0.0
       const result = await configManager.validateSchema(validConfig);
       expect(result.valid).toBe(true);
       expect(result.config).toBeDefined();
-      expect(result.config?.name).toBe('Test Config');
+      expect((result.config as { name?: string })?.name).toBe('Test Config');
     });
     
     it('should return validation errors for invalid schema', async () => {
-      const invalidConfig = {
+      const invalidConfig: Record<string, unknown> = {
         name: 123, // Should be a string
         core: {
           http: {
@@ -307,7 +313,7 @@ version: 2.0.0
       const configManager = createConfigManager();
       
       // Test invalid HTTP timeout (string instead of number)
-      const invalidTimeoutConfig = {
+      const invalidTimeoutConfig: Record<string, unknown> = {
         core: {
           http: {
             timeout: 'invalid'
@@ -317,7 +323,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidTimeoutConfig)).rejects.toThrow(/HTTP timeout must be a number/);
       
       // Test invalid HTTP max_redirects (string instead of number)
-      const invalidRedirectsConfig = {
+      const invalidRedirectsConfig: Record<string, unknown> = {
         core: {
           http: {
             max_redirects: 'invalid'
@@ -327,7 +333,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidRedirectsConfig)).rejects.toThrow(/HTTP max_redirects must be a number/);
       
       // Test invalid HTTP retry attempts (string instead of number)
-      const invalidRetryAttemptsConfig = {
+      const invalidRetryAttemptsConfig: Record<string, unknown> = {
         core: {
           http: {
             retry: {
@@ -339,7 +345,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidRetryAttemptsConfig)).rejects.toThrow(/HTTP retry attempts must be a number/);
       
       // Test invalid HTTP retry backoff (number instead of string)
-      const invalidRetryBackoffConfig = {
+      const invalidRetryBackoffConfig: Record<string, unknown> = {
         core: {
           http: {
             retry: {
@@ -355,7 +361,7 @@ version: 2.0.0
       const configManager = createConfigManager();
       
       // Test invalid logging level (number instead of string)
-      const invalidLevelConfig = {
+      const invalidLevelConfig: Record<string, unknown> = {
         core: {
           logging: {
             level: 123
@@ -365,7 +371,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidLevelConfig)).rejects.toThrow(/Logging level must be a string/);
       
       // Test invalid logging format (number instead of string)
-      const invalidFormatConfig = {
+      const invalidFormatConfig: Record<string, unknown> = {
         core: {
           logging: {
             format: 123
@@ -375,7 +381,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidFormatConfig)).rejects.toThrow(/Logging format must be a string/);
       
       // Test invalid logging output (number instead of string)
-      const invalidOutputConfig = {
+      const invalidOutputConfig: Record<string, unknown> = {
         core: {
           logging: {
             output: 123
@@ -389,7 +395,7 @@ version: 2.0.0
       const configManager = createConfigManager();
       
       // Test invalid storage collections type (number instead of string)
-      const invalidTypeConfig = {
+      const invalidTypeConfig: Record<string, unknown> = {
         storage: {
           collections: {
             type: 123
@@ -399,7 +405,7 @@ version: 2.0.0
       await expect(configManager.validateConfig(invalidTypeConfig)).rejects.toThrow(/Storage collections type must be a string/);
       
       // Test invalid storage collections path (number instead of string)
-      const invalidPathConfig = {
+      const invalidPathConfig: Record<string, unknown> = {
         storage: {
           collections: {
             path: 123
@@ -415,7 +421,7 @@ version: 2.0.0
       const configManager = createConfigManager();
       
       // Create an object with circular reference
-      const circular: any = { name: 'test' };
+      const circular: Record<string, unknown> = { name: 'test' };
       circular.self = circular;
       
       // Should not throw an error
@@ -425,7 +431,7 @@ version: 2.0.0
     it('should handle null and undefined values', async () => {
       const configManager = createConfigManager();
       
-      const obj = {
+      const obj: Record<string, unknown> = {
         nullValue: null,
         undefinedValue: undefined,
         nestedNull: {
@@ -435,12 +441,26 @@ version: 2.0.0
       };
       
       const resolved = await configManager.resolveObject(obj);
-      expect(resolved.nullValue).toBeNull();
-      expect(resolved.undefinedValue).toBeUndefined();
-      expect(resolved.nestedNull.value).toBeNull();
-      expect(resolved.array[0]).toBeNull();
-      expect(resolved.array[1]).toBeUndefined();
-      expect(resolved.array[2]).toBe('value');
+      expect((resolved as { nullValue?: unknown }).nullValue).toBeNull();
+      expect((resolved as { undefinedValue?: unknown }).undefinedValue).toBeUndefined();
+      
+      // Defensive checks for array elements of unknown type
+      const arr = (resolved as { array?: unknown[] }).array;
+      if (Array.isArray(arr)) {
+        expect(arr[0]).toBeNull();
+        expect(arr[1]).toBeUndefined();
+        expect(arr[2]).toBe('value');
+      } else {
+        throw new Error('Expected resolved.array to be an array');
+      }
+      
+      // Defensive check for nestedNull
+      const nestedNull = (resolved as { nestedNull?: { value?: unknown } }).nestedNull;
+      if (nestedNull && typeof nestedNull === 'object') {
+        expect(nestedNull.value).toBeNull();
+      } else {
+        throw new Error('Expected resolved.nestedNull to be an object');
+      }
     });
     
     it('should handle complex nested objects with arrays', async () => {
@@ -454,12 +474,16 @@ version: 2.0.0
           { name: 'a', type: 'number', description: 'First number', required: true },
           { name: 'b', type: 'number', description: 'Second number', required: true }
         ],
-        execute: async (a: number, b: number) => {
-          return String(Number(a) + Number(b));
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const [a, b] = args;
+          if (typeof a === 'number' && typeof b === 'number') {
+            return String(a + b);
+          }
+          return 'Unknown';
         }
       });
       
-      const complexObj = {
+      const complexObj: Record<string, unknown> = {
         simple: '${math.add(1, 2)}',
         array: ['${math.add(3, 4)}', '${math.add(5, 6)}'],
         nested: {
@@ -472,12 +496,12 @@ version: 2.0.0
       };
       
       const resolved = await configManager.resolveObject(complexObj);
-      expect(resolved.simple).toBe('3');
-      expect(resolved.array[0]).toBe('7');
-      expect(resolved.array[1]).toBe('11');
-      expect(resolved.nested.value).toBe('15');
-      expect(resolved.nested.array[0].calc).toBe('19');
-      expect(resolved.nested.array[1].calc).toBe('23');
+      expect((resolved as { simple?: string }).simple).toBe('3');
+      expect((resolved as { array?: unknown[] }).array?.[0]).toBe('7');
+      expect((resolved as { array?: unknown[] }).array?.[1]).toBe('11');
+      expect((resolved as { nested?: { value?: string } }).nested?.value).toBe('15');
+      expect(((resolved as { nested?: { array?: unknown[] } }).nested?.array?.[0] as { calc?: string }).calc).toBe('19');
+      expect(((resolved as { nested?: { array?: unknown[] } }).nested?.array?.[1] as { calc?: string }).calc).toBe('23');
     });
   });
   
@@ -530,14 +554,14 @@ version: 2.0.0
       const func: TemplateFunction = {
         name: 'testFunc',
         description: 'A test function',
-        execute: async () => 'test result'
+        execute: async (...args: unknown[]): Promise<unknown> => 'test result'
       };
       
       configManager.registerTemplateFunction('test', func);
       
       const retrievedFunc = configManager.getTemplateFunction('test.testFunc');
       expect(retrievedFunc).toBeDefined();
-      expect(retrievedFunc?.name).toBe('testFunc');
+      expect((retrievedFunc as { name?: string })?.name).toBe('testFunc');
     });
     
     it('should return undefined for non-existent template functions', () => {

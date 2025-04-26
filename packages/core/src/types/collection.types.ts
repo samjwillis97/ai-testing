@@ -8,7 +8,7 @@ export interface VariableSet {
   description?: string;
   defaultValue?: string;
   activeValue: string;
-  values: Record<string, Record<string, any>>;
+  values: Record<string, Record<string, unknown>>;
 }
 
 export interface Request {
@@ -19,9 +19,9 @@ export interface Request {
   path: string;
   headers?: Record<string, string>;
   query?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   authentication?: AuthConfig;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
 }
 
 export interface Collection {
@@ -35,7 +35,7 @@ export interface Collection {
 }
 
 export interface ExecuteOptions {
-  variableOverrides?: Record<string, any>;
+  variableOverrides?: Record<string, unknown>;
   timeout?: number;
 }
 
@@ -64,5 +64,5 @@ export interface CollectionManager {
   setVariableSetValue(collection: string, setName: string, valueName: string): Promise<void>;
   
   // Request execution
-  executeRequest<T = any>(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>>;
+  executeRequest<T = unknown>(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>>;
 }

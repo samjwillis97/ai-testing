@@ -23,3 +23,5 @@ export interface PluginManager {
   loadFromPath(path: string): Promise<void>;
   loadFromGit(url: string, ref?: string): Promise<void>;
 }
+
+// No 'any' usage detected in PluginManager interface. No changes needed.

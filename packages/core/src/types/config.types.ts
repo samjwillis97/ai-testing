@@ -1,15 +1,17 @@
+import type { SHCConfig } from './client.types';
+
 export interface RequestConfig {
   url?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
   headers?: Record<string, string>;
   query?: Record<string, string | number | boolean>;
-  body?: any;
+  body?: unknown;
   timeout?: number;
   params?: Record<string, string | number | boolean>;
   authentication?: {
     type: string;
     token?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -31,9 +33,9 @@ export interface TemplateFunction {
     type: 'string' | 'number' | 'boolean' | 'object' | 'array';
     description: string;
     required?: boolean;
-    default?: any;
+    default?: unknown;
   }>;
-  execute: (...args: any[]) => Promise<any>;
+  execute: (...args: unknown[]) => Promise<unknown>;
 }
 
 /**
@@ -41,10 +43,10 @@ export interface TemplateFunction {
  */
 export interface TemplateContext {
   env: Record<string, string>;
-  config: Record<string, any>;
-  variables: Record<string, any>;
+  config: SHCConfig;
+  variables: Record<string, unknown>;
   secrets?: Record<string, string>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -64,7 +66,7 @@ export interface ValidationResult {
   /**
    * Validated configuration, if successful
    */
-  config?: any;
+  config?: unknown;
 }
 
 /**
@@ -77,7 +79,7 @@ export interface ConfigManager {
   
   // Configuration access
   get<T>(path: string, defaultValue?: T): T;
-  set(path: string, value: any): void;
+  set<T = unknown>(path: string, value: T): void;
   has(path: string): boolean;
   
   // Environment variables
@@ -89,7 +91,7 @@ export interface ConfigManager {
   resolveObject<T>(obj: T, context?: Partial<TemplateContext>): Promise<T>;
   
   // Schema validation
-  validateConfig(config: Record<string, any>): Promise<boolean>;
+  validateConfig(config: Record<string, unknown>): Promise<boolean>;
   validateSchema(config: unknown): Promise<ValidationResult>;
   validateCurrentConfig(): Promise<ValidationResult>;
   
@@ -104,3 +106,13 @@ export interface ConfigManager {
   registerTemplateFunction(namespace: string, func: TemplateFunction): void;
   getTemplateFunction(path: string): TemplateFunction | undefined;
 }
+
+// Used in some places for generic config objects
+export type AnyObject = Record<string, unknown>;
+
+// Used for dynamic template functions
+export type TemplateFunctionType = {
+  name: string;
+  description?: string;
+  execute: (...args: unknown[]) => Promise<unknown>;
+};

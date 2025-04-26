@@ -6,10 +6,10 @@ export interface SHCClient {
   // Send HTTP requests
   request<T>(config: RequestConfig): Promise<Response<T>>;
   get<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
-  post<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
-  put<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
+  post<T>(url: string, data?: unknown, config?: RequestConfig): Promise<Response<T>>;
+  put<T>(url: string, data?: unknown, config?: RequestConfig): Promise<Response<T>>;
   delete<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
-  patch<T>(url: string, data?: any, config?: RequestConfig): Promise<Response<T>>;
+  patch<T>(url: string, data?: unknown, config?: RequestConfig): Promise<Response<T>>;
   head<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
   options<T>(url: string, config?: RequestConfig): Promise<Response<T>>;
 
@@ -23,8 +23,8 @@ export interface SHCClient {
   removePlugin(pluginName: string): void;
   
   // Event handling
-  on(event: SHCEvent, handler: EventHandler): void;
-  off(event: SHCEvent, handler: EventHandler): void;
+  on(event: SHCEvent, handler: (...args: unknown[]) => void): void;
+  off(event: SHCEvent, handler: (...args: unknown[]) => void): void;
 }
 
 export interface SHCConfig {
@@ -52,8 +52,8 @@ export interface SHCConfig {
     };
   };
   variable_sets?: {
-    global?: Record<string, any>;
-    collection_defaults?: Record<string, any>;
+    global?: Record<string, unknown>;
+    collection_defaults?: Record<string, unknown>;
   };
   plugins?: {
     auth?: AuthProviderPlugin[];
@@ -86,8 +86,6 @@ export type SHCEvent =
   | 'collection:created'
   | 'collection:updated'
   | 'collection:deleted';
-
-export type EventHandler = (...args: any[]) => void;
 
 export interface Response<T> {
   data: T;
