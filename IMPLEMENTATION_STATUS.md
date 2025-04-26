@@ -33,16 +33,16 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
     - [x] Unit/integration tests
   - [x] Plugin events and error handling
   - [x] Plugin loading mechanisms
-    - [ ] Load plugin from npm package
-      - [ ] Implementation of npm plugin loader
+    - [x] Load plugin from npm package
+      - [x] Implementation of npm plugin loader
       - [x] Error handling for npm plugins
       - [x] Tests for npm plugin loading
-    - [ ] Load plugin from local path
-      - [ ] Implementation of path plugin loader
+    - [x] Load plugin from local path
+      - [x] Implementation of path plugin loader
       - [x] Error handling for path plugins
       - [x] Tests for path plugin loading
-    - [ ] Load plugin from git repository
-      - [ ] Implementation of git plugin loader
+    - [x] Load plugin from git repository
+      - [x] Implementation of git plugin loader
       - [x] Error handling for git plugins
       - [x] Tests for git plugin loading
 - [x] Configuration management

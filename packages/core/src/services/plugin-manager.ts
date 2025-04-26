@@ -202,15 +202,25 @@ export class PluginManagerImpl implements IPluginManager {
    */
   private async loadPluginFromPackage(packageName: string, version?: string): Promise<SHCPlugin> {
     try {
-      // In a real implementation, this would use a package manager to install the package
-      // For now, we'll just try to require the package if it's already installed
-      const packageId = version ? `${packageName}@${version}` : packageName;
-      
-      // This is a simplified implementation for demonstration purposes
-      // In a real implementation, this would use dynamic import or require
-      const plugin = await this.mockLoadPlugin(packageId);
-      
-      return plugin;
+      // Ensure plugins directory exists
+      const pluginsDir = path.resolve(process.cwd(), 'plugins');
+      await import('fs/promises').then(fs => fs.mkdir(pluginsDir, { recursive: true }));
+
+      // Build install target and pnpm add command
+      const pkgSpecifier = version ? `${packageName}@${version}` : packageName;
+      const installDir = pluginsDir;
+      // Install the package using pnpm
+      const { execSync } = await import('child_process');
+      execSync(`pnpm add --prefix "${installDir}" ${pkgSpecifier} --ignore-scripts`, { stdio: 'inherit' });
+
+      // Dynamically import the plugin entry
+      // Try to resolve from node_modules in pluginsDir
+      const pluginPath = require.resolve(packageName, { paths: [path.join(pluginsDir, 'node_modules')] });
+      const imported = await import(pluginPath);
+      // Accept either default export or named
+      const plugin = imported.default || imported;
+      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
+      return plugin as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from package ${packageName}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -222,16 +232,15 @@ export class PluginManagerImpl implements IPluginManager {
    */
   private async loadPluginFromLocalPath(pluginPath: string): Promise<SHCPlugin> {
     try {
-      // Resolve the absolute path
-      const absolutePath = path.isAbsolute(pluginPath) 
-        ? pluginPath 
+      // Resolve absolute path
+      const absolutePath = path.isAbsolute(pluginPath)
+        ? pluginPath
         : path.resolve(process.cwd(), pluginPath);
-      
-      // This is a simplified implementation for demonstration purposes
-      // In a real implementation, this would use dynamic import or require
-      const plugin = await this.mockLoadPlugin(absolutePath);
-      
-      return plugin;
+      // Dynamically import the plugin
+      const imported = await import(absolutePath);
+      const plugin = imported.default || imported;
+      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
+      return plugin as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from path ${pluginPath}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -243,51 +252,35 @@ export class PluginManagerImpl implements IPluginManager {
    */
   private async loadPluginFromGit(url: string, ref?: string): Promise<SHCPlugin> {
     try {
-      // In a real implementation, this would clone the git repository and install it
-      // For now, we'll just simulate the process
-      const gitId = ref ? `${url}#${ref}` : url;
-      
-      // This is a simplified implementation for demonstration purposes
-      const plugin = await this.mockLoadPlugin(gitId);
-      
-      return plugin;
+      // Ensure plugins directory exists
+      const pluginsDir = path.resolve(process.cwd(), 'plugins');
+      await import('fs/promises').then(fs => fs.mkdir(pluginsDir, { recursive: true }));
+
+      // Clone the repo to a subdir under plugins
+      const repoName = url.split('/').pop()?.replace(/\.git$/, '') || 'git-plugin';
+      const targetDir = path.join(pluginsDir, `${repoName}-${Date.now()}`);
+      const { execSync } = await import('child_process');
+      execSync(`git clone ${url} "${targetDir}"`, { stdio: 'inherit' });
+      if (ref) {
+        execSync(`git checkout ${ref}`, { cwd: targetDir, stdio: 'inherit' });
+      }
+      // Install dependencies with pnpm
+      execSync('pnpm install --ignore-scripts', { cwd: targetDir, stdio: 'inherit' });
+      // Dynamically import the plugin (assume main entry in package.json or index.js/ts)
+      let entry;
+      try {
+        const pkgJson = require(path.join(targetDir, 'package.json'));
+        entry = pkgJson.main ? path.join(targetDir, pkgJson.main) : path.join(targetDir, 'index.js');
+      } catch {
+        entry = path.join(targetDir, 'index.js');
+      }
+      const imported = await import(entry);
+      const plugin = imported.default || imported;
+      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
+      return plugin as SHCPlugin;
     } catch (error) {
       throw new Error(`Failed to load plugin from git ${url}: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }
-
-  /**
-   * Mock loading a plugin for testing purposes
-   * In a real implementation, this would be replaced with actual dynamic loading
-   * @private
-   */
-  private async mockLoadPlugin(id: string): Promise<SHCPlugin> {
-    // This is a mock implementation for testing
-    // In a real implementation, this would use dynamic import or require
-    
-    // Simulate some delay for async loading
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Create a mock plugin based on the ID
-    const plugin: SHCPlugin = {
-      name: `plugin-${id.replace(/[@/\\:]/g, '-')}`,
-      version: '1.0.0',
-      type: 'request-preprocessor' as any,
-      execute: async () => {
-        return { success: true };
-      },
-      initialize: async () => {
-        // Initialization logic would go here
-      },
-      destroy: async () => {
-        // Cleanup logic would go here
-      },
-      configure: async (config: any) => {
-        // Configuration logic would go here
-      }
-    };
-    
-    return plugin;
   }
 }
 
