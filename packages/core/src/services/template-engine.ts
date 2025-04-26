@@ -38,13 +38,13 @@ export class TemplateEngine {
    * @param argsString The arguments string to parse
    * @returns Array of parsed arguments
    */
-  private parseTemplateArgs(argsString: string): any[] {
+  private parseTemplateArgs(argsString: string): unknown[] {
     if (!argsString.trim()) {
       return [];
     }
 
     // Split by commas, but respect quotes and nested structures
-    const args: any[] = [];
+    const args: unknown[] = [];
     let currentArg = '';
     let inQuotes = false;
     let quoteChar = '';
@@ -96,7 +96,7 @@ export class TemplateEngine {
    * @param arg The argument string to parse
    * @returns The parsed argument value
    */
-  private parseArgValue(arg: string): any {
+  private parseArgValue(arg: string): unknown {
     // Handle string literals
     if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
       return arg.slice(1, -1);
@@ -116,7 +116,7 @@ export class TemplateEngine {
     // Handle objects and arrays
     try {
       return JSON.parse(arg);
-    } catch (e) {
+    } catch {
       // Not valid JSON, return as string
       return arg;
     }
@@ -140,22 +140,22 @@ export class TemplateEngine {
 
     // First, handle environment variable syntax: ${env.VARIABLE_NAME}
     let result = template.replace(/\${env\.([^}]+)}/g, (_, envVar) => {
-      return fullContext.env[envVar] || '';
+      return String(fullContext.env[envVar] || '');
     });
 
     // Handle config variable syntax: ${config.path.to.value}
     result = result.replace(/\${config\.([^}]+)}/g, (_, path) => {
-      return this.getValueByPath(fullContext.config, path) || '';
+      return String(this.getValueByPath(fullContext.config, path) || '');
     });
 
     // Handle variable syntax: ${variables.name}
     result = result.replace(/\${variables\.([^}]+)}/g, (_, path) => {
-      return this.getValueByPath(fullContext.variables, path) || '';
+      return String(this.getValueByPath(fullContext.variables, path) || '');
     });
 
     // Handle secret syntax: ${secrets.SECRET_NAME}
     result = result.replace(/\${secrets\.([^}]+)}/g, (_, secret) => {
-      return fullContext.secrets?.[secret] || '';
+      return String(fullContext.secrets?.[secret] || '');
     });
 
     // Handle function calls: ${namespace.function(args)}
@@ -302,7 +302,7 @@ export class TemplateEngine {
       }
       visited.set(obj, true);
       
-      const result: Record<string, any> = {};
+      const result: Record<string, unknown> = {};
       
       for (const [key, value] of Object.entries(obj)) {
         result[key] = await this.resolveObject(value, context, visited);
@@ -320,15 +320,15 @@ export class TemplateEngine {
    * @param path The dot-notation path to the value
    * @returns The value at the path or undefined if not found
    */
-  private getValueByPath(obj: Record<string, any>, path: string): any {
+  private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
     const keys = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
 
     for (const key of keys) {
-      if (current === undefined || current === null) {
+      if (current === undefined || current === null || typeof current !== 'object') {
         return undefined;
       }
-      current = current[key];
+      current = (current as Record<string, unknown>)[key];
     }
 
     return current;

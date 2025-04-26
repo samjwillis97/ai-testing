@@ -207,15 +207,19 @@ export class PluginManagerImpl implements IPluginManager {
       const pluginsDir = path.resolve(process.cwd(), 'plugins');
       await import('fs/promises').then(fs => fs.mkdir(pluginsDir, { recursive: true }));
       const pkgSpecifier = version ? `${packageName}@${version}` : packageName;
-      const extractDir = path.join(pluginsDir, packageName.replace(/[\/]/g, '_'));
+      const extractDir = path.join(pluginsDir, packageName.replace(/\//g, '_'));
       await import('fs/promises').then(fs => fs.rm(extractDir, { recursive: true, force: true }));
       await pacote.extract(pkgSpecifier, extractDir);
       // Recursively extract dependencies
       let pkgJson;
       try {
-        pkgJson = require(path.join(extractDir, 'package.json'));
+        const packageJsonPath = path.join(extractDir, 'package.json');
+        pkgJson = await import(packageJsonPath).then(module => module.default || module);
         await this.extractDependencies(pkgJson, extractDir);
-      } catch {}
+      } catch (importError) {
+        // Continue without package.json
+        console.warn(`Could not load package.json for ${packageName}: ${importError instanceof Error ? importError.message : String(importError)}`);
+      }
       // Dynamically import the plugin entry
       let entry;
       try {
@@ -236,23 +240,28 @@ export class PluginManagerImpl implements IPluginManager {
    * Recursively extract all dependencies using pacote
    * @private
    */
-  private async extractDependencies(pkgJson: any, targetDir: string) {
-    const deps = Object.assign({}, pkgJson.dependencies, pkgJson.optionalDependencies);
+  private async extractDependencies(pkgJson: Record<string, unknown>, targetDir: string) {
+    const deps = Object.assign({}, (pkgJson.dependencies ?? {}), (pkgJson.optionalDependencies ?? {}));
     if (!deps || Object.keys(deps).length === 0) return;
     const nodeModulesDir = path.join(targetDir, 'node_modules');
     await import('fs/promises').then(fs => fs.mkdir(nodeModulesDir, { recursive: true }));
     for (const [dep, ver] of Object.entries(deps)) {
-      const depDir = path.join(nodeModulesDir, dep.replace(/[\/]/g, '_'));
+      const depDir = path.join(nodeModulesDir, dep.replace(/\//g, '_'));
       await import('fs/promises').then(fs => fs.rm(depDir, { recursive: true, force: true }));
       await pacote.extract(`${dep}@${ver}`, depDir);
       // Recursively extract subdependencies
-      let subPkgJson;
+      let subPkgJson: Record<string, unknown> | undefined;
       try {
-        subPkgJson = require(path.join(depDir, 'package.json'));
-      } catch {
+        const subPackageJsonPath = path.join(depDir, 'package.json');
+        subPkgJson = await import(subPackageJsonPath).then(module => module.default || module);
+      } catch (importError) {
+        // Continue without sub-package.json
+        console.warn(`Could not load sub-package.json for ${dep}: ${importError instanceof Error ? importError.message : String(importError)}`);
         continue;
       }
-      await this.extractDependencies(subPkgJson, depDir);
+      if (subPkgJson) {
+        await this.extractDependencies(subPkgJson, depDir);
+      }
     }
   }
 
@@ -298,9 +307,13 @@ export class PluginManagerImpl implements IPluginManager {
       // Install dependencies using pacote-based extraction
       let pkgJson;
       try {
-        pkgJson = require(path.join(targetDir, 'package.json'));
+        const packageJsonPath = path.join(targetDir, 'package.json');
+        pkgJson = await import(packageJsonPath).then(module => module.default || module);
         await this.extractDependencies(pkgJson, targetDir);
-      } catch {}
+      } catch (importError) {
+        // Continue without package.json
+        console.warn(`Could not load package.json for git repo ${url}: ${importError instanceof Error ? importError.message : String(importError)}`);
+      }
       // Dynamically import the plugin (assume main entry in package.json or index.js)
       let entry;
       try {

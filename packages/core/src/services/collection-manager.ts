@@ -329,7 +329,7 @@ export class CollectionManagerImpl implements ICollectionManager {
   /**
    * Execute a request from a collection
    */
-  async executeRequest<T = any>(collectionName: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>> {
+  async executeRequest<T = unknown>(collectionName: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>> {
     const collection = await this.getCollection(collectionName);
     
     // Find the request
@@ -358,7 +358,7 @@ export class CollectionManagerImpl implements ICollectionManager {
       try {
         const filePath = path.join(this.storagePath, `${name}.json`);
         collection = await this.loadCollection(filePath);
-      } catch (error) {
+      } catch {
         throw new Error(`Collection with name ${name} not found`);
       }
     }
@@ -431,8 +431,8 @@ export class CollectionManagerImpl implements ICollectionManager {
    * Resolve variables from global and collection variable sets
    * @private
    */
-  private async resolveVariables(collection: Collection, overrides?: Record<string, any>): Promise<Record<string, any>> {
-    const variables: Record<string, any> = {};
+  private async resolveVariables(collection: Collection, overrides?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const variables: Record<string, unknown> = {};
     
     // Add global variable sets
     for (const [name, variableSet] of this.globalVariableSets.entries()) {
@@ -453,13 +453,13 @@ export class CollectionManagerImpl implements ICollectionManager {
         const parts = key.split('.');
         if (parts.length > 1) {
           const [setName, ...valuePath] = parts;
-          if (variables[setName]) {
-            let current = variables[setName];
+          if (variables[setName] && typeof variables[setName] === 'object' && variables[setName] !== null) {
+            let current = variables[setName] as Record<string, unknown>;
             for (let i = 0; i < valuePath.length - 1; i++) {
-              if (!current[valuePath[i]]) {
+              if (!Object.prototype.hasOwnProperty.call(current, valuePath[i]) || typeof current[valuePath[i]] !== 'object' || current[valuePath[i]] === null) {
                 current[valuePath[i]] = {};
               }
-              current = current[valuePath[i]];
+              current = current[valuePath[i]] as Record<string, unknown>;
             }
             current[valuePath[valuePath.length - 1]] = value;
           }
@@ -476,7 +476,7 @@ export class CollectionManagerImpl implements ICollectionManager {
    * Resolve template strings in a request
    * @private
    */
-  private async resolveRequestTemplates(request: Request, variables: Record<string, any>): Promise<Request> {
+  private async resolveRequestTemplates(request: Request, variables: Record<string, unknown>): Promise<Request> {
     // Create a deep copy of the request to avoid modifying the original
     const resolvedRequest = JSON.parse(JSON.stringify(request)) as Request;
     
@@ -484,11 +484,16 @@ export class CollectionManagerImpl implements ICollectionManager {
     const resolveTemplate = (template: string): string => {
       return template.replace(/\${variables\.([^}]+)}/g, (_, path) => {
         const parts = path.split('.');
-        let value: any = variables;
+        let value: unknown = variables;
         
         for (const part of parts) {
-          if (value && typeof value === 'object' && part in value) {
-            value = value[part];
+          if (
+            value &&
+            typeof value === 'object' &&
+            value !== null &&
+            (part in value || Object.prototype.hasOwnProperty.call(value, part))
+          ) {
+            value = (value as Record<string, unknown>)[part];
           } else {
             return `\${variables.${path}}`;  // Return the original template if the path doesn't exist
           }
@@ -529,13 +534,13 @@ export class CollectionManagerImpl implements ICollectionManager {
    * Resolve template strings in an object
    * @private
    */
-  private resolveObjectTemplates(obj: any, resolveTemplate: (template: string) => string): any {
+  private resolveObjectTemplates(obj: unknown, resolveTemplate: (template: string) => string): unknown {
     if (Array.isArray(obj)) {
       return obj.map(item => this.resolveObjectTemplates(item, resolveTemplate));
     }
     
     if (obj && typeof obj === 'object') {
-      const result: Record<string, any> = {};
+      const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         result[key] = this.resolveObjectTemplates(value, resolveTemplate);
       }
