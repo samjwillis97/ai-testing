@@ -1,7 +1,7 @@
 export enum PluginType {
   REQUEST_PREPROCESSOR = 'request-preprocessor',
   RESPONSE_TRANSFORMER = 'response-transformer',
-  AUTH_PROVIDER = 'auth-provider'
+  AUTH_PROVIDER = 'auth-provider',
 }
 
 export interface AuthConfig {
@@ -16,20 +16,23 @@ export interface SHCPlugin {
   name: string;
   version: string;
   type: PluginType;
-  
+
   // Lifecycle hooks
   initialize?: () => Promise<void>;
   destroy?: () => Promise<void>;
   configure?: (config: Record<string, unknown>) => Promise<void>;
-  
+
   // Plugin-specific implementations based on type
   execute: (...args: unknown[]) => Promise<unknown>;
-  
+
   // Optional provided functions for template resolution
-  providedFunctions?: Record<string, {
-    execute: (...args: unknown[]) => Promise<unknown>;
-    parameters?: unknown[];
-  }>;
+  providedFunctions?: Record<
+    string,
+    {
+      execute: (...args: unknown[]) => Promise<unknown>;
+      parameters?: unknown[];
+    }
+  >;
 }
 
 export interface RequestPreprocessorPlugin extends SHCPlugin {

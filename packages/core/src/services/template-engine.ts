@@ -135,7 +135,7 @@ export class TemplateEngine {
       config: context.config || {},
       variables: context.variables || {},
       secrets: context.secrets || {},
-      ...context
+      ...context,
     };
 
     // First, handle environment variable syntax: ${env.VARIABLE_NAME}
@@ -170,66 +170,69 @@ export class TemplateEngine {
    * @param context The context for template resolution
    * @returns The resolved string
    */
-  private async resolveTemplateFunctions(template: string, context: TemplateContext): Promise<string> {
+  private async resolveTemplateFunctions(
+    template: string,
+    context: TemplateContext
+  ): Promise<string> {
     // Match pattern: ${namespace.function(args)}
     const functionPattern = /\${([^.}]+)\.([^(}]+)(?:\(([^)]*)\))?}/g;
-    
+
     // Use a Set to track processed matches and avoid infinite loops
     const processedMatches = new Set<string>();
-    
+
     let match: RegExpExecArray | null;
     let result = template;
     let iterations = 0;
     const maxIterations = 10; // Prevent infinite loops
-    
+
     // First, pre-process nested function calls
     // This handles cases like ${math.add(${math.double(2)}, 3)}
     result = await this.preProcessNestedFunctions(result, context);
-    
+
     // Continue resolving until no more matches or max iterations reached
     while ((match = functionPattern.exec(result)) !== null && iterations < maxIterations) {
       iterations++;
-      
+
       const [fullMatch, namespace, funcName, args] = match;
-      
+
       // Skip if already processed this exact match
       if (processedMatches.has(fullMatch)) {
         continue;
       }
-      
+
       processedMatches.add(fullMatch);
-      
+
       // Get the function
       const funcPath = `${namespace}.${funcName}`;
       const func = this.getFunction(funcPath);
-      
+
       if (!func) {
         // Function not found, leave as is
         continue;
       }
-      
+
       try {
         // Parse arguments
         const parsedArgs = args ? this.parseTemplateArgs(args) : [];
-        
+
         // Execute the function
         const funcResult = await func.execute(...parsedArgs);
-        
+
         // Replace the function call with the result
         result = result.replace(fullMatch, String(funcResult));
-        
+
         // Reset the regex to find more matches
         functionPattern.lastIndex = 0;
       } catch (error) {
         // On error, replace with error message
         const errorMessage = error instanceof Error ? error.message : String(error);
         result = result.replace(fullMatch, `[Error: ${errorMessage}]`);
-        
+
         // Reset the regex to find more matches
         functionPattern.lastIndex = 0;
       }
     }
-    
+
     return result;
   }
 
@@ -239,32 +242,35 @@ export class TemplateEngine {
    * @param context The context for template resolution
    * @returns The template with nested function calls resolved
    */
-  private async preProcessNestedFunctions(template: string, context: TemplateContext): Promise<string> {
+  private async preProcessNestedFunctions(
+    template: string,
+    context: TemplateContext
+  ): Promise<string> {
     // Match pattern for nested function calls: ${namespace.function(${...})}
     const nestedPattern = /\${([^.}]+)\.([^(}]+)\(([^)]*\${[^}]+}[^)]*)\)}/g;
-    
+
     let match: RegExpExecArray | null;
     let result = template;
     let iterations = 0;
     const maxIterations = 5; // Prevent infinite loops
-    
+
     // Continue resolving nested calls until no more matches or max iterations reached
     while ((match = nestedPattern.exec(result)) !== null && iterations < maxIterations) {
       iterations++;
-      
+
       const [fullMatch, namespace, funcName, argsWithNested] = match;
-      
+
       // First, resolve any nested templates in the arguments
       const resolvedArgs = await this.resolve(argsWithNested, context);
-      
+
       // Replace the nested function call with the non-nested version
       const replacementTemplate = `\${${namespace}.${funcName}(${resolvedArgs})}`;
       result = result.replace(fullMatch, replacementTemplate);
-      
+
       // Reset the regex to find more matches
       nestedPattern.lastIndex = 0;
     }
-    
+
     return result;
   }
 
@@ -274,13 +280,17 @@ export class TemplateEngine {
    * @param context The context for template resolution
    * @returns The resolved object
    */
-  async resolveObject<T>(obj: T, context: Partial<TemplateContext> = {}, visited: WeakMap<object, boolean> = new WeakMap()): Promise<T> {
+  async resolveObject<T>(
+    obj: T,
+    context: Partial<TemplateContext> = {},
+    visited: WeakMap<object, boolean> = new WeakMap()
+  ): Promise<T> {
     if (obj === null || obj === undefined) {
       return obj;
     }
 
     if (typeof obj === 'string') {
-      return await this.resolve(obj, context) as unknown as T;
+      return (await this.resolve(obj, context)) as unknown as T;
     }
 
     if (Array.isArray(obj)) {
@@ -289,10 +299,10 @@ export class TemplateEngine {
         return obj; // Return the object as is to break the circular reference
       }
       visited.set(obj, true);
-      
-      return await Promise.all(
-        obj.map(item => this.resolveObject(item, context, visited))
-      ) as unknown as T;
+
+      return (await Promise.all(
+        obj.map((item) => this.resolveObject(item, context, visited))
+      )) as unknown as T;
     }
 
     if (typeof obj === 'object') {
@@ -301,13 +311,13 @@ export class TemplateEngine {
         return obj; // Return the object as is to break the circular reference
       }
       visited.set(obj, true);
-      
+
       const result: Record<string, unknown> = {};
-      
+
       for (const [key, value] of Object.entries(obj)) {
         result[key] = await this.resolveObject(value, context, visited);
       }
-      
+
       return result as T;
     }
 

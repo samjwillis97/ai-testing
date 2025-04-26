@@ -1,11 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosHeaders } from 'axios';
 import { EventEmitter } from 'events';
-import { 
-  SHCClient as ISHCClient, 
-  SHCConfig, 
-  SHCEvent, 
-  Response 
-} from '../types/client.types';
+import { SHCClient as ISHCClient, SHCConfig, SHCEvent, Response } from '../types/client.types';
 import { RequestConfig } from '../types/config.types';
 import { SHCPlugin, PluginType } from '../types/plugin.types';
 import { PluginManager } from '../types/plugin-manager.types';
@@ -47,39 +42,42 @@ export class SHCClient implements ISHCClient {
 
     // Initialize plugins
     this.plugins = new Map<string, SHCPlugin>();
-    
+
     // Initialize config manager
     this.configManager = new ConfigManagerImpl();
-    
+
     // Initialize plugin manager
     this.pluginManager = createPluginManager();
-    
+
     // Initialize collection manager with this client instance
     const storagePath = config?.storage?.collections?.path || './collections';
     this.collectionManager = createCollectionManager({
       storagePath,
       client: this,
-      configManager: this.configManager
+      configManager: this.configManager,
     });
 
     // Register initial plugins if provided
     if (config?.plugins) {
       // Handle the new plugins structure
       if (config.plugins.auth) {
-        config.plugins.auth.forEach(plugin => this.use(plugin));
+        config.plugins.auth.forEach((plugin) => this.use(plugin));
       }
       if (config.plugins.preprocessors) {
-        config.plugins.preprocessors.forEach(plugin => this.use(plugin));
+        config.plugins.preprocessors.forEach((plugin) => this.use(plugin));
       }
       if (config.plugins.transformers) {
-        config.plugins.transformers.forEach(plugin => this.use(plugin));
+        config.plugins.transformers.forEach((plugin) => this.use(plugin));
       }
     }
 
     // Load collections if provided in the config
     if (config?.collections) {
       this.loadCollectionsFromConfig(config).catch((error: unknown) => {
-        this.eventEmitter.emit('error', new Error(`Failed to load collections from config: ${String(error)}`));
+        this.eventEmitter.emit(
+          'error',
+          new Error(`Failed to load collections from config: ${String(error)}`)
+        );
       });
     }
 
@@ -87,15 +85,16 @@ export class SHCClient implements ISHCClient {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         // Add timestamp for response time calculation
-        const configWithTimestamp = { ...config, timestamp: Date.now()};
-        
+        const configWithTimestamp = { ...config, timestamp: Date.now() };
+
         // Apply request preprocessor plugins
         let modifiedConfig = { ...configWithTimestamp };
-        
+
         // Get all request preprocessor plugins
-        const preprocessorPlugins = Array.from(this.plugins.values())
-          .filter(plugin => plugin.type === PluginType.REQUEST_PREPROCESSOR);
-        
+        const preprocessorPlugins = Array.from(this.plugins.values()).filter(
+          (plugin) => plugin.type === PluginType.REQUEST_PREPROCESSOR
+        );
+
         // Apply each plugin in sequence
         for (const plugin of preprocessorPlugins) {
           try {
@@ -113,14 +112,16 @@ export class SHCClient implements ISHCClient {
             }
             // Ensure timestamp and headers are present (redundant, but safe)
             if (
-              typeof modifiedConfig === 'object' && modifiedConfig !== null &&
+              typeof modifiedConfig === 'object' &&
+              modifiedConfig !== null &&
               'timestamp' in modifiedConfig &&
               typeof (modifiedConfig as { timestamp?: number }).timestamp !== 'number'
             ) {
               (modifiedConfig as { timestamp?: number }).timestamp = Date.now();
             }
             if (
-              typeof modifiedConfig === 'object' && modifiedConfig !== null &&
+              typeof modifiedConfig === 'object' &&
+              modifiedConfig !== null &&
               !('headers' in modifiedConfig)
             ) {
               (modifiedConfig as { headers?: AxiosHeaders }).headers = new AxiosHeaders();
@@ -133,7 +134,7 @@ export class SHCClient implements ISHCClient {
             });
           }
         }
-        
+
         // Ensure type for InternalAxiosRequestConfig<any>
         if (
           typeof modifiedConfig === 'object' &&
@@ -146,9 +147,10 @@ export class SHCClient implements ISHCClient {
         // Fallback: create a valid config with required fields
         return {
           ...modifiedConfig,
-          headers: (modifiedConfig && typeof modifiedConfig === 'object' && 'headers' in modifiedConfig)
-            ? (modifiedConfig as { headers: unknown }).headers
-            : {},
+          headers:
+            modifiedConfig && typeof modifiedConfig === 'object' && 'headers' in modifiedConfig
+              ? (modifiedConfig as { headers: unknown }).headers
+              : {},
         } as import('axios').InternalAxiosRequestConfig<unknown>;
       },
       (requestError) => {
@@ -163,11 +165,12 @@ export class SHCClient implements ISHCClient {
       async (response) => {
         // Apply response transformer plugins
         let modifiedResponse = { ...response };
-        
+
         // Get all response transformer plugins
-        const transformerPlugins = Array.from(this.plugins.values())
-          .filter(plugin => plugin.type === PluginType.RESPONSE_TRANSFORMER);
-        
+        const transformerPlugins = Array.from(this.plugins.values()).filter(
+          (plugin) => plugin.type === PluginType.RESPONSE_TRANSFORMER
+        );
+
         // Apply each plugin in sequence
         for (const plugin of transformerPlugins) {
           try {
@@ -192,10 +195,10 @@ export class SHCClient implements ISHCClient {
             });
           }
         }
-        
+
         // Emit response event
         this.eventEmitter.emit('response', modifiedResponse);
-        
+
         return modifiedResponse;
       },
       (responseError) => {
@@ -219,16 +222,27 @@ export class SHCClient implements ISHCClient {
             typeof this.collectionManager === 'object' &&
             this.collectionManager !== null &&
             'createCollection' in this.collectionManager &&
-            typeof (this.collectionManager as { createCollection: (name: string, collection: unknown) => Promise<unknown> }).createCollection === 'function'
+            typeof (
+              this.collectionManager as {
+                createCollection: (name: string, collection: unknown) => Promise<unknown>;
+              }
+            ).createCollection === 'function'
           ) {
-            await (this.collectionManager as { createCollection: (name: string, collection: unknown) => Promise<unknown> }).createCollection(collection.name, collection);
+            await (
+              this.collectionManager as {
+                createCollection: (name: string, collection: unknown) => Promise<unknown>;
+              }
+            ).createCollection(collection.name, collection);
             this.eventEmitter.emit('collection:loaded', collection.name);
           } else {
             throw new Error('Collection manager does not support createCollection');
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          this.eventEmitter.emit('error', new Error(`Failed to load collection ${collection.name}: ${errorMessage}`));
+          this.eventEmitter.emit(
+            'error',
+            new Error(`Failed to load collection ${collection.name}: ${errorMessage}`)
+          );
         }
       }
     }
@@ -241,16 +255,27 @@ export class SHCClient implements ISHCClient {
             typeof this.collectionManager === 'object' &&
             this.collectionManager !== null &&
             'loadCollection' in this.collectionManager &&
-            typeof (this.collectionManager as { loadCollection: (filePath: string) => Promise<{ name: string }> }).loadCollection === 'function'
+            typeof (
+              this.collectionManager as {
+                loadCollection: (filePath: string) => Promise<{ name: string }>;
+              }
+            ).loadCollection === 'function'
           ) {
-            const collection = await (this.collectionManager as { loadCollection: (filePath: string) => Promise<{ name: string }> }).loadCollection(filePath);
+            const collection = await (
+              this.collectionManager as {
+                loadCollection: (filePath: string) => Promise<{ name: string }>;
+              }
+            ).loadCollection(filePath);
             this.eventEmitter.emit('collection:loaded', collection.name);
           } else {
             throw new Error('Collection manager does not support loadCollection');
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          this.eventEmitter.emit('error', new Error(`Failed to load collection from ${filePath}: ${errorMessage}`));
+          this.eventEmitter.emit(
+            'error',
+            new Error(`Failed to load collection from ${filePath}: ${errorMessage}`)
+          );
         }
       }
     }
@@ -259,7 +284,7 @@ export class SHCClient implements ISHCClient {
     if (config.collections?.directory) {
       try {
         const directoryPath = config.collections.directory;
-        
+
         // Check if directory exists
         try {
           await fs.access(directoryPath);
@@ -267,10 +292,10 @@ export class SHCClient implements ISHCClient {
           // Create directory if it doesn't exist
           await fs.mkdir(directoryPath, { recursive: true });
         }
-        
+
         // Read all files in the directory
         const files = await fs.readdir(directoryPath);
-        
+
         // Load each JSON file as a collection
         for (const file of files) {
           if (file.endsWith('.json')) {
@@ -280,22 +305,38 @@ export class SHCClient implements ISHCClient {
                 typeof this.collectionManager === 'object' &&
                 this.collectionManager !== null &&
                 'loadCollection' in this.collectionManager &&
-                typeof (this.collectionManager as { loadCollection: (filePath: string) => Promise<{ name: string }> }).loadCollection === 'function'
+                typeof (
+                  this.collectionManager as {
+                    loadCollection: (filePath: string) => Promise<{ name: string }>;
+                  }
+                ).loadCollection === 'function'
               ) {
-                const collection = await (this.collectionManager as { loadCollection: (filePath: string) => Promise<{ name: string }> }).loadCollection(filePath);
+                const collection = await (
+                  this.collectionManager as {
+                    loadCollection: (filePath: string) => Promise<{ name: string }>;
+                  }
+                ).loadCollection(filePath);
                 this.eventEmitter.emit('collection:loaded', collection.name);
               } else {
                 throw new Error('Collection manager does not support loadCollection');
               }
             } catch (error: unknown) {
               const errorMessage = error instanceof Error ? error.message : String(error);
-              this.eventEmitter.emit('error', new Error(`Failed to load collection from ${file}: ${errorMessage}`));
+              this.eventEmitter.emit(
+                'error',
+                new Error(`Failed to load collection from ${file}: ${errorMessage}`)
+              );
             }
           }
         }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        this.eventEmitter.emit('error', new Error(`Failed to load collections from directory ${config.collections.directory}: ${errorMessage}`));
+        this.eventEmitter.emit(
+          'error',
+          new Error(
+            `Failed to load collections from directory ${config.collections.directory}: ${errorMessage}`
+          )
+        );
       }
     }
   }
@@ -307,7 +348,7 @@ export class SHCClient implements ISHCClient {
     try {
       // Track request start time for response time calculation
       const startTime = Date.now();
-      
+
       // Convert SHC RequestConfig to Axios RequestConfig
       const axiosConfig: AxiosRequestConfig = {
         url: config.url,
@@ -321,23 +362,25 @@ export class SHCClient implements ISHCClient {
       // Apply authentication if needed
       if (config.authentication) {
         // Find an auth provider plugin that can handle this authentication type
-        const authPlugins = Array.from(this.plugins.values())
-          .filter(plugin => plugin.type === PluginType.AUTH_PROVIDER);
-        
+        const authPlugins = Array.from(this.plugins.values()).filter(
+          (plugin) => plugin.type === PluginType.AUTH_PROVIDER
+        );
+
         for (const plugin of authPlugins) {
           try {
             type AuthResult = { token?: string; tokenType?: string };
-            const authResult = await plugin.execute({ 
+            const authResult = (await plugin.execute({
               type: config.authentication.type,
-              config: config.authentication
-            }) as AuthResult;
-            
+              config: config.authentication,
+            })) as AuthResult;
+
             // Apply the authentication result to the request
             if (authResult && authResult.token) {
               axiosConfig.headers = axiosConfig.headers || {};
-              axiosConfig.headers['Authorization'] = `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
+              axiosConfig.headers['Authorization'] =
+                `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
             }
-            
+
             break; // Use the first successful auth plugin
           } catch (error) {
             this.eventEmitter.emit('error', {
@@ -351,10 +394,10 @@ export class SHCClient implements ISHCClient {
 
       // Send the request
       const response = await this.axiosInstance.request<T>(axiosConfig);
-      
+
       // Calculate response time
       const responseTime = Date.now() - startTime;
-      
+
       // Convert Axios response to SHC response
       const shcResponse: Response<T> = {
         data: response.data,
@@ -367,16 +410,16 @@ export class SHCClient implements ISHCClient {
           headers: response.config.headers as Record<string, string>,
           params: response.config.params as Record<string, string | number | boolean>,
           body: response.config.data,
-          timeout: response.config.timeout
+          timeout: response.config.timeout,
         },
-        responseTime
+        responseTime,
       };
-      
+
       // If the response has been transformed by a plugin, include those properties
       if (typeof response === 'object' && response !== null && 'transformed' in response) {
         (shcResponse as { transformed?: boolean }).transformed = true;
       }
-      
+
       return shcResponse;
     } catch (error) {
       // Handle errors and convert to SHC error format
@@ -412,11 +455,7 @@ export class SHCClient implements ISHCClient {
         // Calculate response time for errors
         let responseTime = Date.now();
         const errConfig = errResp.config;
-        if (
-          errConfig &&
-          typeof errConfig === 'object' &&
-          'timestamp' in errConfig
-        ) {
+        if (errConfig && typeof errConfig === 'object' && 'timestamp' in errConfig) {
           const ts = (errConfig as { timestamp?: unknown }).timestamp;
           if (typeof ts === 'number') {
             responseTime -= ts;
@@ -428,7 +467,7 @@ export class SHCClient implements ISHCClient {
           statusText: errResp.statusText,
           headers: errResp.headers,
           config: config,
-          responseTime
+          responseTime,
         };
       } else {
         throw error;
@@ -443,7 +482,7 @@ export class SHCClient implements ISHCClient {
     return this.request<T>({
       url,
       method: 'GET',
-      ...config
+      ...config,
     });
   }
 
@@ -455,7 +494,7 @@ export class SHCClient implements ISHCClient {
       url,
       method: 'POST',
       body: data,
-      ...config
+      ...config,
     });
   }
 
@@ -467,7 +506,7 @@ export class SHCClient implements ISHCClient {
       url,
       method: 'PUT',
       body: data,
-      ...config
+      ...config,
     });
   }
 
@@ -478,7 +517,7 @@ export class SHCClient implements ISHCClient {
     return this.request<T>({
       url,
       method: 'DELETE',
-      ...config
+      ...config,
     });
   }
 
@@ -490,7 +529,7 @@ export class SHCClient implements ISHCClient {
       url,
       method: 'PATCH',
       body: data,
-      ...config
+      ...config,
     });
   }
 
@@ -501,7 +540,7 @@ export class SHCClient implements ISHCClient {
     return this.request<T>({
       url,
       method: 'HEAD',
-      ...config
+      ...config,
     });
   }
 
@@ -512,7 +551,7 @@ export class SHCClient implements ISHCClient {
     return this.request<T>({
       url,
       method: 'OPTIONS',
-      ...config
+      ...config,
     });
   }
 
@@ -544,20 +583,23 @@ export class SHCClient implements ISHCClient {
     if (!plugin.name) {
       throw new Error('Plugin must have a name');
     }
-    
+
     // Register with the plugin manager
     this.pluginManager.register(plugin);
-    
+
     // Initialize the plugin if it has an initialize method
     if (plugin.initialize) {
       plugin.initialize().catch((error: unknown) => {
-        this.eventEmitter.emit('error', new Error(`Failed to initialize plugin ${plugin.name}: ${String(error)}`));
+        this.eventEmitter.emit(
+          'error',
+          new Error(`Failed to initialize plugin ${plugin.name}: ${String(error)}`)
+        );
       });
     }
-    
+
     // Store the plugin
     this.plugins.set(plugin.name, plugin);
-    
+
     // Emit plugin registered event
     this.eventEmitter.emit('plugin:registered', plugin);
   }
@@ -567,18 +609,21 @@ export class SHCClient implements ISHCClient {
    */
   removePlugin(pluginName: string): void {
     const plugin = this.plugins.get(pluginName);
-    
+
     if (plugin) {
       // Call the destroy method if it exists
       if (plugin.destroy) {
         plugin.destroy().catch((error: unknown) => {
-          this.eventEmitter.emit('error', new Error(`Failed to destroy plugin ${pluginName}: ${String(error)}`));
+          this.eventEmitter.emit(
+            'error',
+            new Error(`Failed to destroy plugin ${pluginName}: ${String(error)}`)
+          );
         });
       }
-      
+
       // Remove the plugin
       this.plugins.delete(pluginName);
-      
+
       // Emit plugin removed event
       this.eventEmitter.emit('plugin:removed', pluginName);
     }

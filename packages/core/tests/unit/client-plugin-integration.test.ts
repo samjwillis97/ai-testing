@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { PluginType, AuthProviderPlugin, RequestPreprocessorPlugin, ResponseTransformerPlugin } from '../../src/types/plugin.types';
+import {
+  PluginType,
+  AuthProviderPlugin,
+  RequestPreprocessorPlugin,
+  ResponseTransformerPlugin,
+} from '../../src/types/plugin.types';
 import { SHCConfig } from '../../src/types/client.types';
 
 // Mock the plugin manager
@@ -173,25 +178,25 @@ describe('SHC Client Plugin Integration', () => {
 
       // Verify that the plugin initialization was attempted
       expect(failingPlugin.initialize).toHaveBeenCalled();
-      
+
       // Wait for the error event to be emitted with a timeout
       const timeoutPromise = new Promise<unknown>((_, reject) => {
         setTimeout(() => reject(new Error('Timeout waiting for error event')), 1000);
       });
-      
-      const error = await Promise.race([errorPromise, timeoutPromise]).catch(err => {
+
+      const error = await Promise.race([errorPromise, timeoutPromise]).catch((err) => {
         // If we timeout, still return something to prevent test hanging
         return new Error('Test timed out waiting for error event');
       });
-      
+
       // Cleanup
       emitSpy.mockRestore();
-      
+
       // Verify the error was emitted with the correct message
       expect(error).toBeInstanceOf(Error);
       expect((error as Error).message).toContain('Failed to initialize plugin failing-plugin');
       expect((error as Error).message).toContain('Initialization failed');
-      
+
       // Clean up the client to prevent any lingering promises
       if (client) {
         // Remove the plugin to trigger cleanup

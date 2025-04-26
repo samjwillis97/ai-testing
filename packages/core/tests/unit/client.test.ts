@@ -7,54 +7,54 @@ import axios from 'axios';
 vi.mock('axios', () => {
   const mockAxios = {
     create: vi.fn(() => mockAxiosInstance),
-    isAxiosError: vi.fn()
+    isAxiosError: vi.fn(),
   };
-  
+
   return {
-    default: mockAxios
+    default: mockAxios,
   };
 });
 
 // Create mock axios instance outside the mock
 const mockRequestInterceptor = {
   use: vi.fn(),
-  eject: vi.fn()
+  eject: vi.fn(),
 };
 
 const mockResponseInterceptor = {
   use: vi.fn(),
-  eject: vi.fn()
+  eject: vi.fn(),
 };
 
 const mockAxiosInstance = {
   request: vi.fn(),
   interceptors: {
     request: mockRequestInterceptor,
-    response: mockResponseInterceptor
+    response: mockResponseInterceptor,
   },
   defaults: {
     headers: {
-      common: {} as Record<string, string>
+      common: {} as Record<string, string>,
     },
     timeout: 30000,
-    baseURL: undefined
-  }
+    baseURL: undefined,
+  },
 };
 
 describe('SHCClient', () => {
   let client: ReturnType<typeof SHCClient.create>;
-  
+
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset the mock instance properties
     mockAxiosInstance.defaults.headers.common = {};
     mockAxiosInstance.defaults.timeout = 30000;
     mockAxiosInstance.defaults.baseURL = undefined;
-    
+
     client = SHCClient.create({
       baseURL: 'https://api.example.com',
-      timeout: 5000
+      timeout: 5000,
     });
   });
 
@@ -63,7 +63,7 @@ describe('SHCClient', () => {
       expect(axios.create).toHaveBeenCalledWith({
         baseURL: 'https://api.example.com',
         timeout: 5000,
-        headers: {}
+        headers: {},
       });
     });
 
@@ -73,7 +73,7 @@ describe('SHCClient', () => {
       expect(axios.create).toHaveBeenCalledWith({
         baseURL: undefined,
         timeout: 30000,
-        headers: {}
+        headers: {},
       });
     });
   });
@@ -86,17 +86,17 @@ describe('SHCClient', () => {
         url: '/users',
         method: 'GET',
         headers: {},
-        params: { page: 1 }
+        params: { page: 1 },
       };
-      
+
       const mockResponse = {
         data: responseData,
         status: 200,
         statusText: 'OK',
         headers: mockHeaders,
-        config: mockConfig
+        config: mockConfig,
       };
-      
+
       // Set up the mock implementation
       mockAxiosInstance.request.mockResolvedValueOnce(mockResponse);
 
@@ -108,7 +108,7 @@ describe('SHCClient', () => {
         headers: undefined,
         params: { page: 1 },
         data: undefined,
-        timeout: undefined
+        timeout: undefined,
       });
       expect(response.data).toEqual(responseData);
       expect(response.status).toBe(200);
@@ -125,21 +125,21 @@ describe('SHCClient', () => {
         url: '/users',
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        data: requestData
+        data: requestData,
       };
-      
+
       const mockResponse = {
         data: responseData,
         status: 201,
         statusText: 'Created',
         headers: mockHeaders,
-        config: mockConfig
+        config: mockConfig,
       };
-      
+
       mockAxiosInstance.request.mockResolvedValueOnce(mockResponse);
 
       const response = await client.post('/users', requestData, {
-        headers: { 'content-type': 'application/json' }
+        headers: { 'content-type': 'application/json' },
       });
 
       expect(mockAxiosInstance.request).toHaveBeenCalledWith({
@@ -148,7 +148,7 @@ describe('SHCClient', () => {
         headers: { 'content-type': 'application/json' },
         params: undefined,
         data: requestData,
-        timeout: undefined
+        timeout: undefined,
       });
       expect(response.data).toEqual(responseData);
       expect(response.status).toBe(201);
@@ -159,17 +159,17 @@ describe('SHCClient', () => {
       const mockConfig = {
         url: '/users/999',
         method: 'GET',
-        headers: {}
+        headers: {},
       };
-      
+
       const errorResponse = {
         data: { message: 'Not Found' },
         status: 404,
         statusText: 'Not Found',
         headers: mockHeaders,
-        config: mockConfig
+        config: mockConfig,
       };
-      
+
       const axiosError = {
         response: errorResponse,
         isAxiosError: true,
@@ -178,11 +178,13 @@ describe('SHCClient', () => {
         code: 'ERR_BAD_REQUEST',
         config: mockConfig,
         request: {},
-        toJSON: () => ({})
+        toJSON: () => ({}),
       };
-      
+
       // Fix: Properly type and mock the isAxiosError function
-      (axios.isAxiosError as unknown as MockedFunction<typeof axios.isAxiosError>).mockReturnValueOnce(true);
+      (
+        axios.isAxiosError as unknown as MockedFunction<typeof axios.isAxiosError>
+      ).mockReturnValueOnce(true);
       mockAxiosInstance.request.mockRejectedValueOnce(axiosError);
 
       const response = await client.get('/users/999');
@@ -216,11 +218,11 @@ describe('SHCClient', () => {
         name: 'test-plugin',
         version: '1.0.0',
         type: PluginType.REQUEST_PREPROCESSOR,
-        execute: vi.fn()
+        execute: vi.fn(),
       };
 
       client.use(mockPlugin);
-      
+
       // We can't directly test the plugins Map since it's private
       // But we can test that the plugin can be removed
       expect(() => client.removePlugin('test-plugin')).not.toThrow();
@@ -231,7 +233,7 @@ describe('SHCClient', () => {
         name: '',
         version: '1.0.0',
         type: PluginType.REQUEST_PREPROCESSOR,
-        execute: vi.fn()
+        execute: vi.fn(),
       };
 
       expect(() => client.use(mockPlugin)).toThrow('Plugin must have a name');
@@ -241,7 +243,7 @@ describe('SHCClient', () => {
   describe('Event handling', () => {
     it('should register and remove event handlers', () => {
       const mockHandler = vi.fn();
-      
+
       // We can't directly test the EventEmitter since it's private
       // But we can at least verify that the methods don't throw
       expect(() => {

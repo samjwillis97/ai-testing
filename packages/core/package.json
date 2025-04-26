@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts tests/**/*.ts",
     "lint:fix": "eslint src tests --fix",
-    "prettier": "prettier src/**/*.ts tests/**/*.ts",
+    "prettier": "prettier -l src/**/*.ts tests/**/*.ts",
     "prettier:fix": "prettier src/**/*.ts tests/**/*.ts --write"
   },
   "keywords": [

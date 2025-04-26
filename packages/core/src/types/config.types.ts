@@ -76,32 +76,32 @@ export interface ConfigManager {
   // Load and parse configuration
   loadFromFile(path: string): Promise<void>;
   loadFromString(content: string): Promise<void>;
-  
+
   // Configuration access
   get<T>(path: string, defaultValue?: T): T;
   set<T = unknown>(path: string, value: T): void;
   has(path: string): boolean;
-  
+
   // Environment variables
   getEnv(name: string, defaultValue?: string): string;
   requireEnv(name: string): string;
-  
+
   // Template resolution
   resolve(template: string, context?: Partial<TemplateContext>): Promise<string>;
   resolveObject<T>(obj: T, context?: Partial<TemplateContext>): Promise<T>;
-  
+
   // Schema validation
   validateConfig(config: Record<string, unknown>): Promise<boolean>;
   validateSchema(config: unknown): Promise<ValidationResult>;
   validateCurrentConfig(): Promise<ValidationResult>;
-  
+
   // Configuration persistence
   saveToFile(path: string): Promise<void>;
-  
+
   // Secret management
   getSecret(key: string): Promise<string>;
   setSecret(key: string, value: string): Promise<void>;
-  
+
   // Template function registration
   registerTemplateFunction(namespace: string, func: TemplateFunction): void;
   getTemplateFunction(path: string): TemplateFunction | undefined;

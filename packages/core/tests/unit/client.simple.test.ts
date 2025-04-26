@@ -7,9 +7,9 @@ describe('SHCClient', () => {
     it('should create a new client instance', () => {
       const client = SHCClient.create({
         baseURL: 'https://api.example.com',
-        timeout: 5000
+        timeout: 5000,
       });
-      
+
       // Verify that the client is an object with the expected methods
       expect(client).toBeDefined();
       expect(typeof client.request).toBe('function');
@@ -28,7 +28,7 @@ describe('SHCClient', () => {
       expect(typeof client.on).toBe('function');
       expect(typeof client.off).toBe('function');
     });
-    
+
     it('should create a new client instance with default configuration if none provided', () => {
       const client = SHCClient.create();
       expect(client).toBeDefined();
@@ -42,7 +42,7 @@ describe('SHCClient', () => {
         name: '',
         version: '1.0.0',
         type: PluginType.REQUEST_PREPROCESSOR,
-        execute: async () => ({})
+        execute: async () => ({}),
       };
 
       expect(() => client.use(mockPlugin)).toThrow('Plugin must have a name');
@@ -54,12 +54,12 @@ describe('SHCClient', () => {
         name: 'test-plugin',
         version: '1.0.0',
         type: PluginType.REQUEST_PREPROCESSOR,
-        execute: async () => ({})
+        execute: async () => ({}),
       };
 
       // Should not throw when registering a valid plugin
       expect(() => client.use(mockPlugin)).not.toThrow();
-      
+
       // Should not throw when removing a registered plugin
       expect(() => client.removePlugin('test-plugin')).not.toThrow();
     });
@@ -69,10 +69,10 @@ describe('SHCClient', () => {
     it('should register and remove event handlers', () => {
       const client = SHCClient.create();
       const mockHandler = vi.fn();
-      
+
       // Should not throw when registering an event handler
       expect(() => client.on('request', mockHandler)).not.toThrow();
-      
+
       // Should not throw when removing an event handler
       expect(() => client.off('request', mockHandler)).not.toThrow();
     });
@@ -81,7 +81,7 @@ describe('SHCClient', () => {
   describe('Configuration methods', () => {
     it('should have configuration methods', () => {
       const client = SHCClient.create();
-      
+
       // Should not throw when setting configuration
       expect(() => client.setDefaultHeader('Content-Type', 'application/json')).not.toThrow();
       expect(() => client.setTimeout(10000)).not.toThrow();

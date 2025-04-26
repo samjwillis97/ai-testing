@@ -45,24 +45,28 @@ export interface CollectionManager {
   saveCollection(collection: Collection): Promise<void>;
   createCollection(name: string, config?: Partial<Collection>): Promise<Collection>;
   deleteCollection(name: string): Promise<void>;
-  
+
   // Request management
   addRequest(collection: string, request: Request): Promise<void>;
   updateRequest(collection: string, requestId: string, request: Request): Promise<void>;
   deleteRequest(collection: string, requestId: string): Promise<void>;
-  
+
   // Global variable set management
   addGlobalVariableSet(variableSet: VariableSet): Promise<void>;
   updateGlobalVariableSet(name: string, variableSet: VariableSet): Promise<void>;
   getGlobalVariableSet(name: string): VariableSet;
   setGlobalVariableSetValue(setName: string, valueName: string): Promise<void>;
-  
+
   // Collection variable set management
   addVariableSet(collection: string, variableSet: VariableSet): Promise<void>;
   updateVariableSet(collection: string, name: string, variableSet: VariableSet): Promise<void>;
   getVariableSet(collection: string, name: string): Promise<VariableSet>;
   setVariableSetValue(collection: string, setName: string, valueName: string): Promise<void>;
-  
+
   // Request execution
-  executeRequest<T = unknown>(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response<T>>;
+  executeRequest<T = unknown>(
+    collection: string,
+    requestId: string,
+    options?: ExecuteOptions
+  ): Promise<Response<T>>;
 }

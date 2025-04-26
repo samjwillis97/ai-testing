@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  configSchema, 
-  validateConfig, 
-  validatePartialConfig, 
+import {
+  configSchema,
+  validateConfig,
+  validatePartialConfig,
   formatValidationErrors,
-  safeValidateConfig
+  safeValidateConfig,
 } from '../../src/schemas/config.schema';
 import { z } from 'zod';
 
@@ -20,37 +20,37 @@ describe('Config Schema', () => {
             max_redirects: 3,
             retry: {
               attempts: 3,
-              backoff: 'exponential'
+              backoff: 'exponential',
             },
             tls: {
-              verify: true
-            }
+              verify: true,
+            },
           },
           logging: {
             level: 'info',
             format: 'text',
-            output: 'console'
-          }
+            output: 'console',
+          },
         },
         variable_sets: {
           global: {
-            api_url: 'https://api.example.com'
+            api_url: 'https://api.example.com',
           },
           collection_defaults: {
-            timeout: 3000
-          }
+            timeout: 3000,
+          },
         },
         plugins: {
           auth: ['basic-auth'],
           preprocessors: ['request-logger'],
-          transformers: ['response-formatter']
+          transformers: ['response-formatter'],
         },
         storage: {
           collections: {
             type: 'file',
-            path: './collections'
-          }
-        }
+            path: './collections',
+          },
+        },
       };
 
       const result = configSchema.safeParse(validConfig);
@@ -59,11 +59,11 @@ describe('Config Schema', () => {
 
     it('should apply default values for missing properties', () => {
       const minimalConfig = {
-        name: 'Minimal Config'
+        name: 'Minimal Config',
       };
 
       const result = configSchema.parse(minimalConfig);
-      
+
       expect(result.name).toBe('Minimal Config');
       expect(result.version).toBe('1.0.0'); // Default
       expect(result.core.http.timeout).toBe(30000); // Default
@@ -81,24 +81,24 @@ describe('Config Schema', () => {
             timeout: 'invalid', // Should be a number
             retry: {
               attempts: -1, // Should be >= 0
-              backoff: 'invalid' // Should be one of the enum values
-            }
+              backoff: 'invalid', // Should be one of the enum values
+            },
           },
           logging: {
-            level: 'extreme' // Should be one of the enum values
-          }
-        }
+            level: 'extreme', // Should be one of the enum values
+          },
+        },
       };
 
       const result = configSchema.safeParse(invalidConfig);
       expect(result.success).toBe(false);
-      
+
       if (!result.success) {
         // Check for specific error messages
         const errorMap = new Map(
-          result.error.errors.map(err => [err.path.join('.'), err.message])
+          result.error.errors.map((err) => [err.path.join('.'), err.message])
         );
-        
+
         expect(errorMap.get('version')).toBeDefined();
         expect(errorMap.get('core.http.timeout')).toBeDefined();
         expect(errorMap.get('core.http.retry.attempts')).toBeDefined();
@@ -112,7 +112,7 @@ describe('Config Schema', () => {
     it('should validate a complete config and return it with defaults', () => {
       const config = {
         name: 'Test Config',
-        version: '1.0.0'
+        version: '1.0.0',
       };
 
       const validated = validateConfig(config);
@@ -125,7 +125,7 @@ describe('Config Schema', () => {
     it('should throw for invalid config', () => {
       const invalidConfig = {
         name: 123, // Should be a string
-        version: '1.0.0'
+        version: '1.0.0',
       };
 
       expect(() => validateConfig(invalidConfig)).toThrow();
@@ -137,9 +137,9 @@ describe('Config Schema', () => {
       const partialConfig = {
         core: {
           http: {
-            timeout: 5000
-          }
-        }
+            timeout: 5000,
+          },
+        },
       };
 
       const validated = validatePartialConfig(partialConfig);
@@ -150,9 +150,9 @@ describe('Config Schema', () => {
       const invalidPartial = {
         core: {
           http: {
-            timeout: 'invalid' // Should be a number
-          }
-        }
+            timeout: 'invalid', // Should be a number
+          },
+        },
       };
 
       expect(() => validatePartialConfig(invalidPartial)).toThrow();
@@ -163,7 +163,7 @@ describe('Config Schema', () => {
     it('should return success and data for valid config', () => {
       const config = {
         name: 'Test Config',
-        version: '1.0.0'
+        version: '1.0.0',
       };
 
       const result = safeValidateConfig(config);
@@ -175,7 +175,7 @@ describe('Config Schema', () => {
     it('should return error information for invalid config', () => {
       const invalidConfig = {
         name: 123, // Should be a string
-        version: '1.0.0'
+        version: '1.0.0',
       };
 
       const result = safeValidateConfig(invalidConfig);
@@ -191,13 +191,13 @@ describe('Config Schema', () => {
         name: 123, // Should be a string
         core: {
           http: {
-            timeout: 'invalid' // Should be a number
-          }
-        }
+            timeout: 'invalid', // Should be a number
+          },
+        },
       };
 
       const result = configSchema.safeParse(invalidConfig);
-      
+
       if (!result.success) {
         const formatted = formatValidationErrors(result.error);
         expect(formatted).toContain('name:');

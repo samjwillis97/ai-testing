@@ -1,5 +1,10 @@
 import { RequestConfig } from './config.types';
-import { SHCPlugin, AuthProviderPlugin, RequestPreprocessorPlugin, ResponseTransformerPlugin } from './plugin.types';
+import {
+  SHCPlugin,
+  AuthProviderPlugin,
+  RequestPreprocessorPlugin,
+  ResponseTransformerPlugin,
+} from './plugin.types';
 import { Collection } from './collection.types';
 
 export interface SHCClient {
@@ -17,11 +22,11 @@ export interface SHCClient {
   setDefaultHeader(name: string, value: string): void;
   setTimeout(timeout: number): void;
   setBaseURL(url: string): void;
-  
+
   // Plugin management
   use(plugin: SHCPlugin): void;
   removePlugin(pluginName: string): void;
-  
+
   // Event handling
   on(event: SHCEvent, handler: (...args: unknown[]) => void): void;
   off(event: SHCEvent, handler: (...args: unknown[]) => void): void;
@@ -76,7 +81,7 @@ export interface SHCConfig {
   };
 }
 
-export type SHCEvent = 
+export type SHCEvent =
   | 'request'
   | 'response'
   | 'error'

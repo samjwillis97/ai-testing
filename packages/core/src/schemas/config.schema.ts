@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const httpRetrySchema = z.object({
   attempts: z.number().int().min(0).default(3),
-  backoff: z.enum(['linear', 'exponential', 'fixed']).default('exponential')
+  backoff: z.enum(['linear', 'exponential', 'fixed']).default('exponential'),
 });
 
 /**
@@ -16,7 +16,7 @@ export const tlsSchema = z.object({
   ca: z.string().optional(),
   cert: z.string().optional(),
   key: z.string().optional(),
-  passphrase: z.string().optional()
+  passphrase: z.string().optional(),
 });
 
 /**
@@ -26,7 +26,7 @@ export const httpSchema = z.object({
   timeout: z.number().int().min(0).default(30000),
   max_redirects: z.number().int().min(0).default(5),
   retry: httpRetrySchema.default({}),
-  tls: tlsSchema.default({})
+  tls: tlsSchema.default({}),
 });
 
 /**
@@ -36,7 +36,7 @@ export const loggingSchema = z.object({
   level: z.enum(['error', 'warn', 'info', 'debug', 'trace']).default('info'),
   format: z.enum(['text', 'json']).default('text'),
   output: z.enum(['console', 'file']).default('console'),
-  file_path: z.string().optional()
+  file_path: z.string().optional(),
 });
 
 /**
@@ -44,7 +44,7 @@ export const loggingSchema = z.object({
  */
 export const coreSchema = z.object({
   http: httpSchema.default({}),
-  logging: loggingSchema.default({})
+  logging: loggingSchema.default({}),
 });
 
 /**
@@ -52,7 +52,7 @@ export const coreSchema = z.object({
  */
 export const variableSetsSchema = z.object({
   global: z.record(z.string(), z.any()).default({}),
-  collection_defaults: z.record(z.string(), z.any()).default({})
+  collection_defaults: z.record(z.string(), z.any()).default({}),
 });
 
 /**
@@ -61,7 +61,7 @@ export const variableSetsSchema = z.object({
 export const pluginsSchema = z.object({
   auth: z.array(z.string()).default([]),
   preprocessors: z.array(z.string()).default([]),
-  transformers: z.array(z.string()).default([])
+  transformers: z.array(z.string()).default([]),
 });
 
 /**
@@ -69,14 +69,14 @@ export const pluginsSchema = z.object({
  */
 export const storageCollectionsSchema = z.object({
   type: z.enum(['file', 'memory']).default('file'),
-  path: z.string().default('./collections')
+  path: z.string().default('./collections'),
 });
 
 /**
  * Schema for storage configuration
  */
 export const storageSchema = z.object({
-  collections: storageCollectionsSchema.default({})
+  collections: storageCollectionsSchema.default({}),
 });
 
 /**
@@ -88,7 +88,7 @@ export const configSchema = z.object({
   core: coreSchema.default({}),
   variable_sets: variableSetsSchema.default({}),
   plugins: pluginsSchema.default({}),
-  storage: storageSchema.default({})
+  storage: storageSchema.default({}),
 });
 
 /**
@@ -111,10 +111,10 @@ export function validateConfig(config: unknown): SHCConfigSchema {
  * @param config The configuration object to validate
  * @returns A result object with success flag and either the validated config or error
  */
-export function safeValidateConfig(config: unknown): { 
-  success: boolean; 
-  data?: SHCConfigSchema; 
-  error?: z.ZodError 
+export function safeValidateConfig(config: unknown): {
+  success: boolean;
+  data?: SHCConfigSchema;
+  error?: z.ZodError;
 } {
   try {
     const validatedConfig = configSchema.parse(config);
@@ -143,8 +143,10 @@ export function validatePartialConfig(config: unknown): Partial<SHCConfigSchema>
  * @returns A formatted error message
  */
 export function formatValidationErrors(error: z.ZodError): string {
-  return error.errors.map(err => {
-    const path = err.path.join('.');
-    return `${path ? path + ': ' : ''}${err.message}`;
-  }).join('\n');
+  return error.errors
+    .map((err) => {
+      const path = err.path.join('.');
+      return `${path ? path + ': ' : ''}${err.message}`;
+    })
+    .join('\n');
 }
