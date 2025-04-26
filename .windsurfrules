@@ -92,11 +92,13 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
   - All linters MUST be run
   - All tests MUST be executed
   - All checks MUST pass before committing
+  - All files MUST be formatted
 - Quality Check Order:
   1. Build the project
   2. Run linters
   3. Execute tests
   4. Report any failures
+  5. Run formatter
 - Meaningful changes include:
   - Adding new features
   - Modifying existing functionality
@@ -107,7 +109,7 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
 
 ## Git Auto Commit Rule
 - After performing automatic changes:
-  1. All modified files MUST be automatically committed
+  1. All modified files MUST be automatically committed after running the formatter
   2. Commit messages MUST follow the conventional commit format
   3. Commit messages MUST include:
      - Type: The type of change (feat, fix, docs, style, refactor, test, chore)

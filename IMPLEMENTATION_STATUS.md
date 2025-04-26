@@ -72,10 +72,30 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 
 ## Base Plugins
 - [ ] Request/response logging plugin
+  - [ ] Core functionality implementation
+  - [ ] ESLint setup and passing
+  - [ ] Prettier setup and passing
+  - [ ] Vitest setup with test coverage and passing
+  - [ ] Build configuration and working
 - [ ] Request rate limiting plugin
+  - [ ] Core functionality implementation
+  - [ ] ESLint setup and passing
+  - [ ] Prettier setup and passing
+  - [ ] Vitest setup with test coverage and passing
+  - [ ] Build configuration and working
 - [ ] Response cache plugin
+  - [ ] Core functionality implementation
+  - [ ] ESLint setup and passing
+  - [ ] Prettier setup and passing
+  - [ ] Vitest setup with test coverage and passing
+  - [ ] Build configuration and working
 - [ ] Auth provider plugin (OAuth2, API Key, etc.)
-- [ ] Plugin configuration and best practices
+  - [ ] Core functionality implementation
+  - [ ] ESLint setup and passing
+  - [ ] Prettier setup and passing
+  - [ ] Vitest setup with test coverage and passing
+  - [ ] Build configuration and working
+- [x] Plugin configuration and best practices
 
 ## CLI Package (`@shc/cli`)
 - [ ] Direct request mode

@@ -1,0 +1,27 @@
+{
+  "name": "@shc/oauth2-plugin",
+  "version": "1.0.0",
+  "description": "OAuth2 Authentication Plugin for SHC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "shc",
+    "plugin",
+    "oauth2",
+    "authentication"
+  ],
+  "author": "SHC Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.4"
+  },
+  "peerDependencies": {
+    "@shc/core": "^1.0.0"
+  }
+}

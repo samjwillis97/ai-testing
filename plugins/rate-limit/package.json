@@ -1,0 +1,26 @@
+{
+  "name": "@shc/rate-limit-plugin",
+  "version": "1.0.0",
+  "description": "Request Rate Limiting Plugin for SHC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "shc",
+    "plugin",
+    "rate-limit"
+  ],
+  "author": "SHC Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.4"
+  },
+  "peerDependencies": {
+    "@shc/core": "^1.0.0"
+  }
+}
