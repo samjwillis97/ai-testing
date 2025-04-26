@@ -22,6 +22,8 @@
     "@typescript-eslint/require-await": "error",
     "@typescript-eslint/no-unsafe-assignment": "error",
     "@typescript-eslint/no-unnecessary-type-assertion": "error",
+    // Ideally these should be on, it is difficult with dynamic imports at play
+    // and templating
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-unsafe-call": "off",
     "@typescript-eslint/unbound-method": "off",
