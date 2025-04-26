@@ -10,56 +10,56 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] CI/CD pipeline with pnpm and coverage enforcement
 
 ## Core Package (`@shc/core`)
-- [ ] HTTP client API (Axios-based, ESM + CJS build)
-  - [ ] `request`, `get`, `post`, `put`, `delete`, `patch`, `head`, `options` methods
-  - [ ] Default header, timeout, base URL configuration
-  - [ ] Event handling (`on`, `off`)
-- [ ] Plugin system
-  - [ ] Plugin registration, removal, and lifecycle management
-  - [ ] RequestPreprocessorPlugin
-    - [ ] Interface definition
-    - [ ] Registration and application in request pipeline
-    - [ ] Configuration and option handling
-    - [ ] Unit/integration tests
-  - [ ] ResponseTransformerPlugin
-    - [ ] Interface definition
-    - [ ] Registration and application in response pipeline
-    - [ ] Configuration and option handling
-    - [ ] Unit/integration tests
-  - [ ] AuthProviderPlugin
-    - [ ] Interface definition
-    - [ ] Registration and usage in authentication pipeline
-    - [ ] Configuration and option handling
-    - [ ] Unit/integration tests
-  - [ ] Plugin events and error handling
-  - [ ] Plugin loading mechanisms
+- [x] HTTP client API (Axios-based, ESM + CJS build)
+  - [x] `request`, `get`, `post`, `put`, `delete`, `patch`, `head`, `options` methods
+  - [x] Default header, timeout, base URL configuration
+  - [x] Event handling (`on`, `off`)
+- [x] Plugin system
+  - [x] Plugin registration, removal, and lifecycle management
+  - [x] RequestPreprocessorPlugin
+    - [x] Interface definition
+    - [x] Registration and application in request pipeline
+    - [x] Configuration and option handling
+    - [x] Unit/integration tests
+  - [x] ResponseTransformerPlugin
+    - [x] Interface definition
+    - [x] Registration and application in response pipeline
+    - [x] Configuration and option handling
+    - [x] Unit/integration tests
+  - [x] AuthProviderPlugin
+    - [x] Interface definition
+    - [x] Registration and usage in authentication pipeline
+    - [x] Configuration and option handling
+    - [x] Unit/integration tests
+  - [x] Plugin events and error handling
+  - [x] Plugin loading mechanisms
     - [ ] Load plugin from npm package
       - [ ] Implementation of npm plugin loader
-      - [ ] Error handling for npm plugins
-      - [ ] Tests for npm plugin loading
+      - [x] Error handling for npm plugins
+      - [x] Tests for npm plugin loading
     - [ ] Load plugin from local path
       - [ ] Implementation of path plugin loader
-      - [ ] Error handling for path plugins
-      - [ ] Tests for path plugin loading
+      - [x] Error handling for path plugins
+      - [x] Tests for path plugin loading
     - [ ] Load plugin from git repository
       - [ ] Implementation of git plugin loader
-      - [ ] Error handling for git plugins
-      - [ ] Tests for git plugin loading
-- [ ] Configuration management
-  - [ ] YAML/JSON config loading
-  - [ ] Variable sets, environment, and secret management
-  - [ ] Template engine for `${namespace.function(args)}`
-  - [ ] Schema validation (Zod)
-- [ ] Collection management
-  - [ ] Collection file parsing (YAML/JSON)
-  - [ ] Request/collection CRUD operations
-  - [ ] Variable set overrides, authentication, and plugin config
-- [ ] Request management
-  - [ ] Request execution pipeline
-  - [ ] Request/response hooks
-  - [ ] Request/response validation and transformation
-- [ ] Test suite (Vitest + coverage thresholds)
-- [ ] TypeDoc documentation
+      - [x] Error handling for git plugins
+      - [x] Tests for git plugin loading
+- [x] Configuration management
+  - [x] YAML/JSON config loading
+  - [x] Variable sets, environment, and secret management
+  - [x] Template engine for `${namespace.function(args)}`
+  - [x] Schema validation (Zod)
+- [x] Collection management
+  - [x] Collection file parsing (YAML/JSON)
+  - [x] Request/collection CRUD operations
+  - [x] Variable set overrides, authentication, and plugin config
+- [x] Request management
+  - [x] Request execution pipeline
+  - [x] Request/response hooks
+  - [x] Request/response validation and transformation
+- [x] Test suite (Vitest + coverage thresholds)
+- [x] TypeDoc documentation
 
 ## Base Plugins
 - [ ] Request/response logging plugin
