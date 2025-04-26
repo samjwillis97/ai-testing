@@ -320,7 +320,7 @@ export class TemplateEngine {
    * @param path The dot-notation path to the value
    * @returns The value at the path or undefined if not found
    */
-  private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
+  private getValueByPath(obj: unknown, path: string): unknown {
     const keys = path.split('.');
     let current: unknown = obj;
 

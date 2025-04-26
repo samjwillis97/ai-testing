@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TemplateEngine, createTemplateEngine } from '../../src/services/template-engine';
-import { TemplateFunction } from '../../src/types/config.types';
+import { TemplateFunction, TemplateContext } from '../../src/types/config.types';
 
 describe('TemplateEngine', () => {
   let templateEngine: TemplateEngine;
@@ -33,7 +33,7 @@ describe('TemplateEngine', () => {
       const func2: TemplateFunction = {
         name: 'func2',
         description: 'Function 2',
-        execute: () =>Promise.resolve('result 2')
+        execute: () => Promise.resolve('result 2')
       };
 
       templateEngine.registerFunction('test', func1);
@@ -48,7 +48,7 @@ describe('TemplateEngine', () => {
 
   describe('resolve', () => {
     it('should resolve environment variables', async () => {
-      const context = {
+      const context: Partial<TemplateContext> = {
         env: {
           TEST_VAR: 'test value'
         }
@@ -58,22 +58,22 @@ describe('TemplateEngine', () => {
       expect(result).toBe('Value: test value');
     });
 
-    it('should resolve config values', async () => {
-      const context = {
+    it('should resolve config variables', async () => {
+      const context: Partial<TemplateContext> = {
         config: {
           app: {
             name: 'Test App',
             version: '1.0.0'
           }
-        }
+        } as any
       };
-
+      
       const result = await templateEngine.resolve('App: ${config.app.name} v${config.app.version}', context);
       expect(result).toBe('App: Test App v1.0.0');
     });
 
     it('should resolve variables', async () => {
-      const context = {
+      const context: Partial<TemplateContext> = {
         variables: {
           user: {
             name: 'John',
@@ -87,7 +87,7 @@ describe('TemplateEngine', () => {
     });
 
     it('should resolve secrets', async () => {
-      const context = {
+      const context: Partial<TemplateContext> = {
         secrets: {
           API_KEY: 'secret-api-key'
         }
@@ -100,7 +100,7 @@ describe('TemplateEngine', () => {
     it('should resolve template functions', async () => {
       const uppercase: TemplateFunction = {
         name: 'uppercase',
-        description: 'Convert string to uppercase',
+        description: 'Convert text to uppercase',
         parameters: [
           {
             name: 'text',
@@ -109,7 +109,10 @@ describe('TemplateEngine', () => {
             required: true
           }
         ],
-        execute: async (text: string) => text.toUpperCase()
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const text = args[0] as string;
+          return text.toUpperCase();
+        }
       };
 
       const concat: TemplateFunction = {
@@ -129,7 +132,11 @@ describe('TemplateEngine', () => {
             required: true
           }
         ],
-        execute: async (a: string, b: string) => `${a}${b}`
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const a = args[0] as string;
+          const b = args[1] as string;
+          return `${a}${b}`;
+        }
       };
 
       templateEngine.registerFunction('string', uppercase);
@@ -166,7 +173,10 @@ describe('TemplateEngine', () => {
             required: true
           }
         ],
-        execute: async (num: number) => num * 2
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const num = args[0] as number;
+          return num * 2;
+        }
       };
 
       const add: TemplateFunction = {
@@ -186,7 +196,11 @@ describe('TemplateEngine', () => {
             required: true
           }
         ],
-        execute: async (a: number, b: number) => a + b
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const a = args[0] as number;
+          const b = args[1] as number;
+          return a + b;
+        }
       };
 
       templateEngine.registerFunction('math', double);
@@ -199,7 +213,7 @@ describe('TemplateEngine', () => {
 
   describe('resolveObject', () => {
     it('should resolve templates in an object', async () => {
-      const context = {
+      const context: Partial<TemplateContext> = {
         env: {
           API_URL: 'https://api.example.com',
           API_KEY: 'test-api-key'
@@ -229,7 +243,7 @@ describe('TemplateEngine', () => {
     });
 
     it('should resolve templates in nested arrays', async () => {
-      const context = {
+      const context: Partial<TemplateContext> = {
         env: {
           VALUE1: 'one',
           VALUE2: 'two',
@@ -278,7 +292,7 @@ describe('TemplateEngine', () => {
           { name: 'a', type: 'number', description: 'First number', required: true },
           { name: 'b', type: 'number', description: 'Second number', required: true }
         ],
-        execute: async (args: any[]) => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           const a = Number(args[0]);
           const b = Number(args[1]);
           return String(a + b);
@@ -315,7 +329,7 @@ describe('TemplateEngine', () => {
       const circular: any = { name: 'test' };
       circular.self = circular;
       
-      const context = {
+      const context: Partial<TemplateContext> = {
         circular
       };
       
@@ -333,25 +347,25 @@ describe('TemplateEngine', () => {
       const getObjectFunc: TemplateFunction = {
         name: 'getObject',
         description: 'Returns a test object',
-        execute: async () => ({ name: 'test', value: 123 })
+        execute: async (...args: unknown[]): Promise<unknown> => ({ name: 'test', value: 123 })
       };
       
       const getArrayFunc: TemplateFunction = {
         name: 'getArray',
         description: 'Returns a test array',
-        execute: async () => [1, 2, 3]
+        execute: async (...args: unknown[]): Promise<unknown> => [1, 2, 3]
       };
       
       const getNullFunc: TemplateFunction = {
         name: 'getNull',
         description: 'Returns null',
-        execute: async () => null
+        execute: async (...args: unknown[]): Promise<unknown> => null
       };
       
       const getUndefinedFunc: TemplateFunction = {
         name: 'getUndefined',
         description: 'Returns undefined',
-        execute: async () => undefined
+        execute: async (...args: unknown[]): Promise<unknown> => undefined
       };
       
       engine.registerFunction('data', getObjectFunc);
@@ -387,7 +401,7 @@ describe('TemplateEngine', () => {
           { name: 'a', type: 'number', description: 'First number', required: true },
           { name: 'b', type: 'number', description: 'Second number', required: true }
         ],
-        execute: async (args: any[]) => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           const a = Number(args[0]);
           const b = Number(args[1]);
           return String(a + b);
@@ -401,7 +415,7 @@ describe('TemplateEngine', () => {
           { name: 'a', type: 'number', description: 'First number', required: true },
           { name: 'b', type: 'number', description: 'Second number', required: true }
         ],
-        execute: async (args: any[]) => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           const a = Number(args[0]);
           const b = Number(args[1]);
           return String(a * b);
@@ -415,9 +429,9 @@ describe('TemplateEngine', () => {
           { name: 'a', type: 'string', description: 'First string', required: true },
           { name: 'b', type: 'string', description: 'Second string', required: true }
         ],
-        execute: async (args: any[]) => {
-          const a = args[0];
-          const b = args[1];
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const a = args[0] as string;
+          const b = args[1] as string;
           return String(a) + String(b);
         }
       };
@@ -445,7 +459,7 @@ describe('TemplateEngine', () => {
       const throwErrorFunc: TemplateFunction = {
         name: 'throwError',
         description: 'A function that throws an error',
-        execute: async () => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           throw new Error('Test error');
         }
       };
@@ -457,7 +471,7 @@ describe('TemplateEngine', () => {
         parameters: [
           { name: 'fn', type: 'string', description: 'Function result', required: true }
         ],
-        execute: async (args: any[]) => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           try {
             return `Success: ${args[0]}`;
           } catch (error: unknown) {
