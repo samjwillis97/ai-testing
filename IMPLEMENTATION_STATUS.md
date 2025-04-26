@@ -45,10 +45,10 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
       - [x] Implementation of git plugin loader
       - [x] Error handling for git plugins
       - [x] Tests for git plugin loading
-    - [ ] Plugin loading works without requiring global git or pnpm
-      - [ ] Core package bundles or manages required binaries/dependencies
-      - [ ] Programmatic APIs or embedded binaries are used when possible
-      - [ ] Clear error/fallback if global tools are missing and unavoidable
+    - [x] Plugin loading works without requiring global git or pnpm
+      - [x] Core package bundles or manages required binaries/dependencies
+      - [x] Programmatic APIs or embedded binaries are used when possible
+      - [x] Clear error/fallback if global tools are missing and unavoidable
 - [x] Configuration management
   - [x] YAML/JSON config loading
   - [x] Variable sets, environment, and secret management

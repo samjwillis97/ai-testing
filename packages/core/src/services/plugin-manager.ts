@@ -3,6 +3,8 @@ import path from 'path';
 import { PluginManager as IPluginManager } from '../types/plugin-manager.types';
 import { SHCPlugin, PluginConfig } from '../types/plugin.types';
 import { ConfigManagerImpl } from '../config-manager';
+import simpleGit from 'simple-git';
+import npmProgrammatic from 'npm-programmatic';
 
 /**
  * Implementation of the Plugin Manager
@@ -202,22 +204,23 @@ export class PluginManagerImpl implements IPluginManager {
    */
   private async loadPluginFromPackage(packageName: string, version?: string): Promise<SHCPlugin> {
     try {
-      // Ensure plugins directory exists
       const pluginsDir = path.resolve(process.cwd(), 'plugins');
       await import('fs/promises').then(fs => fs.mkdir(pluginsDir, { recursive: true }));
-
-      // Build install target and pnpm add command
       const pkgSpecifier = version ? `${packageName}@${version}` : packageName;
-      const installDir = pluginsDir;
-      // Install the package using pnpm
-      const { execSync } = await import('child_process');
-      execSync(`pnpm add --prefix "${installDir}" ${pkgSpecifier} --ignore-scripts`, { stdio: 'inherit' });
-
+      // Use npm-programmatic to install package to pluginsDir/node_modules
+      try {
+        await npmProgrammatic.install([pkgSpecifier], {
+          cwd: pluginsDir,
+          save: false,
+          output: true,
+          global: false
+        });
+      } catch (err) {
+        throw new Error(`Could not install package with npm-programmatic. Ensure npm is available in the environment. Details: ${err instanceof Error ? err.message : String(err)}`);
+      }
       // Dynamically import the plugin entry
-      // Try to resolve from node_modules in pluginsDir
       const pluginPath = require.resolve(packageName, { paths: [path.join(pluginsDir, 'node_modules')] });
       const imported = await import(pluginPath);
-      // Accept either default export or named
       const plugin = imported.default || imported;
       if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin export');
       return plugin as SHCPlugin;
@@ -252,21 +255,31 @@ export class PluginManagerImpl implements IPluginManager {
    */
   private async loadPluginFromGit(url: string, ref?: string): Promise<SHCPlugin> {
     try {
-      // Ensure plugins directory exists
       const pluginsDir = path.resolve(process.cwd(), 'plugins');
       await import('fs/promises').then(fs => fs.mkdir(pluginsDir, { recursive: true }));
-
-      // Clone the repo to a subdir under plugins
       const repoName = url.split('/').pop()?.replace(/\.git$/, '') || 'git-plugin';
       const targetDir = path.join(pluginsDir, `${repoName}-${Date.now()}`);
-      const { execSync } = await import('child_process');
-      execSync(`git clone ${url} "${targetDir}"`, { stdio: 'inherit' });
-      if (ref) {
-        execSync(`git checkout ${ref}`, { cwd: targetDir, stdio: 'inherit' });
+      // Use simple-git for cloning
+      try {
+        await simpleGit().clone(url, targetDir);
+        if (ref) {
+          await simpleGit(targetDir).checkout(ref);
+        }
+      } catch (err) {
+        throw new Error(`Could not clone git repo with simple-git. Ensure git is available in the environment or provide guidance. Details: ${err instanceof Error ? err.message : String(err)}`);
       }
-      // Install dependencies with pnpm
-      execSync('pnpm install --ignore-scripts', { cwd: targetDir, stdio: 'inherit' });
-      // Dynamically import the plugin (assume main entry in package.json or index.js/ts)
+      // Install dependencies with npm-programmatic
+      try {
+        await npmProgrammatic.install([], {
+          cwd: targetDir,
+          save: false,
+          output: true,
+          global: false
+        });
+      } catch (err) {
+        throw new Error(`Could not install git plugin dependencies with npm-programmatic. Details: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      // Dynamically import the plugin (assume main entry in package.json or index.js)
       let entry;
       try {
         const pkgJson = require(path.join(targetDir, 'package.json'));
