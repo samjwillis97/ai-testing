@@ -100,7 +100,7 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
   - Modifying test files
 
 ## Git Auto Commit Rule
-- After Cursor IDE performs automatic changes:
+- After performing automatic changes:
   1. All modified files MUST be automatically committed
   2. Commit messages MUST follow the conventional commit format
   3. Commit messages MUST include:
@@ -109,6 +109,7 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
      - Description: A clear explanation of what changed
      - Body: Detailed explanation of why the changes were made
   4. The commit message MUST reference the original prompts used to generate the changes
+- Git commit command example: `git commit -m "feat: Add new feature" -m "- new feature 1" -m "- new feature 2"`
 - Conventional Commit Types:
   - feat: New feature
   - fix: Bug fix
