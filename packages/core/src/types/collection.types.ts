@@ -54,7 +54,7 @@ export interface CollectionManager {
   // Global variable set management
   addGlobalVariableSet(variableSet: VariableSet): Promise<void>;
   updateGlobalVariableSet(name: string, variableSet: VariableSet): Promise<void>;
-  getGlobalVariableSet(name: string): Promise<VariableSet>;
+  getGlobalVariableSet(name: string): VariableSet;
   setGlobalVariableSetValue(setName: string, valueName: string): Promise<void>;
   
   // Collection variable set management

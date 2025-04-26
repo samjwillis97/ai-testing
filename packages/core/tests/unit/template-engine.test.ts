@@ -27,13 +27,13 @@ describe('TemplateEngine', () => {
       const func1: TemplateFunction = {
         name: 'func1',
         description: 'Function 1',
-        execute: async () => 'result 1'
+        execute: () => Promise.resolve('result 1')
       };
 
       const func2: TemplateFunction = {
         name: 'func2',
         description: 'Function 2',
-        execute: async () => 'result 2'
+        execute: () =>Promise.resolve('result 2')
       };
 
       templateEngine.registerFunction('test', func1);

@@ -220,7 +220,7 @@ export class CollectionManagerImpl implements ICollectionManager {
   /**
    * Get a global variable set
    */
-  async getGlobalVariableSet(name: string): Promise<VariableSet> {
+  getGlobalVariableSet(name: string): VariableSet {
     const variableSet = this.globalVariableSets.get(name);
     if (!variableSet) {
       throw new Error(`Global variable set with name ${name} not found`);
@@ -233,18 +233,18 @@ export class CollectionManagerImpl implements ICollectionManager {
    * Set the active value for a global variable set
    */
   async setGlobalVariableSetValue(setName: string, valueName: string): Promise<void> {
-    const variableSet = await this.getGlobalVariableSet(setName);
+    const variableSet = this.getGlobalVariableSet(setName);
     
     // Check if the value exists
     if (!variableSet.values[valueName]) {
-      throw new Error(`Value ${valueName} not found in global variable set ${setName}`);
+      throw new Error(`Value ${valueName} not found in variable set ${setName}`);
     }
     
     // Update the active value
     variableSet.activeValue = valueName;
     
-    // Update the variable set
-    await this.updateGlobalVariableSet(setName, variableSet);
+    // Save to configuration
+    await this.saveGlobalVariableSets();
   }
 
   /**
@@ -398,6 +398,8 @@ export class CollectionManagerImpl implements ICollectionManager {
     
     // Save to configuration
     this.configManager.set('variable_sets.global', globalVariableSets);
+    
+    await Promise.resolve();
   }
 
   /**
@@ -432,43 +434,62 @@ export class CollectionManagerImpl implements ICollectionManager {
    * @private
    */
   private async resolveVariables(collection: Collection, overrides?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    // Create a flat variables object for template resolution
     const variables: Record<string, unknown> = {};
     
-    // Add global variable sets
+    // Process global variable sets
     for (const [name, variableSet] of this.globalVariableSets.entries()) {
       const activeValue = collection.variableSetOverrides?.[name] || variableSet.activeValue;
       const values = variableSet.values[activeValue] || {};
+      
+      // Store the variable set values directly under the set name
       variables[name] = values;
     }
     
-    // Add collection variable sets
-    for (const variableSet of collection.variableSets) {
-      variables[variableSet.name] = variableSet.values[variableSet.activeValue] || {};
+    // Process collection variable sets
+    if (collection.variableSets) {
+      for (const variableSet of collection.variableSets) {
+        const activeValue = variableSet.activeValue;
+        const values = variableSet.values[activeValue] || {};
+        
+        // Store the variable set values directly under the set name
+        variables[variableSet.name] = values;
+      }
     }
     
-    // Apply overrides
+    // Add overrides
     if (overrides) {
+      // Handle dot notation in overrides (e.g., 'user.apiKey': 'override-api-key')
       for (const [key, value] of Object.entries(overrides)) {
-        // Handle nested overrides like 'api.timeout'
-        const parts = key.split('.');
-        if (parts.length > 1) {
-          const [setName, ...valuePath] = parts;
-          if (variables[setName] && typeof variables[setName] === 'object' && variables[setName] !== null) {
-            let current = variables[setName] as Record<string, unknown>;
-            for (let i = 0; i < valuePath.length - 1; i++) {
-              if (!Object.prototype.hasOwnProperty.call(current, valuePath[i]) || typeof current[valuePath[i]] !== 'object' || current[valuePath[i]] === null) {
-                current[valuePath[i]] = {};
+        if (key.includes('.')) {
+          const [setName, ...propertyPath] = key.split('.');
+          
+          // If the variable set exists, update the specific property
+          if (variables[setName] && typeof variables[setName] === 'object') {
+            let target = variables[setName] as Record<string, unknown>;
+            
+            // Navigate to the nested property, creating objects as needed
+            for (let i = 0; i < propertyPath.length - 1; i++) {
+              const part = propertyPath[i];
+              if (!target[part] || typeof target[part] !== 'object') {
+                target[part] = {};
               }
-              current = current[valuePath[i]] as Record<string, unknown>;
+              target = target[part] as Record<string, unknown>;
             }
-            current[valuePath[valuePath.length - 1]] = value;
+            
+            // Set the value at the final property
+            if (propertyPath.length > 0) {
+              target[propertyPath[propertyPath.length - 1]] = value;
+            }
           }
         } else {
+          // Direct assignment for simple keys
           variables[key] = value;
         }
       }
     }
     
+    await Promise.resolve();
     return variables;
   }
 
@@ -484,49 +505,61 @@ export class CollectionManagerImpl implements ICollectionManager {
     const resolveTemplate = (template: string): string => {
       return template.replace(/\${variables\.([^}]+)}/g, (_, path) => {
         const parts = path.split('.');
-        let value: unknown = variables;
         
-        for (const part of parts) {
-          if (
-            value &&
-            typeof value === 'object' &&
-            value !== null &&
-            (part in value || Object.prototype.hasOwnProperty.call(value, part))
-          ) {
-            value = (value as Record<string, unknown>)[part];
-          } else {
-            return `\${variables.${path}}`;  // Return the original template if the path doesn't exist
+        if (parts.length >= 2) {
+          const [setName, ...propertyPath] = parts;
+          const variableSet = variables[setName];
+          
+          if (variableSet && typeof variableSet === 'object') {
+            // Navigate through the property path
+            let value: unknown = variableSet;
+            for (const part of propertyPath) {
+              if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
+                value = (value as Record<string, unknown>)[part];
+              } else {
+                return '';
+              }
+            }
+            
+            return String(value ?? '');
           }
         }
         
-        return String(value);
+        return '';
       });
     };
     
-    // Resolve template strings in the path
-    resolvedRequest.path = resolveTemplate(resolvedRequest.path);
+    // Resolve templates in path
+    if (resolvedRequest.path) {
+      resolvedRequest.path = resolveTemplate(resolvedRequest.path);
+    }
     
-    // Resolve template strings in headers
+    // Resolve templates in headers
     if (resolvedRequest.headers) {
       for (const [key, value] of Object.entries(resolvedRequest.headers)) {
-        resolvedRequest.headers[key] = resolveTemplate(value);
+        if (typeof value === 'string') {
+          resolvedRequest.headers[key] = resolveTemplate(value);
+        }
       }
     }
     
-    // Resolve template strings in query parameters
+    // Resolve templates in query parameters
     if (resolvedRequest.query) {
       for (const [key, value] of Object.entries(resolvedRequest.query)) {
-        resolvedRequest.query[key] = resolveTemplate(value);
+        if (typeof value === 'string') {
+          resolvedRequest.query[key] = resolveTemplate(value);
+        }
       }
     }
     
-    // Resolve template strings in the body
-    if (typeof resolvedRequest.body === 'string') {
+    // Resolve templates in body
+    if (resolvedRequest.body && typeof resolvedRequest.body === 'string') {
       resolvedRequest.body = resolveTemplate(resolvedRequest.body);
     } else if (resolvedRequest.body && typeof resolvedRequest.body === 'object') {
       resolvedRequest.body = this.resolveObjectTemplates(resolvedRequest.body, resolveTemplate);
     }
     
+    await Promise.resolve();
     return resolvedRequest;
   }
 

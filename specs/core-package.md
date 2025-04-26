@@ -108,7 +108,7 @@ interface CollectionManager {
   // Global variable set management
   addGlobalVariableSet(variableSet: VariableSet): Promise<void>;
   updateGlobalVariableSet(name: string, variableSet: VariableSet): Promise<void>;
-  getGlobalVariableSet(name: string): Promise<VariableSet>;
+  getGlobalVariableSet(name: string): VariableSet; // Synchronous for in-memory operations
   setGlobalVariableSetValue(setName: string, valueName: string): Promise<void>;
   
   // Collection variable set management
@@ -120,6 +120,8 @@ interface CollectionManager {
   // Request execution
   executeRequest(collection: string, requestId: string, options?: ExecuteOptions): Promise<Response>;
 }
+
+> **Note on Async/Sync Methods**: Methods that perform I/O operations (file system, network) are asynchronous, while methods that only access in-memory data (like `getGlobalVariableSet`) are synchronous. This follows the TypeScript best practice of using async/await only when necessary, improving performance and reducing unnecessary Promise overhead.
 
 interface Collection {
   name: string;
