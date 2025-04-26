@@ -3,10 +3,10 @@
 This checklist is derived from the specifications in the `specs/` directory. Each item must be implemented and verified for compliance before it is checked off.
 
 ## Monorepo & Architecture
-- [ ] Turborepo setup and configuration (`turbo.json`)
+- [x] Turborepo setup and configuration (`turbo.json`)
 - [ ] Monorepo structure: `packages/core`, `packages/web-ui`, `packages/cli`, `packages/neovim-ui`
 - [ ] Shared `configs/` and example `apps/`
-- [ ] pnpm workspace configuration and best practices
+- [x] pnpm workspace configuration and best practices
 - [ ] CI/CD pipeline with pnpm and coverage enforcement
 
 ## Core Package (`@shc/core`)
