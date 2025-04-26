@@ -12,7 +12,9 @@
     "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts tests/**/*.ts",
-    "lint:fix": "eslint src tests --fix"
+    "lint:fix": "eslint src tests --fix",
+    "prettier": "prettier src/**/*.ts tests/**/*.ts",
+    "prettier:fix": "prettier src/**/*.ts tests/**/*.ts --write"
   },
   "keywords": [
     "http-client",
@@ -35,6 +37,7 @@
     "@vitest/coverage-v8": "^3.1.2",
     "eslint": "^8.57.1",
     "globals": "^16.0.0",
+    "prettier": "^3.5.3",
     "tsup": "^8.0.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.31.0",
