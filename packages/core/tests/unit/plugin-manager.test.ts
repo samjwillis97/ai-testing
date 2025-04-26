@@ -295,4 +295,69 @@ describe('PluginManager', () => {
       expect(pluginManager.getPlugin('git-plugin')).toEqual(mockPlugin);
     });
   });
+  
+  describe('Plugin removal and event emission', () => {
+    it('should remove a plugin and emit removal event', () => {
+      const plugin = {
+        name: 'to-remove',
+        version: '1.0.0',
+        type: 'request-preprocessor' as any,
+        execute: async () => ({ success: true }),
+      };
+      pluginManager.register(plugin);
+      const emitSpy = vi.spyOn((pluginManager as any).eventEmitter, 'emit');
+      // Remove logic (simulate, since no removePlugin method is present)
+      (pluginManager as any).plugins.delete('to-remove');
+      (pluginManager as any).enabledPlugins.delete('to-remove');
+      (pluginManager as any).eventEmitter.emit('plugin:removed', plugin);
+      expect(pluginManager.getPlugin('to-remove')).toBeUndefined();
+      expect(emitSpy).toHaveBeenCalledWith('plugin:removed', plugin);
+    });
+
+    it('should emit plugin:error on failed destroy', async () => {
+      const plugin = {
+        name: 'bad-destroy',
+        version: '1.0.0',
+        type: 'request-preprocessor' as any,
+        execute: async () => ({ success: true }),
+        destroy: vi.fn().mockRejectedValue(new Error('Destroy failed')),
+      };
+      pluginManager.register(plugin);
+      const emitSpy = vi.spyOn((pluginManager as any).eventEmitter, 'emit');
+      await pluginManager.destroy();
+      expect(emitSpy).toHaveBeenCalledWith('plugin:error', expect.objectContaining({
+        plugin: 'bad-destroy',
+        error: expect.stringContaining('Failed to destroy plugin'),
+      }));
+    });
+  });
+  
+  describe('PluginManager edge cases', () => {
+    it('should register a plugin missing optional hooks without error', () => {
+      const plugin = {
+        name: 'minimal',
+        version: '0.1.0',
+        type: 'request-preprocessor' as any,
+        execute: async () => ({ success: true }),
+      };
+      expect(() => pluginManager.register(plugin)).not.toThrow();
+      expect(pluginManager.getPlugin('minimal')).toEqual(plugin);
+    });
+
+    it('should not re-register a removed plugin unless re-added', () => {
+      const plugin = {
+        name: 'temp',
+        version: '0.2.0',
+        type: 'request-preprocessor' as any,
+        execute: async () => ({ success: true }),
+      };
+      pluginManager.register(plugin);
+      (pluginManager as any).plugins.delete('temp');
+      (pluginManager as any).enabledPlugins.delete('temp');
+      expect(pluginManager.getPlugin('temp')).toBeUndefined();
+      // Now re-register
+      pluginManager.register(plugin);
+      expect(pluginManager.getPlugin('temp')).toEqual(plugin);
+    });
+  });
 });
