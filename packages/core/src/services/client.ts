@@ -79,7 +79,7 @@ export class SHCClient implements ISHCClient {
     // Load collections if provided in the config
     if (config?.collections) {
       this.loadCollectionsFromConfig(config).catch((error: unknown) => {
-        this.eventEmitter.emit('error', new Error(`Failed to load collections from config: ${error}`));
+        this.eventEmitter.emit('error', new Error(`Failed to load collections from config: ${String(error)}`));
       });
     }
 
@@ -551,7 +551,7 @@ export class SHCClient implements ISHCClient {
     // Initialize the plugin if it has an initialize method
     if (plugin.initialize) {
       plugin.initialize().catch((error: unknown) => {
-        this.eventEmitter.emit('error', new Error(`Failed to initialize plugin ${plugin.name}: ${error}`));
+        this.eventEmitter.emit('error', new Error(`Failed to initialize plugin ${plugin.name}: ${String(error)}`));
       });
     }
     
@@ -572,7 +572,7 @@ export class SHCClient implements ISHCClient {
       // Call the destroy method if it exists
       if (plugin.destroy) {
         plugin.destroy().catch((error: unknown) => {
-          this.eventEmitter.emit('error', new Error(`Failed to destroy plugin ${pluginName}: ${error}`));
+          this.eventEmitter.emit('error', new Error(`Failed to destroy plugin ${pluginName}: ${String(error)}`));
         });
       }
       

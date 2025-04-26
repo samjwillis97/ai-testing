@@ -248,7 +248,7 @@ export class PluginManagerImpl implements IPluginManager {
     for (const [dep, ver] of Object.entries(deps)) {
       const depDir = path.join(nodeModulesDir, dep.replace(/\//g, '_'));
       await import('fs/promises').then(fs => fs.rm(depDir, { recursive: true, force: true }));
-      await pacote.extract(`${dep}@${ver}`, depDir);
+      await pacote.extract(`${String(dep)}@${String(ver)}`, depDir);
       // Recursively extract subdependencies
       let subPkgJson: Record<string, unknown> | undefined;
       try {
