@@ -86,6 +86,11 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] Variable and authentication management
 - [ ] Response viewer and output formatting
 - [ ] Command options and flags
+- [ ] Autocomplete & Tab Completion
+  - [ ] Tab completion for collections and requests in CLI
+  - [ ] Dynamic suggestions based on available collections/requests
+  - [ ] Shell compatibility (bash, zsh, fish)
+  - [ ] Plugin extensibility for custom completions
 - [ ] Test suite
 
 ## Web UI Package (`@shc/web-ui`)

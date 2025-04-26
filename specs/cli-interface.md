@@ -84,6 +84,24 @@ shc interactive
 - `--export <path>`: Export collection
 - `--import <path>`: Import collection
 
+## Autocomplete & Tab Completion
+
+The CLI provides intelligent autocomplete for commands and arguments using Tab completion. This enhances usability and speeds up workflows by suggesting valid options in context.
+
+### Supported Autocomplete Features
+
+- **Collection & Request Completion**: When using collection mode (`shc [options] <collection> <request>`), pressing Tab will:
+  - Suggest available collection names at the `<collection>` position.
+  - Suggest request names within the selected collection at the `<request>` position.
+- **Dynamic Suggestions**: Autocomplete suggestions update based on the current context and available collections/requests.
+- **Multi-level Completion**: Supports Tab cycling through multiple matches.
+- **Fallbacks**: If no match is found, standard shell completion behavior applies.
+
+### Implementation Notes
+- Integrates with the CLI parser to provide completions for both built-in and user-defined collections/requests.
+- Designed for compatibility with common shells (bash, zsh, fish).
+- Future extensibility for plugin-provided completions.
+
 ## Output Formats
 
 - JSON (default)
