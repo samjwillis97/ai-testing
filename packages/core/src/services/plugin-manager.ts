@@ -295,22 +295,16 @@ export class PluginManagerImpl implements IPluginManager {
       } catch (err) {
         throw new Error(`Could not clone git repo with simple-git. Ensure git is available in the environment or provide guidance. Details: ${err instanceof Error ? err.message : String(err)}`);
       }
-      // Install dependencies with npm-programmatic
-      // try {
-      //   await npmProgrammatic.install([], {
-      //     cwd: targetDir,
-      //     save: false,
-      //     output: true,
-      //     global: false
-      //   });
-      // } catch (err) {
-      //   throw new Error(`Could not install git plugin dependencies with npm-programmatic. Details: ${err instanceof Error ? err.message : String(err)}`);
-      // }
+      // Install dependencies using pacote-based extraction
+      let pkgJson;
+      try {
+        pkgJson = require(path.join(targetDir, 'package.json'));
+        await this.extractDependencies(pkgJson, targetDir);
+      } catch {}
       // Dynamically import the plugin (assume main entry in package.json or index.js)
       let entry;
       try {
-        const pkgJson = require(path.join(targetDir, 'package.json'));
-        entry = pkgJson.main ? path.join(targetDir, pkgJson.main) : path.join(targetDir, 'index.js');
+        entry = pkgJson && pkgJson.main ? path.join(targetDir, pkgJson.main) : path.join(targetDir, 'index.js');
       } catch {
         entry = path.join(targetDir, 'index.js');
       }
