@@ -628,6 +628,15 @@ plugins:
         outputFormat: "json"
 ```
 
+### Plugin Loading Requirements
+
+- Plugin loading (from npm, local path, or git) MUST work on any supported machine without requiring users to manually install `git` or `pnpm` globally.
+  - The core package MUST bundle or automatically manage any required binaries or dependencies for plugin loading (e.g., use programmatic APIs, package manager libraries, or bundled binaries).
+  - Plugin loading MUST be seamless in all environments (local, CI, container, etc.) and MUST NOT fail due to missing global tools.
+  - If a tool is required (such as `git` or `pnpm`), the system MUST:
+    - Use a Node.js library or embedded binary if available
+    - OR provide a clear error message and fallback guidance if truly unavoidable
+
 ### Plugin Security
 
 - Sandboxed execution environment
