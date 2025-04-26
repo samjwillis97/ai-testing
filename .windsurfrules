@@ -80,6 +80,12 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
 
 # Code Quality Rules
 
+## Code Quality Tools
+- For linting always use eslint, set it up if required.
+- For type checking always use tsc, set it up if required.
+- For testing always use vitest, set it up if required.
+- For formatting always use prettier, set it up if required.
+
 ## Code Quality Checks
 - After making meaningful changes to the codebase:
   - The project MUST be built
