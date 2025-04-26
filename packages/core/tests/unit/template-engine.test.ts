@@ -473,7 +473,7 @@ describe('TemplateEngine', () => {
         ],
         execute: async (...args: unknown[]): Promise<unknown> => {
           try {
-            return `Success: ${args[0]}`;
+            return `Success: ${args[0] as string}`;
           } catch (error: unknown) {
             return `Error: ${error instanceof Error ? error.message : String(error)}`;
           }
