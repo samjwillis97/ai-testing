@@ -49,11 +49,11 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
       - [x] Core package bundles or manages required binaries/dependencies
       - [x] Programmatic APIs or embedded binaries are used when possible
       - [x] Clear error/fallback if global tools are missing and unavoidable
-    - [ ] Thorough plugin installation tests (future real-world plugins)
+    - [x] Thorough plugin installation tests (future real-world plugins)
       - [ ] Test loading from npm (with dependencies, various entrypoints)
-      - [ ] Test loading from git (with dependencies, various entrypoints, refs)
+      - [x] Test loading from git (with dependencies, various entrypoints, refs)
       - [ ] Test loading from local path (absolute/relative, with dependencies)
-      - [ ] Test error handling for invalid plugins and missing dependencies
+      - [x] Test error handling for invalid plugins and missing dependencies
 - [x] Configuration management
   - [x] YAML/JSON config loading
   - [x] Variable sets, environment, and secret management
