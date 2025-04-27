@@ -107,6 +107,31 @@ export function createInteractiveTUI(): TUIScreen {
     return process.exit(0);
   });
 
+  // Add navigation key bindings
+  screen.key(['up', 'k'], () => {
+    // Type assertion for blessed list element
+    const list = mainMenu as unknown as { up: (offset?: number) => void };
+    list.up(1);
+    screen.render();
+  });
+
+  screen.key(['down', 'j'], () => {
+    // Type assertion for blessed list element
+    const list = mainMenu as unknown as { down: (offset?: number) => void };
+    list.down(1);
+    screen.render();
+  });
+
+  screen.key(['enter', 'return'], () => {
+    // Type assertion for blessed list element
+    const list = mainMenu as unknown as { 
+      selected: number; 
+      items: { content: string }[];
+      emit: (event: string, item: any, index: number) => void;
+    };
+    list.emit('select', list.items[list.selected], list.selected);
+  });
+
   // Handle menu selection
   mainMenu.on('select', (item, index) => {
     switch (index) {
@@ -229,27 +254,88 @@ export function createRequestForm(screen: blessed.Widgets.Screen, callback: (req
     },
   });
 
+  // Add navigation instructions
+  const instructionsText = blessed.text({
+    bottom: 3,
+    left: 2,
+    content: 'Tab: Next field | Shift+Tab: Previous field | Enter: Submit | Esc: Cancel',
+    style: {
+      fg: 'white',
+    },
+  });
+
   // Add the form elements to the screen
   screen.append(formBox);
   formBox.append(methodLabel);
   formBox.append(methodDropdown);
   formBox.append(urlLabel);
   formBox.append(urlInput);
+  formBox.append(instructionsText);
 
-  // Set key bindings
+  // Set key bindings for the form
   screen.key(['escape'], () => {
     formBox.destroy();
+    screen.render();
+  });
+
+  // Add navigation key bindings for the method dropdown
+  screen.key(['up', 'k'], () => {
+    // Type assertion for blessed element with focused property
+    const element = methodDropdown as unknown as { focus: () => void; hasFocus: boolean; up: (offset?: number) => void };
+    if (element.hasFocus) {
+      element.up(1);
+      screen.render();
+    }
+  });
+
+  screen.key(['down', 'j'], () => {
+    // Type assertion for blessed element with focused property
+    const element = methodDropdown as unknown as { focus: () => void; hasFocus: boolean; down: (offset?: number) => void };
+    if (element.hasFocus) {
+      element.down(1);
+      screen.render();
+    }
+  });
+
+  // Tab navigation between form elements
+  screen.key(['tab'], () => {
+    // Type assertions for blessed elements with hasFocus property
+    const methodElement = methodDropdown as unknown as { focus: () => void; hasFocus: boolean };
+    const urlElement = urlInput as unknown as { focus: () => void; hasFocus: boolean };
+    
+    if (methodElement.hasFocus) {
+      urlElement.focus();
+    } else if (urlElement.hasFocus) {
+      methodElement.focus();
+    }
+    screen.render();
+  });
+
+  screen.key(['S-tab'], () => {
+    // Type assertions for blessed elements with hasFocus property
+    const methodElement = methodDropdown as unknown as { focus: () => void; hasFocus: boolean };
+    const urlElement = urlInput as unknown as { focus: () => void; hasFocus: boolean };
+    
+    if (methodElement.hasFocus) {
+      urlElement.focus();
+    } else if (urlElement.hasFocus) {
+      methodElement.focus();
+    }
     screen.render();
   });
 
   // Handle form submission
   methodDropdown.on('select', (item) => {
     urlInput.focus();
+    screen.render();
   });
 
   urlInput.key(['enter'], () => {
-    // Type assertion for blessed list element to access its properties
-    const list = methodDropdown as unknown as { selected: number; items: { content: string }[] };
+    // Type assertion for blessed list element
+    const list = methodDropdown as unknown as { 
+      selected: number; 
+      items: { content: string }[];
+    };
     const method = list.items[list.selected].content as HttpMethod;
     const url = urlInput.getValue() || '';
 
