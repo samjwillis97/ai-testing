@@ -3,42 +3,44 @@
  */
 import path from 'path';
 import os from 'os';
-import * as fs from 'fs/promises';
-import * as yaml from 'js-yaml';
-import { existsSync } from 'fs';
+import { ConfigManager } from '@shc/core';
+
+// Export for testing purposes
+export const configManagerFactory = () => new ConfigManager();
 
 /**
  * Get effective options by merging CLI options with config file
  */
 export async function getEffectiveOptions(
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  createConfigManager = configManagerFactory
 ): Promise<Record<string, unknown>> {
   const configPath = options.config as string;
-  let configData: Record<string, unknown> = {};
-
+  let configManager = createConfigManager();
+  
   if (configPath) {
     try {
-      if (!existsSync(configPath)) {
-        throw new Error(`Config file not found: ${configPath}`);
-      }
-
-      const fileContent = await fs.readFile(configPath, 'utf-8');
-      const extension = path.extname(configPath).toLowerCase();
-      
-      if (extension === '.yaml' || extension === '.yml') {
-        configData = yaml.load(fileContent) as Record<string, unknown>;
-      } else if (extension === '.json') {
-        configData = JSON.parse(fileContent);
-      } else {
-        throw new Error(`Unsupported config file format: ${extension}`);
-      }
-
+      await configManager.loadFromFile(configPath);
       console.log(`Config loaded from: ${configPath}`);
     } catch (error) {
       console.error(`Failed to load config file: ${error instanceof Error ? error.message : String(error)}`);
+      // Initialize with default config if loading fails
+      configManager = createConfigManager();
     }
   }
 
+  // Convert the config to a plain object
+  const configData: Record<string, unknown> = {};
+  
+  // Extract core settings
+  configData.core = configManager.get('core');
+  
+  // Extract storage settings
+  configData.storage = configManager.get('storage');
+  
+  // Extract variable sets
+  configData.variable_sets = configManager.get('variable_sets');
+  
   // Merge config with CLI options (CLI options take precedence)
   return {
     ...configData,
@@ -50,6 +52,7 @@ export async function getEffectiveOptions(
  * Get collection directory path
  */
 export async function getCollectionDir(options: Record<string, unknown>): Promise<string> {
+  // CLI option takes precedence
   if (options.collectionDir) {
     return options.collectionDir as string;
   }
@@ -66,4 +69,35 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
   // Default to ~/.shc/collections
   const homeDir = os.homedir();
   return path.join(homeDir, '.shc', 'collections');
+}
+
+/**
+ * Create a ConfigManager instance from CLI options
+ */
+export async function createConfigManagerFromOptions(
+  options: Record<string, unknown>,
+  createConfigManager = configManagerFactory
+): Promise<ConfigManager> {
+  const configManager = createConfigManager();
+  const configPath = options.config as string;
+  
+  if (configPath) {
+    try {
+      await configManager.loadFromFile(configPath);
+      console.log(`Config loaded from: ${configPath}`);
+    } catch (error) {
+      console.error(`Failed to load config file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  // Apply CLI options to override config values
+  if (options.collectionDir) {
+    configManager.set('storage.collections.path', options.collectionDir);
+  }
+  
+  if (options.timeout) {
+    configManager.set('core.http.timeout', options.timeout);
+  }
+  
+  return configManager;
 }

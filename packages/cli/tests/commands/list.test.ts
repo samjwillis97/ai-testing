@@ -23,11 +23,23 @@ vi.mock('fs', () => ({
 vi.mock('../../src/utils/config.js', () => ({
   getEffectiveOptions: vi.fn(),
   getCollectionDir: vi.fn(),
+  createConfigManagerFromOptions: vi.fn(),
 }));
 
 vi.mock('../../src/utils/collections.js', () => ({
   getCollections: vi.fn(),
   getRequests: vi.fn(),
+}));
+
+vi.mock('@shc/core', () => ({
+  ConfigManager: vi.fn().mockImplementation(() => ({
+    loadFromFile: vi.fn(),
+    get: vi.fn((path, defaultValue) => {
+      if (path === 'storage.collections.path') return './collections';
+      return defaultValue;
+    }),
+    set: vi.fn(),
+  })),
 }));
 
 // Mock chalk to return the input string (for easier testing)
@@ -64,6 +76,17 @@ describe('List Command', () => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
+    // Mock createConfigManagerFromOptions
+    const mockConfigManager = {
+      loadFromFile: vi.fn(),
+      get: vi.fn((path, defaultValue) => {
+        if (path === 'storage.collections.path') return '/test/collections';
+        return defaultValue;
+      }),
+      set: vi.fn(),
+    };
+    vi.mocked(configUtils.createConfigManagerFromOptions).mockResolvedValue(mockConfigManager as any);
+    
     // Add the list command to the program
     addListCommand(program);
     
@@ -82,23 +105,14 @@ describe('List Command', () => {
 
   describe('List Collections Command', () => {
     it('should list collections when collections exist', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getCollections to return a list of collections
       vi.mocked(collectionsUtils.getCollections).mockResolvedValue(['collection1', 'collection2']);
       
       // Execute the command
       await collectionsCommand.parseAsync(['collections'], { from: 'user' });
       
-      // Verify getEffectiveOptions was called
-      expect(configUtils.getEffectiveOptions).toHaveBeenCalled();
-      
-      // Verify getCollectionDir was called
-      expect(configUtils.getCollectionDir).toHaveBeenCalled();
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
       
       // Verify getCollections was called with the correct path
       expect(collectionsUtils.getCollections).toHaveBeenCalledWith('/test/collections');
@@ -114,17 +128,14 @@ describe('List Command', () => {
     });
 
     it('should show a message when no collections exist', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getCollections to return an empty list
       vi.mocked(collectionsUtils.getCollections).mockResolvedValue([]);
       
       // Execute the command
       await collectionsCommand.parseAsync(['collections'], { from: 'user' });
+      
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
       
       // Verify getCollections was called
       expect(collectionsUtils.getCollections).toHaveBeenCalledWith('/test/collections');
@@ -135,12 +146,6 @@ describe('List Command', () => {
     });
 
     it('should handle errors when listing collections', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getCollections to throw an error
       const mockError = new Error('Failed to read collections');
       vi.mocked(collectionsUtils.getCollections).mockRejectedValue(mockError);
@@ -150,6 +155,9 @@ describe('List Command', () => {
         collectionsCommand.parseAsync(['collections'], { from: 'user' })
       ).rejects.toThrow('Process exited with code 1');
       
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
+      
       // Verify error output
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'));
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to read collections'));
@@ -158,23 +166,14 @@ describe('List Command', () => {
 
   describe('List Requests Command', () => {
     it('should list requests when requests exist', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getRequests to return a list of requests
       vi.mocked(collectionsUtils.getRequests).mockResolvedValue(['request1', 'request2']);
       
       // Execute the command - need to provide the collection name as the first argument
       await requestsCommand.parseAsync(['testCollection'], { from: 'user' });
       
-      // Verify getEffectiveOptions was called
-      expect(configUtils.getEffectiveOptions).toHaveBeenCalled();
-      
-      // Verify getCollectionDir was called
-      expect(configUtils.getCollectionDir).toHaveBeenCalled();
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
       
       // Verify getRequests was called with the correct parameters
       expect(collectionsUtils.getRequests).toHaveBeenCalledWith('/test/collections', 'testCollection');
@@ -190,17 +189,14 @@ describe('List Command', () => {
     });
 
     it('should show a message when no requests exist', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getRequests to return an empty list
       vi.mocked(collectionsUtils.getRequests).mockResolvedValue([]);
       
       // Execute the command - need to provide the collection name as the first argument
       await requestsCommand.parseAsync(['testCollection'], { from: 'user' });
+      
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
       
       // Verify getRequests was called
       expect(collectionsUtils.getRequests).toHaveBeenCalledWith('/test/collections', 'testCollection');
@@ -210,12 +206,6 @@ describe('List Command', () => {
     });
 
     it('should handle errors when listing requests', async () => {
-      // Mock getEffectiveOptions to return simple options
-      vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-      
-      // Mock getCollectionDir to return a path
-      vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-      
       // Mock getRequests to throw an error
       const mockError = new Error('Collection not found');
       vi.mocked(collectionsUtils.getRequests).mockRejectedValue(mockError);
@@ -224,6 +214,9 @@ describe('List Command', () => {
       await expect(
         requestsCommand.parseAsync(['testCollection'], { from: 'user' })
       ).rejects.toThrow('Process exited with code 1');
+      
+      // Verify createConfigManagerFromOptions was called
+      expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
       
       // Verify error output
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'));

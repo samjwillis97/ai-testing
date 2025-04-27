@@ -7,10 +7,10 @@ import chalk from 'chalk';
 import ora from 'ora';
 import * as fs from 'fs/promises';
 import path from 'path';
-import { SHCClient } from '@shc/core';
+import { SHCClient, ConfigManager } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
-import { getEffectiveOptions, getCollectionDir } from '../utils/config.js';
+import { getEffectiveOptions, getCollectionDir, createConfigManagerFromOptions } from '../utils/config.js';
 import { getRequest, saveRequest, getCollections, getRequests } from '../utils/collections.js';
 
 /**
@@ -24,89 +24,91 @@ export function addInteractiveCommand(program: Command): void {
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
+    .option('-v, --verbose', 'Verbose output')
+    .option('-s, --silent', 'Silent mode')
     .addOption(new Option('--no-color', 'Disable colors'))
     .action(async (options: Record<string, unknown>) => {
-      // Get effective options
-      const effectiveOptions = await getEffectiveOptions(options);
-
-      // Get collection directory
-      const collectionDir = await getCollectionDir(effectiveOptions);
-
-      // Create collection directory if it doesn't exist
       try {
-        await fs.mkdir(collectionDir, { recursive: true });
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-          console.error(
-            chalk.red(
-              `Failed to create collection directory: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-          process.exit(1);
-        }
-      }
-
-      // Prepare output options
-      const outputOptions: OutputOptions = {
-        format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
-        color: options.color !== false,
-        verbose: Boolean(effectiveOptions.verbose),
-        silent: Boolean(effectiveOptions.silent),
-      };
-
-      // Start interactive mode
-      console.log(chalk.bold.blue('SHC Interactive Mode'));
-      console.log(chalk.gray('Type "exit" or press Ctrl+C to exit\n'));
-
-      // Display config information if loaded from file
-      if (options.config) {
-        console.log(chalk.green(`Config loaded from: ${options.config}`));
-        console.log(chalk.gray('Collection directory:'), chalk.white(collectionDir));
+        // Create config manager from options
+        const configManager = await createConfigManagerFromOptions(options);
         
-        if (effectiveOptions.core && typeof effectiveOptions.core === 'object') {
-          const core = effectiveOptions.core as Record<string, unknown>;
-          if (core.http && typeof core.http === 'object') {
-            const http = core.http as Record<string, unknown>;
-            console.log(chalk.gray('HTTP timeout:'), chalk.white(`${http.timeout || 'default'} ms`));
+        // Get effective options (for backward compatibility)
+        const effectiveOptions = await getEffectiveOptions(options);
+
+        // Get collection directory from config manager
+        const collectionDir = configManager.get('storage.collections.path', 
+          await getCollectionDir(effectiveOptions));
+
+        // Create collection directory if it doesn't exist
+        try {
+          await fs.mkdir(collectionDir, { recursive: true });
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+            console.error(
+              chalk.red(
+                `Failed to create collection directory: ${error instanceof Error ? error.message : String(error)}`
+              )
+            );
+            process.exit(1);
           }
         }
-        
-        console.log(); // Empty line for spacing
-      }
 
-      let running = true;
-      while (running) {
-        const { action } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'action',
-            message: 'What would you like to do?',
-            choices: [
-              { name: 'Create a new request', value: 'create' },
-              { name: 'Execute a request', value: 'execute' },
-              { name: 'Manage collections', value: 'manage' },
-              { name: 'Exit', value: 'exit' },
-            ],
-          },
-        ]);
+        // Prepare output options
+        const outputOptions: OutputOptions = {
+          format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
+          color: options.color !== false,
+          verbose: Boolean(options.verbose),
+          silent: Boolean(options.silent)
+        };
 
-        switch (action) {
-          case 'create':
-            await createRequest(collectionDir, outputOptions);
-            break;
-          case 'execute':
-            await executeRequest(collectionDir, outputOptions);
-            break;
-          case 'manage':
-            await manageCollections(collectionDir);
-            break;
-          case 'exit':
-            running = false;
-            break;
+        console.log(chalk.bold('SHC Interactive Mode'));
+        console.log('Type "exit" or press Ctrl+C to exit\n');
+
+        // Display config information
+        if (options.config) {
+          console.log(`Config loaded from: ${options.config}`);
         }
-      }
+        console.log(`Collection directory: ${collectionDir}`);
+        console.log(`HTTP timeout: ${configManager.get('core.http.timeout', 30000)} ms\n`);
 
-      console.log(chalk.blue('\nThank you for using SHC Interactive Mode!'));
+        // Start interactive loop
+        let running = true;
+        while (running) {
+          const { action } = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'action',
+              message: 'What would you like to do?',
+              choices: [
+                { name: 'Create a new request', value: 'create' },
+                { name: 'Execute a request', value: 'execute' },
+                { name: 'Manage collections', value: 'manage' },
+                { name: 'Exit', value: 'exit' },
+              ],
+            },
+          ]);
+
+          switch (action) {
+            case 'create':
+              await createRequest(collectionDir, outputOptions);
+              break;
+            case 'execute':
+              await executeRequest(collectionDir, outputOptions);
+              break;
+            case 'manage':
+              await manageCollections(collectionDir);
+              break;
+            case 'exit':
+              running = false;
+              break;
+          }
+        }
+
+        console.log(chalk.green('\nThank you for using SHC Interactive Mode!'));
+      } catch (error) {
+        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        process.exit(1);
+      }
     });
 }
 

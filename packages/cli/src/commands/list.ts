@@ -4,9 +4,8 @@
  */
 import { Command } from 'commander';
 import chalk from 'chalk';
-import ora from 'ora';
 import { getCollections, getRequests } from '../utils/collections.js';
-import { getEffectiveOptions, getCollectionDir } from '../utils/config.js';
+import { createConfigManagerFromOptions } from '../utils/config.js';
 
 /**
  * Add list command to program
@@ -25,11 +24,12 @@ export function addListCommand(program: Command): void {
     .option('--collection-dir <dir>', 'Collection directory')
     .action(async (options: Record<string, unknown>) => {
       try {
-        // Get effective options
-        const effectiveOptions = await getEffectiveOptions(options);
-
-        // Get collection directory
-        const collectionDir = await getCollectionDir(effectiveOptions);
+        // Create config manager from options
+        const configManager = await createConfigManagerFromOptions(options);
+        
+        // Get collection directory from config manager
+        const collectionDir = configManager.get('storage.collections.path', 
+          options.collectionDir as string || configManager.get('storage.collections.path'));
 
         // Display collections
         await listCollections(collectionDir);
@@ -48,11 +48,12 @@ export function addListCommand(program: Command): void {
     .option('--collection-dir <dir>', 'Collection directory')
     .action(async (collection: string, options: Record<string, unknown>) => {
       try {
-        // Get effective options
-        const effectiveOptions = await getEffectiveOptions(options);
-
-        // Get collection directory
-        const collectionDir = await getCollectionDir(effectiveOptions);
+        // Create config manager from options
+        const configManager = await createConfigManagerFromOptions(options);
+        
+        // Get collection directory from config manager
+        const collectionDir = configManager.get('storage.collections.path', 
+          options.collectionDir as string || configManager.get('storage.collections.path'));
 
         // Display requests
         await listRequests(collectionDir, collection);

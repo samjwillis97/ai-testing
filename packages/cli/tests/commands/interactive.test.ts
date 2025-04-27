@@ -30,6 +30,7 @@ vi.mock('inquirer', () => ({
 vi.mock('../../src/utils/config.js', () => ({
   getEffectiveOptions: vi.fn(),
   getCollectionDir: vi.fn(),
+  createConfigManagerFromOptions: vi.fn(),
 }));
 
 vi.mock('../../src/utils/collections.js', () => ({
@@ -41,17 +42,26 @@ vi.mock('../../src/utils/collections.js', () => ({
 
 vi.mock('@shc/core', () => ({
   SHCClient: vi.fn(),
+  ConfigManager: vi.fn().mockImplementation(() => ({
+    loadFromFile: vi.fn(),
+    get: vi.fn((path, defaultValue) => {
+      if (path === 'core.http.timeout') return 30000;
+      if (path === 'storage.collections.path') return './collections';
+      return defaultValue;
+    }),
+    set: vi.fn(),
+  })),
 }));
 
 // Mock chalk to return the input string (for easier testing)
 vi.mock('chalk', () => {
   const mockChalk = (text: string) => text;
-  mockChalk.bold = { blue: (text: string) => text };
-  mockChalk.blue = (text: string) => text;
+  mockChalk.bold = (text: string) => text;
   mockChalk.green = (text: string) => text;
-  mockChalk.gray = (text: string) => text;
-  mockChalk.white = (text: string) => text;
   mockChalk.red = (text: string) => text;
+  mockChalk.yellow = (text: string) => text;
+  mockChalk.gray = (text: string) => text;
+  mockChalk.cyan = (text: string) => text;
   return { default: mockChalk };
 });
 
@@ -60,7 +70,6 @@ describe('Interactive Command', () => {
   let processExitSpy: any;
   let consoleLogSpy: any;
   let consoleErrorSpy: any;
-  let interactiveCommand: Command;
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -75,17 +84,32 @@ describe('Interactive Command', () => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
+    // Mock inquirer.prompt to return 'exit' action by default
+    vi.mocked(inquirer.prompt).mockResolvedValue({ action: 'exit' });
+    
     // Mock fs.mkdir to succeed
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     
-    // Mock inquirer.prompt to exit immediately
-    vi.mocked(inquirer.prompt).mockResolvedValue({ action: 'exit' });
+    // Mock getEffectiveOptions to return empty object by default
+    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
+    
+    // Mock getCollectionDir to return a default path
+    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/default/collections');
+
+    // Mock createConfigManagerFromOptions
+    const mockConfigManager = {
+      loadFromFile: vi.fn(),
+      get: vi.fn((path, defaultValue) => {
+        if (path === 'core.http.timeout') return 30000;
+        if (path === 'storage.collections.path') return '/default/collections';
+        return defaultValue;
+      }),
+      set: vi.fn(),
+    };
+    vi.mocked(configUtils.createConfigManagerFromOptions).mockResolvedValue(mockConfigManager as any);
     
     // Add the interactive command to the program
     addInteractiveCommand(program);
-    
-    // Get the interactive command
-    interactiveCommand = program.commands.find(cmd => cmd.name() === 'interactive')!;
   });
 
   afterEach(() => {
@@ -95,134 +119,79 @@ describe('Interactive Command', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should load config when --config flag is provided', async () => {
-    // Mock config data
-    const configData = {
-      core: {
-        http: {
-          timeout: 30000,
-        },
-      },
-      storage: {
-        collections: {
-          path: './custom-collections',
-        },
-      },
-    };
+  it('should create collection directory if it does not exist', async () => {
+    // Execute the command
+    const interactiveCommand = program.commands.find(cmd => cmd.name() === 'interactive');
+    await interactiveCommand?.parseAsync(['interactive'], { from: 'user' });
     
-    // Mock getEffectiveOptions to return merged config
-    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({
-      ...configData,
-      config: '/path/to/config.yaml',
-    });
+    // Verify createConfigManagerFromOptions was called
+    expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
     
-    // Mock getCollectionDir to return path from config
-    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('./custom-collections');
+    // Verify mkdir was called with the collection directory
+    expect(fs.mkdir).toHaveBeenCalledWith('/default/collections', { recursive: true });
     
-    // Execute the command with --config flag
-    await interactiveCommand.parseAsync(['interactive', '--config', '/path/to/config.yaml'], { from: 'user' });
-    
-    // Verify getEffectiveOptions was called with the config path
-    expect(configUtils.getEffectiveOptions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        config: '/path/to/config.yaml',
-      })
-    );
-    
-    // Verify getCollectionDir was called with the merged options
-    expect(configUtils.getCollectionDir).toHaveBeenCalled();
-    
-    // Verify mkdir was called with the path from config
-    expect(fs.mkdir).toHaveBeenCalledWith('./custom-collections', { recursive: true });
-    
-    // Verify config information was displayed
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Config loaded from:'));
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Collection directory:'), expect.any(String));
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('HTTP timeout:'), expect.any(String));
+    // Verify inquirer.prompt was called
+    expect(inquirer.prompt).toHaveBeenCalled();
   });
 
-  it('should use default collection directory when no config or collection-dir is provided', async () => {
-    // Mock getEffectiveOptions to return simple options
-    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-    
-    // Mock getCollectionDir to return default path
-    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/home/user/.shc/collections');
-    
-    // Execute the command without --config flag
-    await interactiveCommand.parseAsync(['interactive'], { from: 'user' });
-    
-    // Verify getEffectiveOptions was called
-    expect(configUtils.getEffectiveOptions).toHaveBeenCalled();
-    
-    // Verify getCollectionDir was called
-    expect(configUtils.getCollectionDir).toHaveBeenCalled();
-    
-    // Verify mkdir was called with the default path
-    expect(fs.mkdir).toHaveBeenCalledWith('/home/user/.shc/collections', { recursive: true });
-    
-    // Verify no config information was displayed
-    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('Config loaded from:'));
-  });
-
-  it('should use collection-dir option when provided', async () => {
-    // Mock getEffectiveOptions to return options with collectionDir
-    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({
-      collectionDir: '/custom/collections',
-    });
-    
-    // Mock getCollectionDir to return the custom path
-    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/custom/collections');
-    
-    // Execute the command with --collection-dir flag
-    await interactiveCommand.parseAsync(['interactive', '--collection-dir', '/custom/collections'], { from: 'user' });
-    
-    // Verify getEffectiveOptions was called with the collection-dir option
-    expect(configUtils.getEffectiveOptions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collectionDir: '/custom/collections',
-      })
-    );
-    
-    // Verify getCollectionDir was called
-    expect(configUtils.getCollectionDir).toHaveBeenCalled();
-    
-    // Verify mkdir was called with the custom path
-    expect(fs.mkdir).toHaveBeenCalledWith('/custom/collections', { recursive: true });
-  });
-
-  it('should handle errors when creating collection directory', async () => {
-    // Mock getEffectiveOptions to return simple options
-    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-    
-    // Mock fs.mkdir to fail
-    const mockError = new Error('Permission denied') as NodeJS.ErrnoException;
-    mockError.code = 'EACCES';
+  it('should handle collection directory creation error', async () => {
+    // Mock fs.mkdir to throw an error
+    const mockError = new Error('Permission denied');
+    (mockError as NodeJS.ErrnoException).code = 'EACCES';
     vi.mocked(fs.mkdir).mockRejectedValue(mockError);
+    
+    // Execute the command
+    const interactiveCommand = program.commands.find(cmd => cmd.name() === 'interactive');
     
     // Expect process.exit to be called
     await expect(
-      interactiveCommand.parseAsync(['interactive'], { from: 'user' })
+      interactiveCommand?.parseAsync(['interactive'], { from: 'user' })
     ).rejects.toThrow('Process exited with code 1');
     
+    // Verify createConfigManagerFromOptions was called
+    expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
+    
+    // Verify error output
     expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to create collection directory'));
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
   it('should ignore EEXIST error when creating collection directory', async () => {
-    // Mock getEffectiveOptions to return simple options
-    vi.mocked(configUtils.getEffectiveOptions).mockResolvedValue({});
-    vi.mocked(configUtils.getCollectionDir).mockResolvedValue('/test/collections');
-    
-    // Mock fs.mkdir to fail with EEXIST
-    const mockError = new Error('Directory already exists') as NodeJS.ErrnoException;
-    mockError.code = 'EEXIST';
+    // Mock fs.mkdir to throw an EEXIST error
+    const mockError = new Error('Directory already exists');
+    (mockError as NodeJS.ErrnoException).code = 'EEXIST';
     vi.mocked(fs.mkdir).mockRejectedValue(mockError);
     
-    // Should not throw or exit
-    await interactiveCommand.parseAsync(['interactive'], { from: 'user' });
+    // Execute the command
+    const interactiveCommand = program.commands.find(cmd => cmd.name() === 'interactive');
+    await interactiveCommand?.parseAsync(['interactive'], { from: 'user' });
     
+    // Verify createConfigManagerFromOptions was called
+    expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalled();
+    
+    // Verify inquirer.prompt was called (process continued)
+    expect(inquirer.prompt).toHaveBeenCalled();
+    
+    // Verify process.exit was not called
     expect(processExitSpy).not.toHaveBeenCalled();
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('should display config information when config file is loaded', async () => {
+    // Mock options with config path
+    const options = { config: '/path/to/config.yaml' };
+    
+    // Execute the command with config option
+    const interactiveCommand = program.commands.find(cmd => cmd.name() === 'interactive');
+    await interactiveCommand?.parseAsync(['interactive', '--config', '/path/to/config.yaml'], { from: 'user' });
+    
+    // Verify createConfigManagerFromOptions was called with the correct options
+    expect(configUtils.createConfigManagerFromOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ config: '/path/to/config.yaml' })
+    );
+    
+    // Verify config information was displayed
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Config loaded from:'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Collection directory:'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('HTTP timeout:'));
   });
 });

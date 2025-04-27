@@ -4,8 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
-import * as yaml from 'js-yaml';
-import { getEffectiveOptions, getCollectionDir } from '../../src/utils/config.js';
+import { getEffectiveOptions, getCollectionDir, createConfigManagerFromOptions, configManagerFactory } from '../../src/utils/config.js';
 import path from 'path';
 import os from 'os';
 
@@ -17,11 +16,6 @@ vi.mock('fs/promises', () => ({
 
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
-}));
-
-// Mock yaml
-vi.mock('js-yaml', () => ({
-  load: vi.fn(),
 }));
 
 // Mock os with default export
@@ -67,43 +61,93 @@ describe('Config Utilities', () => {
   });
 
   describe('getEffectiveOptions', () => {
-    it('should return original options when no config file is specified', async () => {
-      const options = { verbose: true };
-      const result = await getEffectiveOptions(options);
+    it('should return original options merged with config data when no config file is specified', async () => {
+      // Create a mock ConfigManager factory
+      const mockGet = vi.fn((path, defaultValue) => {
+        if (path === 'core') return { http: { timeout: 30000 } };
+        if (path === 'storage') return { collections: { path: './collections' } };
+        if (path === 'variable_sets') return { global: {} };
+        return defaultValue;
+      });
       
-      expect(result).toEqual(options);
-      expect(console.log).not.toHaveBeenCalled();
+      const mockConfigManager = {
+        loadFromFile: vi.fn(),
+        get: mockGet,
+        set: vi.fn()
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const options = { verbose: true };
+      const result = await getEffectiveOptions(options, mockFactory);
+      
+      expect(mockFactory).toHaveBeenCalled();
+      expect(result).toHaveProperty('core');
+      expect(result).toHaveProperty('storage');
+      expect(result).toHaveProperty('variable_sets');
+      expect(result).toHaveProperty('verbose', true);
     });
 
-    it('should handle config file not found error', async () => {
+    it('should handle config file loading and extract config properties', async () => {
+      // Create a mock ConfigManager factory
+      const mockGet = vi.fn((path, defaultValue) => {
+        if (path === 'core') return { http: { timeout: 30000 } };
+        if (path === 'storage') return { collections: { path: './collections' } };
+        if (path === 'variable_sets') return { global: {} };
+        return defaultValue;
+      });
+      
+      const mockLoadFromFile = vi.fn();
+      
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: mockGet,
+        set: vi.fn()
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
       const configPath = '/path/to/config.yaml';
       const options = { config: configPath };
-
-      vi.mocked(existsSync).mockReturnValue(false);
       
-      const result = await getEffectiveOptions(options);
+      const result = await getEffectiveOptions(options, mockFactory);
       
-      expect(existsSync).toHaveBeenCalledWith(configPath);
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Config file not found'));
-      expect(result).toEqual(options);
+      expect(mockFactory).toHaveBeenCalled();
+      expect(mockLoadFromFile).toHaveBeenCalledWith(configPath);
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Config loaded from'));
+      expect(result).toHaveProperty('core');
+      expect(result).toHaveProperty('storage');
+      expect(result).toHaveProperty('config', configPath);
     });
 
-    it('should handle unsupported file format error', async () => {
-      const configPath = '/path/to/config.txt';
+    it('should handle config loading errors', async () => {
+      // Create a mock ConfigManager factory
+      const mockGet = vi.fn((path, defaultValue) => {
+        if (path === 'core') return { http: { timeout: 30000 } };
+        if (path === 'storage') return { collections: { path: './collections' } };
+        if (path === 'variable_sets') return { global: {} };
+        return defaultValue;
+      });
+      
+      const mockLoadFromFile = vi.fn().mockRejectedValue(new Error('Failed to load config'));
+      
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: mockGet,
+        set: vi.fn()
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const configPath = '/path/to/config.yaml';
       const options = { config: configPath };
-
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue('content');
       
-      // Mock implementation to force the error
-      vi.spyOn(path, 'extname').mockReturnValue('.txt');
+      const result = await getEffectiveOptions(options, mockFactory);
       
-      const result = await getEffectiveOptions(options);
-      
-      expect(existsSync).toHaveBeenCalledWith(configPath);
-      expect(fs.readFile).toHaveBeenCalledWith(configPath, 'utf-8');
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Unsupported config file format'));
-      expect(result).toEqual(options);
+      expect(mockFactory).toHaveBeenCalledTimes(2); // Called twice due to error handling
+      expect(mockLoadFromFile).toHaveBeenCalledWith(configPath);
+      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to load config file'));
+      expect(result).toHaveProperty('config', configPath);
     });
   });
 
@@ -129,23 +173,110 @@ describe('Config Utilities', () => {
     });
 
     it('should return default path if no custom path is specified', async () => {
+      // Setup mocks for this specific test
+      const homeDir = '/home/user';
+      vi.mocked(os.homedir).mockReturnValue(homeDir);
+      vi.mocked(path.join).mockReturnValue(`${homeDir}/.shc/collections`);
+      
       const options = {};
+      const result = await getCollectionDir(options);
       
-      // Create a stub implementation for getCollectionDir to avoid actual OS calls
-      const getCollectionDirStub = vi.fn().mockResolvedValue('/home/user/.shc/collections');
-      const originalGetCollectionDir = getCollectionDir;
+      expect(os.homedir).toHaveBeenCalled();
+      expect(path.join).toHaveBeenCalled();
+      expect(result).toBe('/home/user/.shc/collections');
+    });
+  });
+
+  describe('createConfigManagerFromOptions', () => {
+    it('should create a ConfigManager instance with default settings', async () => {
+      // Create a mock ConfigManager factory
+      const mockLoadFromFile = vi.fn();
+      const mockSet = vi.fn();
       
-      try {
-        // @ts-ignore - Replace the function temporarily for testing
-        global.getCollectionDir = getCollectionDirStub;
-        
-        const result = await getCollectionDirStub(options);
-        
-        expect(result).toBe('/home/user/.shc/collections');
-      } finally {
-        // @ts-ignore - Restore the original function
-        global.getCollectionDir = originalGetCollectionDir;
-      }
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: vi.fn(),
+        set: mockSet
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const options = {};
+      const configManager = await createConfigManagerFromOptions(options, mockFactory);
+      
+      expect(mockFactory).toHaveBeenCalled();
+      expect(mockLoadFromFile).not.toHaveBeenCalled();
+    });
+
+    it('should load config from file if config path is provided', async () => {
+      // Create a mock ConfigManager factory
+      const mockLoadFromFile = vi.fn();
+      const mockSet = vi.fn();
+      
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: vi.fn(),
+        set: mockSet
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const configPath = '/path/to/config.yaml';
+      const options = { config: configPath };
+      
+      const configManager = await createConfigManagerFromOptions(options, mockFactory);
+      
+      expect(mockFactory).toHaveBeenCalled();
+      expect(mockLoadFromFile).toHaveBeenCalledWith(configPath);
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Config loaded from'));
+    });
+
+    it('should handle config loading errors', async () => {
+      // Create a mock ConfigManager factory
+      const mockLoadFromFile = vi.fn().mockRejectedValue(new Error('Failed to load config'));
+      const mockSet = vi.fn();
+      
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: vi.fn(),
+        set: mockSet
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const configPath = '/path/to/config.yaml';
+      const options = { config: configPath };
+      
+      const configManager = await createConfigManagerFromOptions(options, mockFactory);
+      
+      expect(mockFactory).toHaveBeenCalled();
+      expect(mockLoadFromFile).toHaveBeenCalledWith(configPath);
+      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to load config file'));
+    });
+
+    it('should set CLI options in the config manager', async () => {
+      // Create a mock ConfigManager factory
+      const mockLoadFromFile = vi.fn();
+      const mockSet = vi.fn();
+      
+      const mockConfigManager = {
+        loadFromFile: mockLoadFromFile,
+        get: vi.fn(),
+        set: mockSet
+      };
+      
+      const mockFactory = vi.fn().mockReturnValue(mockConfigManager);
+      
+      const options = { 
+        collectionDir: '/custom/dir',
+        timeout: 5000
+      };
+      
+      const configManager = await createConfigManagerFromOptions(options, mockFactory);
+      
+      expect(mockFactory).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith('storage.collections.path', '/custom/dir');
+      expect(mockSet).toHaveBeenCalledWith('core.http.timeout', 5000);
     });
   });
 });
