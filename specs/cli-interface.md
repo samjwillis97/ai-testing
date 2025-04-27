@@ -58,6 +58,7 @@ shc interactive
 - Environment selector
 - Variable editor
 - Response viewer
+- Full-screen mode (TUI takes up the entire terminal without leaving command history)
 
 ## Command Options
 

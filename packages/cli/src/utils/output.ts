@@ -66,6 +66,43 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
 }
 
 /**
+ * Format response for display
+ */
+export function formatResponse(response: ResponseData, options: OutputOptions): string {
+  if (options.silent) {
+    return '';
+  }
+
+  let output = '';
+
+  // Format status and headers if verbose
+  if (options.verbose) {
+    const statusColor =
+      response.status >= 400 ? 'red' : response.status >= 300 ? 'yellow' : 'green';
+    
+    const headerText = `${chalk[statusColor](response.status)} ${chalk.bold(response.statusText)}\n\n${Object.entries(
+      response.headers
+    )
+      .map(([key, value]) => `${chalk.dim(key)}: ${value}`)
+      .join('\n')}`;
+    
+    output += boxen(headerText, {
+      title: 'Response',
+      titleAlignment: 'center',
+      padding: 1,
+      borderColor: statusColor,
+    });
+    
+    output += '\n\n';
+  }
+
+  // Add response body
+  output += formatOutput(response.data, options);
+  
+  return output;
+}
+
+/**
  * Print response with appropriate formatting
  */
 export function printResponse(response: ResponseData, options: OutputOptions): void {
@@ -73,29 +110,7 @@ export function printResponse(response: ResponseData, options: OutputOptions): v
     return;
   }
 
-  // Print status and headers if verbose
-  if (options.verbose) {
-    const statusColor =
-      response.status >= 400 ? 'red' : response.status >= 300 ? 'yellow' : 'green';
-    console.log(
-      boxen(
-        `${chalk[statusColor](response.status)} ${chalk.bold(response.statusText)}\n\n${Object.entries(
-          response.headers
-        )
-          .map(([key, value]) => `${chalk.dim(key)}: ${value}`)
-          .join('\n')}`,
-        {
-          title: 'Response',
-          titleAlignment: 'center',
-          padding: 1,
-          borderColor: statusColor,
-        }
-      )
-    );
-  }
-
-  // Print response body
-  console.log(formatOutput(response.data, options));
+  console.log(formatResponse(response, options));
 }
 
 /**

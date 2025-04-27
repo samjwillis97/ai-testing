@@ -102,6 +102,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] Direct request mode
 - [ ] Collection mode
 - [ ] Interactive mode (TUI)
+  - [x] Full-screen mode (TUI takes up the entire terminal without leaving command history)
 - [ ] Request execution (all HTTP methods)
 - [ ] Collection and environment management
 - [ ] Variable and authentication management

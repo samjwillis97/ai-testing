@@ -12,6 +12,7 @@ import { RequestOptions, OutputOptions, HttpMethod, RequestInfo } from '../types
 import { printResponse, printError } from '../utils/output.js';
 import { getEffectiveOptions, getCollectionDir, createConfigManagerFromOptions } from '../utils/config.js';
 import { getRequest, saveRequest, getCollections, getRequests } from '../utils/collections.js';
+import { createInteractiveTUI, createRequestForm, displayResponse } from '../utils/tui.js';
 
 /**
  * Add interactive command to program
@@ -26,6 +27,7 @@ export function addInteractiveCommand(program: Command): void {
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option('--no-fullscreen', 'Disable full-screen TUI mode')
     .addOption(new Option('--no-color', 'Disable colors'))
     .action(async (options: Record<string, unknown>) => {
       try {
@@ -61,50 +63,60 @@ export function addInteractiveCommand(program: Command): void {
           silent: Boolean(options.silent)
         };
 
-        console.log(chalk.bold('SHC Interactive Mode'));
-        console.log('Type "exit" or press Ctrl+C to exit\n');
+        // Check if full-screen mode is enabled (default is true)
+        const fullscreenMode = options.fullscreen !== false;
 
-        // Display config information
-        if (options.config) {
-          console.log(`Config loaded from: ${options.config}`);
-        }
-        console.log(`Collection directory: ${collectionDir}`);
-        console.log(`HTTP timeout: ${configManager.get('core.http.timeout', 30000)} ms\n`);
+        if (fullscreenMode) {
+          // Start full-screen TUI mode
+          const tui = createInteractiveTUI();
+          tui.start();
+        } else {
+          // Start classic interactive mode
+          console.log(chalk.bold('SHC Interactive Mode'));
+          console.log('Type "exit" or press Ctrl+C to exit\n');
 
-        // Start interactive loop
-        let running = true;
-        while (running) {
-          const { action } = await inquirer.prompt([
-            {
-              type: 'list',
-              name: 'action',
-              message: 'What would you like to do?',
-              choices: [
-                { name: 'Create a new request', value: 'create' },
-                { name: 'Execute a request', value: 'execute' },
-                { name: 'Manage collections', value: 'manage' },
-                { name: 'Exit', value: 'exit' },
-              ],
-            },
-          ]);
-
-          switch (action) {
-            case 'create':
-              await createRequest(collectionDir, outputOptions);
-              break;
-            case 'execute':
-              await executeRequest(collectionDir, outputOptions);
-              break;
-            case 'manage':
-              await manageCollections(collectionDir);
-              break;
-            case 'exit':
-              running = false;
-              break;
+          // Display config information
+          if (options.config) {
+            console.log(`Config loaded from: ${options.config}`);
           }
-        }
+          console.log(`Collection directory: ${collectionDir}`);
+          console.log(`HTTP timeout: ${configManager.get('core.http.timeout', 30000)} ms\n`);
 
-        console.log(chalk.green('\nThank you for using SHC Interactive Mode!'));
+          // Start interactive loop
+          let running = true;
+          while (running) {
+            const { action } = await inquirer.prompt([
+              {
+                type: 'list',
+                name: 'action',
+                message: 'What would you like to do?',
+                choices: [
+                  { name: 'Create a new request', value: 'create' },
+                  { name: 'Execute a request', value: 'execute' },
+                  { name: 'Manage collections', value: 'manage' },
+                  { name: 'Exit', value: 'exit' },
+                ],
+              },
+            ]);
+
+            switch (action) {
+              case 'create':
+                await createRequest(collectionDir, outputOptions);
+                break;
+              case 'execute':
+                await executeRequest(collectionDir, outputOptions);
+                break;
+              case 'manage':
+                await manageCollections(collectionDir);
+                break;
+              case 'exit':
+                running = false;
+                break;
+            }
+          }
+
+          console.log(chalk.green('\nThank you for using SHC Interactive Mode!'));
+        }
       } catch (error) {
         console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
