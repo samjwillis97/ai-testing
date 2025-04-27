@@ -21,6 +21,7 @@ export function addInteractiveCommand(program: Command): void {
     .command('interactive')
     .alias('i')
     .description('Interactive mode')
+    .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .addOption(new Option('--no-color', 'Disable colors'))
@@ -56,6 +57,22 @@ export function addInteractiveCommand(program: Command): void {
       // Start interactive mode
       console.log(chalk.bold.blue('SHC Interactive Mode'));
       console.log(chalk.gray('Type "exit" or press Ctrl+C to exit\n'));
+
+      // Display config information if loaded from file
+      if (options.config) {
+        console.log(chalk.green(`Config loaded from: ${options.config}`));
+        console.log(chalk.gray('Collection directory:'), chalk.white(collectionDir));
+        
+        if (effectiveOptions.core && typeof effectiveOptions.core === 'object') {
+          const core = effectiveOptions.core as Record<string, unknown>;
+          if (core.http && typeof core.http === 'object') {
+            const http = core.http as Record<string, unknown>;
+            console.log(chalk.gray('HTTP timeout:'), chalk.white(`${http.timeout || 'default'} ms`));
+          }
+        }
+        
+        console.log(); // Empty line for spacing
+      }
 
       let running = true;
       while (running) {
