@@ -3,7 +3,7 @@ version: 1.0.0
 description: "Collection for testing HTTP requests using HTTPBin"
 
 # Base URL from variable set
-base_url: "${variables.api.url}"
+base_url: "https://httpbin.org"
 
 # Variable set configuration
 variable_sets:

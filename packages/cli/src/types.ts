@@ -7,16 +7,46 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 
 
 // Request options
 export interface RequestOptions {
+  id?: string;
+  name?: string;
+  description?: string;
   method: HttpMethod;
-  url: string;
+  url?: string;
+  path?: string;
+  baseUrl?: string;
   headers?: Record<string, string>;
   params?: Record<string, string>;
+  query?: Record<string, string>;
   data?: unknown;
+  body?: {
+    type: string;
+    content: string;
+  };
   auth?: {
     type: string;
-    credentials: string;
+    credentials?: string;
+    username?: string;
+    password?: string;
+    token?: string;
   };
+  authentication?: {
+    type: string;
+    username?: string;
+    password?: string;
+    token?: string;
+  };
+  cookies?: Record<string, string>;
   timeout?: number;
+}
+
+/**
+ * Request info for listing and selection
+ */
+export interface RequestInfo {
+  id: string;
+  name: string;
+  description?: string;
+  method?: string;
 }
 
 // Output options

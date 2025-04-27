@@ -2,10 +2,13 @@ import type { SHCConfig } from './client.types';
 
 export interface RequestConfig {
   url?: string;
+  path?: string;
+  baseUrl?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
   headers?: Record<string, string>;
   query?: Record<string, string | number | boolean>;
   body?: unknown;
+  data?: unknown;
   timeout?: number;
   params?: Record<string, string | number | boolean>;
   authentication?: {

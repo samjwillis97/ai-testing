@@ -8,7 +8,7 @@ import ora from 'ora';
 import * as fs from 'fs/promises';
 import path from 'path';
 import { SHCClient, ConfigManager } from '@shc/core';
-import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
+import { RequestOptions, OutputOptions, HttpMethod, RequestInfo } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
 import { getEffectiveOptions, getCollectionDir, createConfigManagerFromOptions } from '../utils/config.js';
 import { getRequest, saveRequest, getCollections, getRequests } from '../utils/collections.js';
@@ -344,7 +344,7 @@ async function executeRequest(collectionDir: string, outputOptions: OutputOption
     ]);
 
     // Get available requests
-    let requests: string[] = [];
+    let requests: RequestInfo[] = [];
     try {
       requests = await getRequests(collectionDir, collection);
     } catch (error) {
@@ -361,20 +361,23 @@ async function executeRequest(collectionDir: string, outputOptions: OutputOption
       return;
     }
 
-    // Select request
-    const { request: requestName } = await inquirer.prompt([
+    // Prompt for request
+    const { requestId } = await inquirer.prompt([
       {
         type: 'list',
-        name: 'request',
+        name: 'requestId',
         message: 'Select request:',
-        choices: requests,
+        choices: requests.map(req => ({
+          name: `${req.name} ${req.method ? `(${req.method})` : ''}`,
+          value: req.id
+        })),
       },
     ]);
 
     // Get request from collection
-    const spinner = ora(`Loading request '${requestName}' from collection '${collection}'`).start();
+    const spinner = ora(`Loading request '${requestId}' from collection '${collection}'`).start();
     try {
-      const requestOptions = await getRequest(collectionDir, collection, requestName);
+      const requestOptions = await getRequest(collectionDir, collection, requestId);
       spinner.succeed(chalk.green(`Request loaded from collection`));
 
       // Execute request

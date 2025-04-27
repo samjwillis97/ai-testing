@@ -107,9 +107,87 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
     }
 
     console.log(chalk.bold(`\nRequests in collection '${collectionName}':`));
+    
+    // Calculate column widths for better formatting
+    const idWidth = Math.max(...requests.map(r => r.id?.length || 0), 2) + 2;
+    const nameWidth = Math.max(...requests.map(r => r.name?.length || 0), 4) + 2;
+    
+    // Print top of table
+    console.log(
+      chalk.dim('┌─') +
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┐')
+    );
+
+    // Print header
+    console.log(
+      chalk.dim('│ ') +
+      chalk.cyan(chalk.bold('#'.padEnd(3))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('ID'.padEnd(idWidth))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('NAME'.padEnd(nameWidth))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('METHOD'.padEnd(8))) +
+      chalk.dim(' │')
+    );
+    
+    // Print separator
+    console.log(
+      chalk.dim('├─') +
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┤')
+    );
+    
+    // Print requests
     requests.forEach((request, index) => {
-      console.log(`${chalk.cyan(`${index + 1}.`)} ${request}`);
+      const method = request.method || '';
+      const methodColor = 
+        method === 'GET' ? chalk.green :
+        method === 'POST' ? chalk.yellow :
+        method === 'PUT' ? chalk.blue :
+        method === 'DELETE' ? chalk.red :
+        method === 'PATCH' ? chalk.magenta :
+        chalk.white;
+      
+      console.log(
+        chalk.dim('│ ') +
+        chalk.cyan(`${index + 1}`.padEnd(3)) +
+        chalk.dim(' │ ') +
+        chalk.white(request.id.padEnd(idWidth)) +
+        chalk.dim(' │ ') +
+        chalk.white(request.name.padEnd(nameWidth)) +
+        chalk.dim(' │ ') +
+        methodColor(method.padEnd(8)) +
+        chalk.dim(' │')
+      );
     });
+    
+    // Print bottom border
+    console.log(
+      chalk.dim('└─') +
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┘')
+    );
+    
     console.log(); // Empty line for spacing
   } catch (error) {
     console.error(chalk.red(`Failed to load requests: ${error instanceof Error ? error.message : String(error)}`));

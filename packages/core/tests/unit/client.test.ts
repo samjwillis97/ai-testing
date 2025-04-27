@@ -84,7 +84,7 @@ describe('SHCClient', () => {
       const mockHeaders = { 'content-type': 'application/json' };
       const mockConfig = {
         url: '/users',
-        method: 'GET',
+        method: 'GET' as const,
         headers: {},
         params: { page: 1 },
       };
@@ -123,7 +123,7 @@ describe('SHCClient', () => {
       const mockHeaders = { 'content-type': 'application/json' };
       const mockConfig = {
         url: '/users',
-        method: 'POST',
+        method: 'POST' as const,
         headers: { 'content-type': 'application/json' },
         data: requestData,
       };
@@ -158,7 +158,7 @@ describe('SHCClient', () => {
       const mockHeaders = { 'content-type': 'application/json' };
       const mockConfig = {
         url: '/users/999',
-        method: 'GET',
+        method: 'GET' as const,
         headers: {},
       };
 
@@ -195,6 +195,176 @@ describe('SHCClient', () => {
     });
   });
 
+  describe('Request Method', () => {
+    it('should send a request with the given configuration', async () => {
+      // Mock successful response
+      const mockResponse = {
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      };
+      (mockAxiosInstance.request as MockedFunction<typeof mockAxiosInstance.request>).mockResolvedValueOnce(
+        mockResponse
+      );
+
+      const requestConfig = {
+        url: 'https://api.example.com/test',
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      const response = await client.request(requestConfig);
+
+      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://api.example.com/test',
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        })
+      );
+
+      expect(response).toEqual({
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: expect.any(Object),
+        responseTime: expect.any(Number)
+      });
+    });
+
+    it('should combine baseUrl and path when url is not provided', async () => {
+      // Mock successful response
+      const mockResponse = {
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      };
+      (mockAxiosInstance.request as MockedFunction<typeof mockAxiosInstance.request>).mockResolvedValueOnce(
+        mockResponse
+      );
+
+      const requestConfig = {
+        baseUrl: 'https://api.example.com',
+        path: '/test',
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      const response = await client.request(requestConfig);
+
+      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://api.example.com/test',
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        })
+      );
+
+      expect(response).toEqual({
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: expect.any(Object),
+        responseTime: expect.any(Number)
+      });
+    });
+
+    it('should handle baseUrl with trailing slash and path without leading slash', async () => {
+      // Mock successful response
+      const mockResponse = {
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      };
+      (mockAxiosInstance.request as MockedFunction<typeof mockAxiosInstance.request>).mockResolvedValueOnce(
+        mockResponse
+      );
+
+      const requestConfig = {
+        baseUrl: 'https://api.example.com/',
+        path: 'test',
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      const response = await client.request(requestConfig);
+
+      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://api.example.com/test',
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        })
+      );
+    });
+
+    it('should use axios instance baseURL when no baseUrl is provided in config', async () => {
+      // Set baseURL in axios instance
+      mockAxiosInstance.defaults.baseURL = 'https://default-api.example.com' as any;
+
+      // Mock successful response
+      const mockResponse = {
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      };
+      (mockAxiosInstance.request as MockedFunction<typeof mockAxiosInstance.request>).mockResolvedValueOnce(
+        mockResponse
+      );
+
+      const requestConfig = {
+        path: '/test',
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      const response = await client.request(requestConfig);
+
+      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://default-api.example.com/test',
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        })
+      );
+
+      // Reset baseURL for other tests
+      mockAxiosInstance.defaults.baseURL = undefined;
+    });
+
+    it('should throw an error when neither url nor path is provided', async () => {
+      const requestConfig = {
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      await expect(client.request(requestConfig)).rejects.toThrow('Invalid URL');
+    });
+
+    it('should throw an error when path is provided but no baseUrl is available', async () => {
+      // Ensure baseURL is not set
+      mockAxiosInstance.defaults.baseURL = undefined;
+
+      const requestConfig = {
+        path: '/test',
+        method: 'GET' as const,
+        headers: { Accept: 'application/json' },
+      };
+
+      await expect(client.request(requestConfig)).rejects.toThrow('No base URL found');
+    });
+  });
+
   describe('Configuration methods', () => {
     it('should set a default header', () => {
       client.setDefaultHeader('Authorization', 'Bearer token123');
@@ -222,7 +392,7 @@ describe('SHCClient', () => {
       
       // Manually trigger the event since we can't easily trigger it through the client
       // @ts-ignore - accessing private property for testing
-      client['eventEmitter'].emit('request', { url: '/test', method: 'GET' });
+      client['eventEmitter'].emit('request', { url: '/test', method: 'GET' as const });
       
       expect(mockListener).toHaveBeenCalled();
     });
@@ -234,7 +404,7 @@ describe('SHCClient', () => {
       
       // Manually trigger the event
       // @ts-ignore - accessing private property for testing
-      client['eventEmitter'].emit('request', { url: '/test', method: 'GET' });
+      client['eventEmitter'].emit('request', { url: '/test', method: 'GET' as const });
       
       expect(mockListener).not.toHaveBeenCalled();
     });
@@ -250,7 +420,7 @@ describe('SHCClient', () => {
         status: 200, 
         statusText: 'OK',
         headers: {},
-        config: { url: '/test', method: 'GET' }
+        config: { url: '/test', method: 'GET' as const }
       });
       
       expect(mockListener).toHaveBeenCalled();

@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "dev": "node --loader ts-node/esm src/index.ts",
+    "dev": "node --loader ts-node/esm --no-warnings src/index.ts",
     "typecheck": "tsc --noEmit",
     "prettier:write": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prettier": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""

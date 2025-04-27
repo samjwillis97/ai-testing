@@ -167,7 +167,10 @@ describe('List Command', () => {
   describe('List Requests Command', () => {
     it('should list requests when requests exist', async () => {
       // Mock getRequests to return a list of requests
-      vi.mocked(collectionsUtils.getRequests).mockResolvedValue(['request1', 'request2']);
+      vi.mocked(collectionsUtils.getRequests).mockResolvedValue([
+        { id: 'request1', name: 'Request 1', method: 'GET' },
+        { id: 'request2', name: 'Request 2', method: 'POST' }
+      ]);
       
       // Execute the command - need to provide the collection name as the first argument
       await requestsCommand.parseAsync(['testCollection'], { from: 'user' });
@@ -183,9 +186,9 @@ describe('List Command', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Requests for collection 'testCollection' loaded successfully"));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Requests in collection 'testCollection':"));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('1.'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('request1'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Request 1'));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('2.'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('request2'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Request 2'));
     });
 
     it('should show a message when no requests exist', async () => {

@@ -351,13 +351,33 @@ export class SHCClient implements ISHCClient {
 
       // Convert SHC RequestConfig to Axios RequestConfig
       const axiosConfig: AxiosRequestConfig = {
-        url: config.url,
         method: config.method,
         headers: config.headers,
         params: config.query || config.params,
-        data: config.body,
+        data: config.body || config.data,
         timeout: config.timeout,
       };
+
+      // Handle URL construction - if url is not provided but path is, and baseUrl is available
+      if (!config.url && config.path) {
+        // Check if we have a baseUrl in the config
+        const baseUrl = config.baseUrl || this.axiosInstance.defaults.baseURL;
+        if (baseUrl) {
+          // Ensure there's no trailing slash in the base URL and the path has a leading slash
+          const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+          const cleanPath = config.path.startsWith('/') ? config.path : `/${config.path}`;
+          axiosConfig.url = `${cleanBaseUrl}${cleanPath}`;
+        } else {
+          throw new Error('No base URL found and no URL specified in request');
+        }
+      } else {
+        axiosConfig.url = config.url;
+      }
+
+      // If URL is still not set, throw an error
+      if (!axiosConfig.url) {
+        throw new Error('Invalid URL: No URL or path specified in request');
+      }
 
       // Apply authentication if needed
       if (config.authentication) {

@@ -11,6 +11,7 @@ import { RequestOptions, OutputOptions } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
 import { getEffectiveOptions, getCollectionDir } from '../utils/config.js';
 import { getRequest, saveRequest } from '../utils/collections.js';
+import * as yaml from 'js-yaml';
 
 /**
  * Add collection request command to program
@@ -22,6 +23,7 @@ export function addCollectionCommand(program: Command): void {
     .description('Execute a request from a collection')
     .argument('<collection>', 'Collection name')
     .argument('<request>', 'Request name')
+    .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
     .option('--save', 'Save request to collection')
     .option('--export <path>', 'Export collection to file')
@@ -158,7 +160,7 @@ export function addCollectionCommand(program: Command): void {
           const requestSpinner = effectiveOptions.silent
             ? null
             : ora(
-                `Sending ${requestOptions.method.toUpperCase()} request to ${requestOptions.url}`
+                `Sending ${requestOptions.method.toUpperCase()} request to ${requestOptions.url || `${requestOptions.path}`}`
               ).start();
 
           try {

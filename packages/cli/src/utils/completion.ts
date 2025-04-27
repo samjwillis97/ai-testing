@@ -222,7 +222,9 @@ export async function getRequestsForCompletion(
 ): Promise<string[]> {
   try {
     const collectionDir = await getCollectionDir(options);
-    return await getRequests(collectionDir, collectionName);
+    const requests = await getRequests(collectionDir, collectionName);
+    // Return just the request IDs for completion
+    return requests.map(req => req.id);
   } catch (error) {
     return [];
   }
