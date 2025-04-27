@@ -83,5 +83,4 @@ storage:
   # Collection storage
   collections:
     type: "file"
-    # path: "/Users/sam/code/github.com/samjwillis97/ai-testing/main/configs/collections"
     path: "./collections"

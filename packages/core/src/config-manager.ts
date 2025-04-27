@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
+import merge from 'lodash.merge';
 import type { ConfigManager as IConfigManager, TemplateFunction, TemplateContext, ValidationResult } from './types/config.types';
 import { SHCConfig } from './types/client.types';
 import { createTemplateEngine, TemplateEngine } from './services/template-engine';
@@ -30,6 +31,7 @@ export class ConfigManagerImpl implements IConfigManager {
   private templateEngine: TemplateEngine;
   private eventEmitter: EventEmitter;
   private secretStore: Map<string, string> = new Map();
+  private configFilePath?: string;
 
   constructor(initialConfig?: Partial<SHCConfig>) {
     this.config = {
@@ -98,6 +100,15 @@ export class ConfigManagerImpl implements IConfigManager {
         throw new Error(`Invalid configuration: ${validationResult.errors?.join(', ')}`);
       }
 
+      // Store the config file path for resolving relative paths
+      this.configFilePath = path.resolve(filePath);
+
+      // Process relative paths in the config
+      if (parsedConfig.storage?.collections?.path && !path.isAbsolute(parsedConfig.storage.collections.path)) {
+        const configDir = path.dirname(this.configFilePath);
+        parsedConfig.storage.collections.path = path.resolve(configDir, parsedConfig.storage.collections.path);
+      }
+
       this.config = this.mergeConfigs(this.config, parsedConfig);
       this.eventEmitter.emit('config:loaded', this.config);
     } catch (error) {
@@ -161,6 +172,27 @@ export class ConfigManagerImpl implements IConfigManager {
       (current as Record<string, unknown>)[keys[keys.length - 1]] = value;
     }
     this.eventEmitter.emit('config:updated', { path, value });
+  }
+
+  // Resolve a path that might be relative to the config file
+  resolveConfigPath(relativePath: string): string {
+    if (path.isAbsolute(relativePath)) {
+      return relativePath;
+    }
+    
+    if (this.configFilePath) {
+      const configDir = path.dirname(this.configFilePath);
+      return path.resolve(configDir, relativePath);
+    }
+    
+    // If no config file path is set, resolve relative to current working directory
+    return path.resolve(relativePath);
+  }
+
+  // Get the collection directory path, resolving relative paths if needed
+  getCollectionPath(): string {
+    const collectionPath = this.get<string>('storage.collections.path', './collections');
+    return this.resolveConfigPath(collectionPath);
   }
 
   has(path: string): boolean {
@@ -304,33 +336,25 @@ export class ConfigManagerImpl implements IConfigManager {
       }
     }
 
-    // All validations passed
     return true;
   }
 
   async validateSchema(config: unknown): Promise<ValidationResult> {
     try {
-      // For partial configs, use validatePartialConfig
-      const validatedConfig = validatePartialConfig(config);
-      return {
-        valid: true,
-        config: validatedConfig as SHCConfigSchema
-      };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return {
-          valid: false,
-          errors: error.errors.map(err => {
-            const path = err.path.join('.');
-            return `${path ? path + ': ' : ''}${err.message}`;
-          })
-        };
+      const result = await configSchema.safeParseAsync(config);
+      
+      if (!result.success) {
+        // Handle the case where result.error might be undefined
+        const errors = result.error ? formatValidationErrors(result.error) : ['Unknown validation error'];
+        return { valid: false, errors: Array.isArray(errors) ? errors : [errors] };
       }
       
-      // For non-Zod errors
-      return {
-        valid: false,
-        errors: [error instanceof Error ? error.message : String(error)]
+      return { valid: true, errors: [] };
+    } catch (error) {
+      const errorMessage = (error instanceof Error) ? error.message : String(error);
+      return { 
+        valid: false, 
+        errors: [errorMessage] 
       };
     }
   }
@@ -345,52 +369,33 @@ export class ConfigManagerImpl implements IConfigManager {
       let content: string;
       
       if (fileExt === '.yaml' || fileExt === '.yml') {
-        content = yaml.dump(this.config);
+        content = yaml.dump(this.config, { indent: 2 });
       } else if (fileExt === '.json') {
         content = JSON.stringify(this.config, null, 2);
       } else {
         throw new Error(`Unsupported file type: ${fileExt}`);
       }
       
-      // Ensure directory exists
-      const directory = path.dirname(filePath);
-      try {
-        await fs.access(directory);
-      } catch {
-        await fs.mkdir(directory, { recursive: true });
-      }
-      
       await fs.writeFile(filePath, content, 'utf8');
-      this.eventEmitter.emit('config:saved', filePath);
     } catch (error) {
       throw new Error(`Failed to save configuration to ${filePath}: ${error instanceof Error ? error.message : error}`);
     }
   }
 
   async getSecret(key: string): Promise<string> {
-    // First check the secret store
-    const storedSecret = this.secretStore.get(key);
-    if (storedSecret) {
-      return storedSecret;
+    const secret = this.secretStore.get(key);
+    if (!secret) {
+      throw new Error(`Secret not found: ${key}`);
     }
-    
-    // Then check environment variables
-    const envSecret = this.getEnv(key);
-    if (envSecret) {
-      return envSecret;
-    }
-    
-    throw new Error(`Secret '${key}' not found`);
+    return secret;
   }
 
   async setSecret(key: string, value: string): Promise<void> {
     this.secretStore.set(key, value);
-    this.eventEmitter.emit('secret:updated', key);
   }
 
   registerTemplateFunction(namespace: string, func: TemplateFunction): void {
     this.templateEngine.registerFunction(namespace, func);
-    this.eventEmitter.emit('template:function:registered', { namespace, functionName: func.name });
   }
 
   getTemplateFunction(path: string): TemplateFunction | undefined {
@@ -398,62 +403,65 @@ export class ConfigManagerImpl implements IConfigManager {
   }
 
   private mergeConfigs(base: SHCConfig, update?: Partial<SHCConfig>): SHCConfig {
-    if (!update) return base;
+    if (!update) {
+      return base;
+    }
 
-    // Create a deep copy of the base config to avoid modifying it directly
-    const result: SHCConfig = {
-      ...base,
-      ...update,
-      core: {
-        ...base.core,
-        ...update.core,
-        http: {
-          ...(base.core?.http || {}),
-          ...(update.core?.http || {}),
-          retry: {
-            ...(base.core?.http?.retry || {}),
-            ...(update.core?.http?.retry || {})
-          },
-          tls: {
-            ...(base.core?.http?.tls || {}),
-            ...(update.core?.http?.tls || {})
-          }
+    // Create a deep copy of the base config to avoid mutating it
+    // Use lodash.merge for deep cloning instead of JSON.parse/stringify to handle functions
+    const baseClone = merge({}, base);
+    
+    // Handle special cases for arrays that should be replaced instead of merged
+    const pluginsToReplace: Record<string, boolean> = {};
+    
+    if (update.plugins) {
+      // Mark plugin arrays that should be replaced rather than merged
+      if (update.plugins.auth) pluginsToReplace['plugins.auth'] = true;
+      if (update.plugins.preprocessors) pluginsToReplace['plugins.preprocessors'] = true;
+      if (update.plugins.transformers) pluginsToReplace['plugins.transformers'] = true;
+    }
+    
+    // Use lodash.merge for deep merging
+    const merged = merge({}, baseClone, update);
+    
+    // Handle special case for plugin arrays - we want to replace them, not merge them
+    if (update.plugins && merged.plugins) {
+      if (pluginsToReplace['plugins.auth'] && update.plugins.auth) {
+        merged.plugins.auth = [...update.plugins.auth];
+      }
+      
+      if (pluginsToReplace['plugins.preprocessors'] && update.plugins.preprocessors) {
+        merged.plugins.preprocessors = [...update.plugins.preprocessors];
+      }
+      
+      if (pluginsToReplace['plugins.transformers'] && update.plugins.transformers) {
+        merged.plugins.transformers = [...update.plugins.transformers];
+      }
+    }
+    
+    return merged;
+  }
+  
+  // Helper method to create default core config
+  private createDefaultCore(): SHCConfig['core'] {
+    return {
+      http: {
+        timeout: 30000,
+        max_redirects: 5,
+        retry: {
+          attempts: 3,
+          backoff: 'exponential'
         },
-        logging: {
-          ...(base.core?.logging || {}),
-          ...(update.core?.logging || {})
+        tls: {
+          verify: true
         }
       },
-      variable_sets: {
-        ...(base.variable_sets || {}),
-        ...(update.variable_sets || {}),
-        global: {
-          ...(base.variable_sets?.global || {}),
-          ...(update.variable_sets?.global || {})
-        },
-        collection_defaults: {
-          ...(base.variable_sets?.collection_defaults || {}),
-          ...(update.variable_sets?.collection_defaults || {})
-        }
-      },
-      plugins: {
-        ...(base.plugins || {}),
-        ...(update.plugins || {}),
-        auth: [...(base.plugins?.auth || []), ...(update.plugins?.auth || [])],
-        preprocessors: [...(base.plugins?.preprocessors || []), ...(update.plugins?.preprocessors || [])],
-        transformers: [...(base.plugins?.transformers || []), ...(update.plugins?.transformers || [])]
-      },
-      storage: {
-        ...(base.storage || {}),
-        ...(update.storage || {}),
-        collections: {
-          ...(base.storage?.collections || {}),
-          ...(update.storage?.collections || {})
-        }
+      logging: {
+        level: 'info',
+        format: 'text',
+        output: 'console'
       }
     };
-
-    return result;
   }
 }
 

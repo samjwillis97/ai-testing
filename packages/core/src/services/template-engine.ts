@@ -22,7 +22,12 @@ export class TemplateEngine {
    * @returns The template function or undefined if not found
    */
   getFunction(path: string): TemplateFunction | undefined {
-    return this.functions.get(path);
+    // Only return a function if the path exactly matches a registered function path
+    // This ensures namespaces themselves don't return a function
+    if (this.functions.has(path)) {
+      return this.functions.get(path);
+    }
+    return undefined;
   }
 
   /**
@@ -252,7 +257,7 @@ export class TemplateEngine {
     let match: RegExpExecArray | null;
     let result = template;
     let iterations = 0;
-    const maxIterations = 5; // Prevent infinite loops
+    const maxIterations = 10; // Increased from 5 to handle more complex nesting
 
     // Continue resolving nested calls until no more matches or max iterations reached
     while ((match = nestedPattern.exec(result)) !== null && iterations < maxIterations) {
@@ -261,7 +266,20 @@ export class TemplateEngine {
       const [fullMatch, namespace, funcName, argsWithNested] = match;
 
       // First, resolve any nested templates in the arguments
-      const resolvedArgs = await this.resolve(argsWithNested, context);
+      let resolvedArgs = argsWithNested;
+      
+      // Look for nested templates within the arguments
+      const nestedTemplatePattern = /\${([^}]+)}/g;
+      let nestedMatch;
+      
+      // Process each nested template within the arguments
+      while ((nestedMatch = nestedTemplatePattern.exec(argsWithNested)) !== null) {
+        const [nestedFullMatch, nestedTemplate] = nestedMatch;
+        // Resolve the nested template
+        const resolvedNestedTemplate = await this.resolve(`\${${nestedTemplate}}`, context);
+        // Replace in the args string
+        resolvedArgs = resolvedArgs.replace(nestedFullMatch, resolvedNestedTemplate);
+      }
 
       // Replace the nested function call with the non-nested version
       const replacementTemplate = `\${${namespace}.${funcName}(${resolvedArgs})}`;
