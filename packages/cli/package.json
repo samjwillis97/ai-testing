@@ -2,6 +2,7 @@
   "name": "@shc/cli",
   "version": "0.1.0",
   "description": "SHC Command Line Interface",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -10,22 +11,35 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
-    "dev": "ts-node src/index.ts"
+    "lint:fix": "eslint src --ext .ts --fix",
+    "dev": "ts-node --esm src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "prettier:write": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prettier": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""
   },
   "dependencies": {
     "@shc/core": "workspace:*",
     "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
-    "inquirer": "^9.2.8",
-    "ora": "^7.0.1"
+    "inquirer": "^9.2.12",
+    "js-yaml": "^4.1.0",
+    "ora": "^8.0.1"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "eslint": "^8.53.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2",
+    "@types/inquirer": "^9.0.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.5",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
     "vitest": "^1.0.4"
   },
   "engines": {

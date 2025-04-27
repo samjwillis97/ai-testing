@@ -1,35 +1,32 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import chalk from 'chalk';
-import ora from 'ora';
-import { request } from '@shc/core';
+import { addDirectRequestCommand } from './commands/direct-request.js';
+import { addCollectionCommand } from './commands/collection-request.js';
+import { addInteractiveCommand } from './commands/interactive.js';
+import { addCompletionCommand } from './commands/completion.js';
 
 const program = new Command();
 
 program
   .name('shc')
   .description('SHC Command Line Interface')
-  .version('0.1.0');
+  .version('0.1.0')
+  .option('-c, --config <path>', 'Config file path')
+  .option('-e, --env <name>', 'Environment name')
+  .option('-v, --verbose', 'Verbose output')
+  .option('-s, --silent', 'Silent mode')
+  .option('--no-color', 'Disable colors');
 
-program
-  .argument('<method>', 'HTTP method (get, post, put, delete, etc)')
-  .argument('<url>', 'Request URL')
-  .action(async (method: string, url: string) => {
-    const spinner = ora(`Sending ${method.toUpperCase()} request to ${url}`).start();
-    try {
-      const resp = await request({ method, url });
-      spinner.succeed(chalk.green('Response received:'));
-      console.log(chalk.cyan(JSON.stringify(resp.data, null, 2)));
-      process.exit(0);
-    } catch (err: unknown) {
-      spinner.fail(chalk.red('Request failed:'));
-      if (err instanceof Error) {
-        console.error(err.message);
-      } else {
-        console.error(String(err));
-      }
-      process.exit(1);
-    }
-  });
+// Add direct request command
+addDirectRequestCommand(program);
+
+// Add collection command
+addCollectionCommand(program);
+
+// Add interactive command
+addInteractiveCommand(program);
+
+// Add completion command
+addCompletionCommand(program);
 
 program.parseAsync(process.argv);
