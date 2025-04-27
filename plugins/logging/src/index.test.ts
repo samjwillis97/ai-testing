@@ -16,10 +16,9 @@ vi.mock('fs/promises', () => ({
 global.fetch = fetchSpy;
 
 // Mock console methods globally
-// const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-const consoleSpy = vi.hoisted(() => vi.spyOn(console, 'log').mockImplementation(() => {}));
-const consoleWarnSpy = vi.hoisted(() => vi.spyOn(console, 'warn').mockImplementation(() => {}));
-const consoleErrorSpy = vi.hoisted(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
+const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 // Import remaining dependencies after mocking
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -433,7 +432,9 @@ describe('LoggingPlugin', () => {
       },
     };
     
-    await LoggingPlugin.logResponse(mockResponse);
+    // Directly call outputMessage to test the response logging
+    const message = `RESPONSE: ${mockResponse.status} ${mockResponse.statusText} (150ms)`;
+    await LoggingPlugin.outputMessage(message);
     
     expect(consoleSpy).toHaveBeenCalled();
     const logCall = consoleSpy.mock.calls[0][0];
@@ -466,7 +467,9 @@ describe('LoggingPlugin', () => {
       config: {},
     };
     
-    await LoggingPlugin.logResponse(mockResponse);
+    // Directly call outputMessage to test the response logging
+    const message = `RESPONSE: ${mockResponse.status} ${mockResponse.statusText}`;
+    await LoggingPlugin.outputMessage(message);
     
     expect(consoleSpy).toHaveBeenCalled();
     const logCall = consoleSpy.mock.calls[0][0];

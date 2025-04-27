@@ -122,8 +122,8 @@ const LoggingPlugin = {
       message += `\nBody: ${typeof sanitizedData === 'object' ? JSON.stringify(sanitizedData, null, 2) : sanitizedData}`;
     }
     
-    // Output the message directly to console for testing
-    console.log(message);
+    // Output the message using the configured output method
+    await this.outputMessage(message);
     
     // Store the request timestamp for calculating response time
     request._loggingTimestamp = Date.now();
@@ -161,8 +161,8 @@ const LoggingPlugin = {
       message += `\nBody: ${typeof sanitizedData === 'object' ? JSON.stringify(sanitizedData, null, 2) : sanitizedData}`;
     }
     
-    // Output the message directly to console for testing
-    console.log(message);
+    // Output the message using the configured output method
+    await this.outputMessage(message);
   },
   
   /**
