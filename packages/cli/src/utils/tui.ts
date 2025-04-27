@@ -136,16 +136,24 @@ export function createInteractiveTUI(): TUIScreen {
   mainMenu.on('select', (item, index) => {
     switch (index) {
       case 0: // Create a new request
-        statusBox.setContent('Create a new request selected');
+        statusBox.setContent('Creating a new request...');
         screen.render();
+        // Create a new request form
+        createRequestForm(screen, (requestOptions) => {
+          // Here we would normally send the request, but for now just show a success message
+          statusBox.setContent(`Request created: ${requestOptions.method} ${requestOptions.url}`);
+          screen.render();
+        });
         break;
       case 1: // Execute a request
-        statusBox.setContent('Execute a request selected');
+        statusBox.setContent('Execute a request selected - Feature coming soon');
         screen.render();
+        // TODO: Implement request execution
         break;
       case 2: // Manage collections
-        statusBox.setContent('Manage collections selected');
+        statusBox.setContent('Manage collections selected - Feature coming soon');
         screen.render();
+        // TODO: Implement collection management
         break;
       case 3: // Exit
         process.exit(0);
