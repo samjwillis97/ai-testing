@@ -6,6 +6,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Turborepo setup and configuration (`turbo.json`)
 - [ ] Monorepo structure: `packages/core`, `packages/web-ui`, `packages/cli`, `packages/neovim-ui`
 - [ ] Shared `configs/` and example `apps/`
+- [x] A working config in the `configs` directory that can be used for demoing, should talk to httpbin and other public API's
 - [x] pnpm workspace configuration and best practices
 - [ ] CI/CD pipeline with pnpm and coverage enforcement
 
