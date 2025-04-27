@@ -14,7 +14,7 @@ describe('TemplateEngine', () => {
       const func: TemplateFunction = {
         name: 'testFunc',
         description: 'A test function',
-        execute: async () => 'test result',
+        execute: async (...args: unknown[]): Promise<unknown> => 'test result',
       };
 
       templateEngine.registerFunction('test', func);
@@ -27,13 +27,13 @@ describe('TemplateEngine', () => {
       const func1: TemplateFunction = {
         name: 'func1',
         description: 'Function 1',
-        execute: () => Promise.resolve('result 1'),
+        execute: async (...args: unknown[]): Promise<unknown> => 'result 1',
       };
 
       const func2: TemplateFunction = {
         name: 'func2',
         description: 'Function 2',
-        execute: () => Promise.resolve('result 2'),
+        execute: async (...args: unknown[]): Promise<unknown> => 'result 2',
       };
 
       templateEngine.registerFunction('test', func1);
@@ -158,7 +158,7 @@ describe('TemplateEngine', () => {
       const errorFunc: TemplateFunction = {
         name: 'error',
         description: 'A function that throws an error',
-        execute: async () => {
+        execute: async (...args: unknown[]): Promise<unknown> => {
           throw new Error('Test error');
         },
       };
@@ -282,6 +282,87 @@ describe('TemplateEngine', () => {
       expect(result.a).toBeNull();
       expect(result.b).toBeUndefined();
       expect(result.c).toBe('');
+    });
+  });
+
+  describe('resolveObject with edge cases', () => {
+    it('should handle circular references in arrays', async () => {
+      const engine = createTemplateEngine();
+
+      // Create an array with a circular reference
+      const circularArray: any[] = [1, 2, 3];
+      circularArray.push(circularArray); // Add a circular reference
+
+      // Resolve the object
+      const result = await engine.resolveObject(circularArray);
+
+      // The circular reference should be preserved
+      expect(result[0]).toBe(1);
+      expect(result[1]).toBe(2);
+      expect(result[2]).toBe(3);
+      expect(result[3]).toEqual(result); // Circular reference
+    });
+
+    it('should handle circular references in objects', async () => {
+      const engine = createTemplateEngine();
+
+      // Create an object with a circular reference
+      const circularObject: any = {
+        name: 'test',
+        value: 123,
+      };
+      circularObject.self = circularObject; // Add a circular reference
+
+      // Resolve the object
+      const result = await engine.resolveObject(circularObject);
+
+      // The circular reference should be preserved
+      expect(result.name).toBe('test');
+      expect(result.value).toBe(123);
+      expect(result.self).toEqual(result); // Circular reference
+    });
+
+    it('should handle deeply nested templates in objects', async () => {
+      const engine = createTemplateEngine();
+
+      // Register math functions
+      engine.registerFunction('math', {
+        name: 'add',
+        description: 'Add two numbers',
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const a = Number(args[0]);
+          const b = Number(args[1]);
+          return a + b;
+        },
+      });
+
+      engine.registerFunction('math', {
+        name: 'multiply',
+        description: 'Multiply two numbers',
+        execute: async (...args: unknown[]): Promise<unknown> => {
+          const a = Number(args[0]);
+          const b = Number(args[1]);
+          return a * b;
+        },
+      });
+
+      // Create an object with nested templates
+      const obj = {
+        simple: '${math.add(1, 2)}',
+        nested: {
+          deep: '${math.multiply(${math.add(1, 2)}, 3)}',
+        },
+        array: ['${math.add(1, 2)}', '${math.multiply(3, 4)}'],
+      };
+
+      // Resolve the object
+      const result = await engine.resolveObject(obj);
+
+      // Check the results
+      expect(result.simple).toBe('3');
+      expect(result.nested.deep).toBe('9'); // (1+2)*3 = 9
+      expect(result.array[0]).toBe('3');
+      expect(result.array[1]).toBe('12');
     });
   });
 
@@ -480,7 +561,7 @@ describe('TemplateEngine', () => {
           try {
             return `Success: ${args[0] as string}`;
           } catch (error: unknown) {
-            return `Error: ${error instanceof Error ? error.message : String(error)}`;
+            return `Error: ${(error as Error).message}`;
           }
         },
       };
