@@ -71,12 +71,12 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] TypeDoc documentation
 
 ## Base Plugins
-- [ ] Request/response logging plugin
-  - [ ] Core functionality implementation
-  - [ ] ESLint setup and passing
-  - [ ] Prettier setup and passing
-  - [ ] Vitest setup with test coverage and passing
-  - [ ] Build configuration and working
+- [x] Request/response logging plugin
+  - [x] Core functionality implementation
+  - [x] ESLint setup and passing
+  - [x] Prettier setup and passing
+  - [x] Vitest setup with test coverage and passing
+  - [x] Build configuration and working
 - [ ] Request rate limiting plugin
   - [ ] Core functionality implementation
   - [ ] ESLint setup and passing

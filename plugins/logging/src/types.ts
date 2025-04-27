@@ -17,7 +17,7 @@ export interface LoggingPluginConfig {
    * @default 'info'
    */
   level: LogLevel;
-  
+
   /**
    * Output configuration
    */
@@ -27,7 +27,7 @@ export interface LoggingPluginConfig {
      * @default 'console'
      */
     type: OutputType;
-    
+
     /**
      * Output options
      */
@@ -36,14 +36,14 @@ export interface LoggingPluginConfig {
        * File path for file output
        */
       filePath?: string;
-      
+
       /**
        * Service URL for service output
        */
       serviceUrl?: string;
     };
   };
-  
+
   /**
    * Format configuration
    */
@@ -53,19 +53,19 @@ export interface LoggingPluginConfig {
      * @default true
      */
     timestamp: boolean;
-    
+
     /**
      * Include headers in logs
      * @default true
      */
     includeHeaders: boolean;
-    
+
     /**
      * Include body in logs
      * @default false
      */
     includeBody: boolean;
-    
+
     /**
      * Mask sensitive data in logs
      * @default true
