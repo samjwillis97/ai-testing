@@ -8,7 +8,6 @@ The Command-Line Interface package provides a powerful, scriptable interface for
 
 - @shc/core: Core HTTP client and extension system
 - Commander.js: CLI framework
-- Inquirer: Interactive prompts
 - chalk: Terminal styling
 - ora: Spinner indicators
 - boxen: Terminal boxes
@@ -25,12 +24,6 @@ shc [options] <method> <url>
 
 ```bash
 shc [options] <collection> <request>
-```
-
-### Interactive Mode
-
-```bash
-shc interactive
 ```
 
 ## Core Features
@@ -50,15 +43,6 @@ shc interactive
 - Environment configuration
 - Variable management
 - Authentication setup
-
-### Interactive Features
-
-- Request builder TUI
-- Collection browser
-- Environment selector
-- Variable editor
-- Response viewer
-- Full-screen mode (TUI takes up the entire terminal without leaving command history)
 
 ## Command Options
 

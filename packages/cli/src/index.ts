@@ -2,7 +2,6 @@
 import { Command } from 'commander';
 import { addDirectRequestCommand } from './commands/direct-request.js';
 import { addCollectionCommand } from './commands/collection-request.js';
-import { addInteractiveCommand } from './commands/interactive.js';
 import { addCompletionCommand } from './commands/completion.js';
 import { addListCommand } from './commands/list.js';
 
@@ -26,9 +25,6 @@ addDirectRequestCommand(program);
 
 // Add collection command
 addCollectionCommand(program);
-
-// Add interactive command
-addInteractiveCommand(program);
 
 // Add list command
 addListCommand(program);

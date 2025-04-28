@@ -58,7 +58,7 @@ _shc_completion() {
   fi
 
   # Complete subcommands
-  COMPREPLY=($(compgen -W "collection interactive" -- "$cur"))
+  COMPREPLY=($(compgen -W "collection" -- "$cur"))
   return
 }
 
@@ -79,8 +79,6 @@ _shc() {
   commands=(
     'collection:Execute a request from a collection'
     'c:Execute a request from a collection'
-    'interactive:Start interactive mode'
-    'i:Start interactive mode'
   )
 
   _arguments -C \\
@@ -126,10 +124,6 @@ _shc() {
               '--timeout[Request timeout]:timeout:'
           fi
           ;;
-        interactive|i)
-          _arguments \\
-            '--collection-dir[Specify collection directory]:directory:_files -/'
-          ;;
       esac
       ;;
   esac
@@ -156,8 +150,6 @@ end
 complete -c shc -f
 complete -c shc -n "__fish_use_subcommand" -a "collection" -d "Execute a request from a collection"
 complete -c shc -n "__fish_use_subcommand" -a "c" -d "Execute a request from a collection"
-complete -c shc -n "__fish_use_subcommand" -a "interactive" -d "Start interactive mode"
-complete -c shc -n "__fish_use_subcommand" -a "i" -d "Start interactive mode"
 
 # Global options
 complete -c shc -l help -d "Show help"
@@ -183,9 +175,6 @@ complete -c shc -n "__fish_seen_subcommand_from collection c" -s q -l query -d "
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s d -l data -d "Request body" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s u -l auth -d "Authentication" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s t -l timeout -d "Request timeout" -r
-
-# Interactive mode options
-complete -c shc -n "__fish_seen_subcommand_from interactive i" -l collection-dir -d "Specify collection directory" -r
 `;
 }
 
