@@ -12,20 +12,6 @@ The Command-Line Interface package provides a powerful, scriptable interface for
 - ora: Spinner indicators
 - boxen: Terminal boxes
 
-## Command Structure
-
-### Direct Request Mode
-
-```bash
-shc [options] <method> <url>
-```
-
-### Collection Mode
-
-```bash
-shc [options] <collection> <request>
-```
-
 ## Core Features
 
 ### Request Execution
@@ -36,38 +22,53 @@ shc [options] <collection> <request>
 - Variable substitution
 - Authentication handling
 
-### Collection Management
-
-- Collection file operations
-- Request organization
-- Environment configuration
-- Variable management
-- Authentication setup
-
-## Command Options
+## Command Structure
 
 ### Global Options
 
+Applied to every command of SHC
+
 - `-c, --config <path>`: Config file path
-- `-e, --env <name>`: Environment name
 - `-v, --verbose`: Verbose output
 - `-s, --silent`: Silent mode
+- `-o, --output <format>`: Output format
 - `--no-color`: Disable colors
 
-### Request Options
+### Direct Request Mode
+
+Direct request mode allows you to make a single HTTP request to a specified URL.
+
+```bash
+shc [options] <method> <url>
+```
+
+#### Command Options
 
 - `-H, --header <header>`: Add header
 - `-d, --data <data>`: Request body
 - `-q, --query <query>`: Query parameter
 - `-u, --auth <auth>`: Authentication
-- `-o, --output <format>`: Output format
 
-### Collection Options
+### Collection Request Mode
+
+Collection request mode allows you to run a specific request from a collection that is loaded from the config or directly via. a flag
+
+```bash
+shc [options] <collection> <request>
+```
+
+#### Command Options
 
 - `--collection-dir <dir>`: Collection directory
-- `--save`: Save request to collection
-- `--export <path>`: Export collection
-- `--import <path>`: Import collection
+
+### List
+
+List mode allows you to list the collections and requests available in the config.
+
+```bash
+shc [options] list collections
+shc [options] list requests <collection>
+```
 
 ## Autocomplete & Tab Completion
 

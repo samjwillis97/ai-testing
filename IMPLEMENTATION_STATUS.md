@@ -6,6 +6,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 
 - [x] Get the plugins working with the CLI client via. adding a path pluggin to the config and loading it, validate that it works
 - [x] Refactor configuration path resolution and collection management from CLI to core package (see tasks/refactor-config-path-resolution.md)
+- [ ] Implement missing CLI features according to specification (see tasks/implement-missing-cli-features.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
