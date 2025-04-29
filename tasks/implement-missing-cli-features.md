@@ -29,13 +29,20 @@ An analysis of the CLI package implementation against the CLI interface specific
    - Complete shell completion implementation
    - Ensure proper handling of environment variables
 
-5. ⬜ Enhance Extension Support:
-   - Implement comprehensive plugin architecture for:
-     - Custom commands
+5. ⬜ Implement CLI Plugin System:
+   - Create a CLI-specific plugin architecture following the same pattern as the core package
+   - Support loading plugins from multiple sources:
+     - NPM packages with version control
+     - Local path plugins
+     - Git repository plugins
+     - Auto-discovery from plugin directories
+   - Implement plugin types:
      - Output formatters
-     - Authentication providers
-     - Request transformers
-     - Response handlers
+     - Custom commands
+     - Shell completions
+     - Response visualizers
+   - Add plugin configuration in CLI config
+   - Implement plugin lifecycle management (enable/disable)
 
 6. ⬜ Update Documentation:
    - Update the specification if any implementation differences are intentional
@@ -56,19 +63,26 @@ An analysis of the CLI package implementation against the CLI interface specific
   - Enhance tab completion implementation
   - Add support for multi-level completion
 
-- `/packages/cli/src/utils/plugins.ts` (create if not exists):
-  - Implement plugin architecture for extensions
+- `/packages/cli/src/types/cli-plugin.types.ts` (create):
+  - Define CLI plugin interfaces
+  - Define plugin configuration types
+
+- `/packages/cli/src/utils/cli-plugin-manager.ts` (create):
+  - Implement plugin loading from npm, path, and git
+  - Implement plugin discovery from directories
+  - Implement plugin registration and management
 
 ### Testing
 - Create tests for all new and enhanced features
 - Ensure backward compatibility with existing functionality
+- Add tests for plugin loading and execution
 
 ## Acceptance Criteria
 - ⬜ All features described in the CLI interface specification are implemented
 - ⬜ Command structure and options match the specification
 - ⬜ All output formats work correctly
 - ⬜ Tab completion works as described in the specification
-- ⬜ Plugin architecture supports all specified extension points
+- ⬜ Plugin architecture supports all specified extension points and loading mechanisms
 - ⬜ All tests pass with good coverage
 - ⬜ Documentation is updated to reflect the current implementation
 
@@ -80,3 +94,5 @@ Medium - This task ensures that the CLI package fully implements the features de
 - The implementation adds several UX improvements (spinners, colors, tables) not detailed in the spec, which should be preserved and documented.
    - When using raw format there should be no additional formatting or UX improvements
 - Consider whether the hierarchical command structure in the implementation is preferable to the flatter structure implied in the specification.
+- The CLI plugin system should follow the same pattern as the core package's plugin system, but remain separate to maintain clear separation of concerns.
+- CLI plugins should be focused on CLI-specific functionality, while core plugins should handle HTTP client functionality.
