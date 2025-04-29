@@ -60,14 +60,20 @@ export interface RateLimitConfig {
   rules: RateLimitRule[];
   
   /**
-   * Queue behavior for rate-limited requests
+   * Behavior for rate-limited requests
    * @default 'delay'
    */
   queueBehavior: QueueBehavior;
   
   /**
-   * Distributed lock configuration for multi-instance rate limiting
-   * Optional, defaults to in-memory rate limiting
+   * Maximum time in milliseconds to wait for a rate-limited request
+   * Requests that would exceed this wait time will be rejected
+   * @default 25000
+   */
+  maxWaitTime?: number;
+  
+  /**
+   * Distributed lock configuration for multi-instance deployments
    */
   distributedLock?: DistributedLock;
 }
@@ -76,8 +82,16 @@ export interface RateLimitConfig {
  * Default configuration for the rate limiting plugin
  */
 export const DEFAULT_CONFIG: RateLimitConfig = {
-  rules: [],
+  rules: [
+    {
+      endpoint: '.*', // Default rule for all endpoints
+      limit: 10,
+      window: 60,
+      priority: 0,
+    },
+  ],
   queueBehavior: 'delay',
+  maxWaitTime: 25000, // 25 seconds (less than the default 30s timeout)
 };
 
 /**

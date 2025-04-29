@@ -323,9 +323,25 @@ const RateLimitPlugin = {
       // Continue processing the queue
       setTimeout(() => this.processQueue(), 0);
     } else {
-      // No tokens available, wait and try again
+      // No tokens available, check if we should wait or reject
       const timeToWait = Math.max(50, bucket.window * 1000 / bucket.limit);
-      setTimeout(() => this.processQueue(), timeToWait);
+      
+      // Check if the request has been in the queue for too long
+      const timeInQueue = Date.now() - queuedRequest.timestamp;
+      const maxWaitTime = this.config.maxWaitTime || 25000; // Default to 25 seconds (less than the default 30s timeout)
+      
+      if (timeInQueue + timeToWait > maxWaitTime) {
+        // Request would exceed max wait time, reject it
+        this.requestQueue.shift();
+        this.stats.queueLength = this.requestQueue.length;
+        queuedRequest.reject(new Error(`Rate limit exceeded: Maximum wait time of ${maxWaitTime}ms exceeded for ${queuedRequest.rule.endpoint}`));
+        
+        // Continue processing the queue
+        setTimeout(() => this.processQueue(), 0);
+      } else {
+        // Wait and try again
+        setTimeout(() => this.processQueue(), timeToWait);
+      }
     }
   },
   
