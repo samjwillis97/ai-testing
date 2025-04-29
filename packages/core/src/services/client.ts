@@ -85,7 +85,7 @@ export class SHCClient implements ISHCClient {
     if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
       // It's a ConfigManager
       const configManager = configOrManager as ConfigManager;
-      const config = configManager.get('', {}) as SHCConfig;
+      const config = configManager.get('') as SHCConfig;
       const client = new SHCClient(config);
       // Set the existing ConfigManager instance instead of creating a new one
       client.configManager = configManager as ConfigManagerImpl;

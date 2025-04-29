@@ -134,6 +134,11 @@ export class ConfigManagerImpl implements IConfigManager {
   }
 
   get<T>(path: string, defaultValue?: T): T {
+    // If path is empty, return the entire config
+    if (!path) {
+      return this.config as unknown as T;
+    }
+    
     const keys = path.split('.');
     let current: unknown = this.config;
 
