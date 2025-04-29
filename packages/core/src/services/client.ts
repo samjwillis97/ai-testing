@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosHeaders } from 'axios';
+import axios, { AxiosInstance, AxiosHeaders } from 'axios';
 import { EventEmitter } from 'events';
 import { SHCClient as ISHCClient, SHCConfig, SHCEvent, Response } from '../types/client.types';
 import { RequestConfig } from '../types/config.types';
@@ -20,7 +20,7 @@ declare module 'axios' {
     };
   }
 
-  interface AxiosResponse<T = any> {
+  interface AxiosResponse {
     pluginError?: {
       type: 'plugin-error';
       plugin: string;
@@ -35,11 +35,22 @@ function isAxiosError(error: unknown): error is import('axios').AxiosError {
 }
 
 function isTimeoutError(error: unknown): error is { config: { timeout: number } } {
-  return typeof error === 'object' && error !== null && 'config' in error && typeof error.config === 'object' && error.config !== null && 'timeout' in error.config;
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'config' in error &&
+    typeof error.config === 'object' &&
+    error.config !== null &&
+    'timeout' in error.config
+  );
 }
 
-function isPluginError(error: unknown): error is { type: 'plugin-error'; plugin: string; error: Error } {
-  return typeof error === 'object' && error !== null && 'type' in error && error.type === 'plugin-error';
+function isPluginError(
+  error: unknown
+): error is { type: 'plugin-error'; plugin: string; error: Error } {
+  return (
+    typeof error === 'object' && error !== null && 'type' in error && error.type === 'plugin-error'
+  );
 }
 
 /**
@@ -139,7 +150,7 @@ export class SHCClient implements ISHCClient {
             const errorObj = {
               type: 'plugin-error',
               plugin: plugin.name,
-              error: pluginError,
+              error: pluginError instanceof Error ? pluginError : new Error(String(pluginError)),
             };
             this.eventEmitter.emit('error', errorObj);
             return Promise.reject(errorObj);
@@ -151,7 +162,7 @@ export class SHCClient implements ISHCClient {
       (requestError) => {
         const errorObj = {
           type: 'request-error',
-          error: requestError instanceof Error ? requestError : new Error(String(requestError))
+          error: requestError instanceof Error ? requestError : new Error(String(requestError)),
         };
         this.eventEmitter.emit('error', errorObj);
         return Promise.reject(errorObj);
@@ -186,7 +197,7 @@ export class SHCClient implements ISHCClient {
             modifiedResponse.pluginError = {
               type: 'plugin-error',
               plugin: plugin.name,
-              error: pluginError
+              error: pluginError instanceof Error ? pluginError : new Error(String(pluginError)),
             };
           }
         }
@@ -350,7 +361,7 @@ export class SHCClient implements ISHCClient {
 
       const responseTime = Date.now() - startTime;
       return {
-        data: response.data as T,
+        data: response.data,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers as Record<string, string>,
@@ -370,7 +381,7 @@ export class SHCClient implements ISHCClient {
         const timeoutError = {
           type: 'timeout-error',
           error: new Error(`Request timed out after ${error.config.timeout}ms`),
-          config: error.config
+          config: error.config,
         };
         this.eventEmitter.emit('error', timeoutError);
         throw timeoutError.error;
@@ -384,10 +395,13 @@ export class SHCClient implements ISHCClient {
 
       // Handle axios errors
       if (isAxiosError(error)) {
-        const message = error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data
-          ? String(error.response.data.message)
-          : error.message;
-        
+        const message =
+          error.response?.data &&
+          typeof error.response.data === 'object' &&
+          'message' in error.response.data
+            ? String(error.response.data.message)
+            : error.message;
+
         // For 404 errors, return the response rather than throwing
         if (error.response?.status === 404) {
           return {
@@ -403,14 +417,14 @@ export class SHCClient implements ISHCClient {
               body: error.response.config.data,
               timeout: error.response.config.timeout,
             },
-            responseTime: 0
+            responseTime: 0,
           };
         }
 
         const axiosError = {
           type: 'axios-error',
           error: new Error(message),
-          response: error.response
+          response: error.response,
         };
         this.eventEmitter.emit('error', axiosError);
         throw axiosError.error;
@@ -420,7 +434,7 @@ export class SHCClient implements ISHCClient {
       const err = error instanceof Error ? error : new Error(String(error));
       this.eventEmitter.emit('error', {
         type: 'client-error',
-        error: err
+        error: err,
       });
       throw err;
     }
@@ -601,7 +615,9 @@ export class SHCClient implements ISHCClient {
     return this.collectionManager;
   }
 
-  private async _createAxiosConfig(config: RequestConfig): Promise<import('axios').AxiosRequestConfig> {
+  private async _createAxiosConfig(
+    config: RequestConfig
+  ): Promise<import('axios').AxiosRequestConfig> {
     const axiosConfig: import('axios').AxiosRequestConfig = {
       method: config.method,
       headers: config.headers,
@@ -641,7 +657,7 @@ export class SHCClient implements ISHCClient {
             type: config.authentication.type,
             config: config.authentication,
           });
-          const authResult = await authPromise as AuthResult;
+          const authResult = (await authPromise) as AuthResult;
 
           if (authResult && authResult.token) {
             axiosConfig.headers = axiosConfig.headers || {};

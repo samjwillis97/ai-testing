@@ -108,7 +108,7 @@ export interface ConfigManager {
   // Template function registration
   registerTemplateFunction(namespace: string, func: TemplateFunction): void;
   getTemplateFunction(path: string): TemplateFunction | undefined;
-  
+
   // Path resolution
   /**
    * Resolves a path that might be relative to the config file
@@ -119,7 +119,7 @@ export interface ConfigManager {
    * @returns The resolved absolute path
    */
   resolveConfigPath(relativePath: string): string;
-  
+
   /**
    * Gets the collection directory path, resolving relative paths if needed
    * This uses the storage.collections.path configuration value and resolves it

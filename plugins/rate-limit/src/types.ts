@@ -47,7 +47,7 @@ export interface DistributedLock {
   /**
    * Options for the distributed lock
    */
-  options: Record<string, any>;
+  options: Record<string, unknown>;
 }
 
 /**

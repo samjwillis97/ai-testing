@@ -2,6 +2,11 @@
 
 This checklist is derived from the specifications in the `specs/` directory. Each item must be implemented and verified for compliance before it is checked off.
 
+## Current Goals
+
+- [ ]  Get the plugins working with the CLI client via. adding a path pluggin to the config and loading it, validate that it works
+
+
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
 - [-] Monorepo structure: `packages/core`, `packages/web-ui`, `packages/cli`, `packages/neovim-ui`
@@ -78,12 +83,12 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Prettier setup and passing
   - [x] Vitest setup with test coverage and passing
   - [x] Build configuration and working
-- [ ] Request rate limiting plugin
-  - [ ] Core functionality implementation
-  - [ ] ESLint setup and passing
-  - [ ] Prettier setup and passing
-  - [ ] Vitest setup with test coverage and passing
-  - [ ] Build configuration and working
+- [x] Request rate limiting plugin
+  - [x] Core functionality implementation
+  - [x] ESLint setup and passing
+  - [x] Prettier setup and passing
+  - [x] Vitest setup with test coverage
+  - [x] Build configuration and working
 - [ ] Response cache plugin
   - [ ] Core functionality implementation
   - [ ] ESLint setup and passing

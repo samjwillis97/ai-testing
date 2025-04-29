@@ -267,11 +267,11 @@ export class TemplateEngine {
 
       // First, resolve any nested templates in the arguments
       let resolvedArgs = argsWithNested;
-      
+
       // Look for nested templates within the arguments
       const nestedTemplatePattern = /\${([^}]+)}/g;
       let nestedMatch;
-      
+
       // Process each nested template within the arguments
       while ((nestedMatch = nestedTemplatePattern.exec(argsWithNested)) !== null) {
         const [nestedFullMatch, nestedTemplate] = nestedMatch;

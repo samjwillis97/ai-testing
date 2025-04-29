@@ -15,10 +15,10 @@ interface RateBucket {
  * Interface for queued requests
  */
 interface QueuedRequest {
-  request: any;
+  request: Record<string, unknown>;
   rule: RateLimitRule;
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
+  resolve: (value: Record<string, unknown>) => void;
+  reject: (reason?: Error) => void;
   timestamp: number;
   priority: number;
 }
@@ -82,7 +82,7 @@ const RateLimitPlugin = {
   },
   
   // Plugin execution - processes requests before they are sent
-  async execute(request: any): Promise<any> {
+  async execute(request: Record<string, unknown>): Promise<Record<string, unknown>> {
     this.stats.totalProcessed++;
     
     // Find matching rule for this request
@@ -133,7 +133,7 @@ const RateLimitPlugin = {
   providedFunctions: {
     // Get current rate limit statistics
     getStats: {
-      execute: async (): Promise<any> => {
+      execute: async (): Promise<Record<string, unknown>> => {
         return {
           ...RateLimitPlugin.stats,
           ruleHits: Object.fromEntries(RateLimitPlugin.stats.ruleHits.entries()),
@@ -198,8 +198,8 @@ const RateLimitPlugin = {
   /**
    * Find the matching rate limit rule for a request
    */
-  findMatchingRule(request: any): RateLimitRule | undefined {
-    const url = request.url || '';
+  findMatchingRule(request: Record<string, unknown>): RateLimitRule | undefined {
+    const url = typeof request.url === 'string' ? request.url : '';
     
     // Find the first matching rule
     return this.config.rules.find(rule => {
@@ -212,7 +212,7 @@ const RateLimitPlugin = {
       try {
         const regex = new RegExp(rule.endpoint);
         return regex.test(url);
-      } catch (e) {
+      } catch {
         // Invalid regex, just use string comparison
         return false;
       }
@@ -251,7 +251,7 @@ const RateLimitPlugin = {
   /**
    * Queue a request for later processing
    */
-  queueRequest(request: any, rule: RateLimitRule): Promise<any> {
+  queueRequest(request: Record<string, unknown>, rule: RateLimitRule): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       // Add request to queue
       this.requestQueue.push({

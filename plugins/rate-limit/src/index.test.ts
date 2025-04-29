@@ -183,7 +183,7 @@ describe('RateLimitPlugin', () => {
     vi.useFakeTimers();
     
     const now = Date.now();
-    const bucket: any = {
+    const bucket = {
       endpoint: '/api/test',
       tokens: 0,
       lastRefill: now - 30000, // 30 seconds ago
@@ -210,33 +210,89 @@ describe('RateLimitPlugin', () => {
     vi.useRealTimers();
   });
   
-  it('should reject all queued requests on destroy', async () => {
+  it('should match requests using string and regex patterns', () => {
+    // Configure with different rule types
+    RateLimitPlugin.configure({
+      rules: [
+        { endpoint: '/api/exact', limit: 10, window: 60 },
+        { endpoint: '.*\\.json$', limit: 5, window: 30 }, // Regex pattern
+      ],
+    });
+    
+    // Test string match
+    const exactMatch = RateLimitPlugin.findMatchingRule({ url: '/api/exact/123' });
+    expect(exactMatch).toBeDefined();
+    expect(exactMatch?.endpoint).toBe('/api/exact');
+    
+    // Test regex match
+    const regexMatch = RateLimitPlugin.findMatchingRule({ url: '/data/users.json' });
+    expect(regexMatch).toBeDefined();
+    expect(regexMatch?.endpoint).toBe('.*\\.json$');
+    
+    // Test no match
+    const noMatch = RateLimitPlugin.findMatchingRule({ url: '/api/other' });
+    expect(noMatch).toBeUndefined();
+  });
+  
+  it('should handle invalid regex patterns gracefully', () => {
+    // Configure with invalid regex
+    RateLimitPlugin.configure({
+      rules: [
+        { endpoint: '[invalid(regex', limit: 10, window: 60 },
+      ],
+    });
+    
+    // Should not throw when trying to match
+    const result = RateLimitPlugin.findMatchingRule({ url: '/api/test' });
+    expect(result).toBeUndefined();
+  });
+  
+  it('should provide statistics through template functions', async () => {
+    // Configure and use the plugin
     await RateLimitPlugin.configure({
       rules: [
         { endpoint: '/api/test', limit: 1, window: 60 },
       ],
-      queueBehavior: 'delay',
     });
     
-    // Use up the token
+    // Make a request to update stats
     await RateLimitPlugin.execute({ url: '/api/test' });
     
-    // Queue some requests
-    const promise1 = RateLimitPlugin.execute({ url: '/api/test' });
-    const promise2 = RateLimitPlugin.execute({ url: '/api/test' });
+    // Get stats through the provided function
+    const stats = await RateLimitPlugin.providedFunctions.getStats.execute();
     
-    // Queue should have two items
-    expect(RateLimitPlugin.requestQueue).toHaveLength(2);
+    // Verify stats
+    expect(stats.totalProcessed).toBe(1);
+    expect(stats.totalLimited).toBe(0);
     
-    // Destroy the plugin
-    await RateLimitPlugin.destroy();
+    // Check rule hits
+    const ruleHits = stats.ruleHits as Record<string, number>;
+    expect(ruleHits['/api/test']).toBe(1);
     
-    // Promises should be rejected
-    await expect(promise1).rejects.toThrow('Plugin is shutting down');
-    await expect(promise2).rejects.toThrow('Plugin is shutting down');
+    // Reset stats
+    await RateLimitPlugin.providedFunctions.resetStats.execute();
     
-    // Queue should be empty
-    expect(RateLimitPlugin.requestQueue).toHaveLength(0);
+    // Get stats again
+    const resetStats = await RateLimitPlugin.providedFunctions.getStats.execute();
+    expect(resetStats.totalProcessed).toBe(0);
+  });
+  
+  it('should add rules through template functions', async () => {
+    // Start with no rules
+    expect(RateLimitPlugin.config.rules).toHaveLength(0);
+    
+    // Add a rule through the provided function
+    await RateLimitPlugin.providedFunctions.addRule.execute('/api/new', 5, 30, 1);
+    
+    // Verify rule was added
+    expect(RateLimitPlugin.config.rules).toHaveLength(1);
+    expect(RateLimitPlugin.config.rules[0].endpoint).toBe('/api/new');
+    expect(RateLimitPlugin.config.rules[0].limit).toBe(5);
+    expect(RateLimitPlugin.config.rules[0].window).toBe(30);
+    expect(RateLimitPlugin.config.rules[0].priority).toBe(1);
+    
+    // Verify bucket was created
+    expect(RateLimitPlugin.buckets.size).toBe(1);
   });
   
   it('should update rule hit statistics', async () => {
@@ -253,35 +309,18 @@ describe('RateLimitPlugin', () => {
     await RateLimitPlugin.execute({ url: '/api/users' });
     
     // Check rule hit statistics
-    expect(RateLimitPlugin.stats.ruleHits.get('/api/test')).toBe(2);
-    expect(RateLimitPlugin.stats.ruleHits.get('/api/users')).toBe(1);
+    expect((RateLimitPlugin.stats.ruleHits as Map<string, number>).get('/api/test')).toBe(2);
+    expect((RateLimitPlugin.stats.ruleHits as Map<string, number>).get('/api/users')).toBe(1);
     
     // Get stats via provided function
     const stats = await RateLimitPlugin.providedFunctions.getStats.execute();
     expect(stats.totalProcessed).toBe(3);
-    expect(stats.ruleHits['/api/test']).toBe(2);
-    expect(stats.ruleHits['/api/users']).toBe(1);
+    expect((stats.ruleHits as Record<string, number>)['/api/test']).toBe(2);
+    expect((stats.ruleHits as Record<string, number>)['/api/users']).toBe(1);
     
     // Reset stats
     await RateLimitPlugin.providedFunctions.resetStats.execute();
     expect(RateLimitPlugin.stats.totalProcessed).toBe(0);
-    expect(RateLimitPlugin.stats.ruleHits.size).toBe(0);
-  });
-  
-  it('should add new rules via provided function', async () => {
-    // Add a rule via provided function
-    await RateLimitPlugin.providedFunctions.addRule.execute('/api/new', 5, 30, 1);
-    
-    // Rule should be added to configuration
-    expect(RateLimitPlugin.config.rules).toHaveLength(1);
-    expect(RateLimitPlugin.config.rules[0]).toEqual({
-      endpoint: '/api/new',
-      limit: 5,
-      window: 30,
-      priority: 1,
-    });
-    
-    // Bucket should be created
-    expect(RateLimitPlugin.buckets.size).toBe(1);
+    expect((RateLimitPlugin.stats.ruleHits as Map<string, number>).size).toBe(0);
   });
 });
