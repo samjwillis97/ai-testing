@@ -74,7 +74,8 @@ plugins:
   
   # Request preprocessor plugins
   preprocessors: 
-    - package: "../plugins/rate-limit/dist/index.js"
+    - name: "rate-limit"
+      path: "../plugins/rate-limit/dist/index.js"
       config:
         rules:
           - endpoint: "/api"
@@ -86,7 +87,8 @@ plugins:
             window: 30
             priority: 10
         queueBehavior: "delay"
-    - package: "../plugins/logging/dist/index.js"
+    - name: "logging"
+      path: "../plugins/logging/dist/index.js"
       config:
         level: "info"
         includeHeaders: true

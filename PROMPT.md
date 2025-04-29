@@ -27,6 +27,7 @@ When following this guide the most important things are:
 - IMPORTANT: Always update `IMPLEMENTATION_STATUS.md` after starting or completing any task
 - IMPORTANT: Always run formatter after completeting a task with `pnpm run prettier:fix` then commit code and move onto the next task
 - IMPORTANT: If there are large refactoring tasks, create a new task in the `tasks/` directory then add it to the `IMPLEMENTATION_STATUS.md`
+- IMPORTANT: Before writing code think hard about and create a plan after analysing the codebase
 
 ### Development Process
 
