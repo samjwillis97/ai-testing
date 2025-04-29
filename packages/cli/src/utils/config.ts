@@ -63,16 +63,12 @@ export async function getEffectiveOptions(
 
 /**
  * Get the collection directory path based on options.
- * This function resolves the collection directory path according to the following rules:
- * 1. If collectionDir is specified in options, use that
- * 2. If collectionDir is a relative path and config file is specified, resolve relative to config file directory
- * 3. If collectionDir is a relative path and no config file is specified, resolve relative to current working directory
- * 4. If no collectionDir is specified, use storage.collections.path from config, resolved relative to config file if needed
+ * This function uses the ConfigManager from the core package to resolve the collection directory path.
  * 
  * @param options - CLI options containing collectionDir and possibly config
  * @returns The resolved absolute path to the collection directory
  */
-export function getCollectionDir(options: Record<string, unknown>): string {
+export async function getCollectionDir(options: Record<string, unknown>): Promise<string> {
   // If collectionDir is specified in options, use that
   if (options.collectionDir) {
     const collectionDir = options.collectionDir as string;
@@ -92,32 +88,9 @@ export function getCollectionDir(options: Record<string, unknown>): string {
     return path.resolve(process.cwd(), collectionDir);
   }
 
-  // If storage.collections.path is specified in options, use that
-  if (options.storage && 
-      typeof options.storage === 'object' && 
-      (options.storage as Record<string, unknown>).collections && 
-      typeof (options.storage as Record<string, unknown>).collections === 'object' && 
-      ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path) {
-    
-    const collectionsPath = ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path as string;
-    
-    // If it's an absolute path, use it directly
-    if (path.isAbsolute(collectionsPath)) {
-      return collectionsPath;
-    }
-    
-    // If config file is specified, resolve relative to config file directory
-    if (options.config) {
-      const configDir = path.dirname(options.config as string);
-      return path.resolve(configDir, collectionsPath);
-    }
-    
-    // Otherwise, resolve relative to current working directory
-    return path.resolve(process.cwd(), collectionsPath);
-  }
-
-  // Default to ./collections relative to current working directory
-  return path.resolve(process.cwd(), './collections');
+  // Otherwise, use the ConfigManager to get the collection path
+  const configManager = await createConfigManagerFromOptions(options);
+  return configManager.getCollectionPath();
 }
 
 /**
