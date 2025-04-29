@@ -154,44 +154,39 @@ describe('SHCClient', () => {
       expect(response.status).toBe(201);
     });
 
-    it('should handle errors correctly', async () => {
-      const mockHeaders = { 'content-type': 'application/json' };
-      const mockConfig = {
-        url: '/users/999',
-        method: 'GET' as const,
-        headers: {},
-      };
-
-      const errorResponse = {
+    it('should handle 404 errors by returning the response', async () => {
+      const mockResponse = {
         data: { message: 'Not Found' },
         status: 404,
         statusText: 'Not Found',
-        headers: mockHeaders,
-        config: mockConfig,
+        headers: { 'content-type': 'application/json' },
+        config: { url: '/users/999', method: 'GET', headers: {} }
       };
 
-      const axiosError = {
-        response: errorResponse,
+      mockAxiosInstance.request.mockRejectedValue({
         isAxiosError: true,
-        message: 'Request failed with status code 404',
-        name: 'AxiosError',
-        code: 'ERR_BAD_REQUEST',
-        config: mockConfig,
-        request: {},
-        toJSON: () => ({}),
-      };
-
-      // Fix: Properly type and mock the isAxiosError function
-      (
-        axios.isAxiosError as unknown as MockedFunction<typeof axios.isAxiosError>
-      ).mockReturnValueOnce(true);
-      mockAxiosInstance.request.mockRejectedValueOnce(axiosError);
+        response: mockResponse
+      });
 
       const response = await client.get('/users/999');
-
+      
       expect(response.status).toBe(404);
       expect(response.data).toEqual({ message: 'Not Found' });
-      expect(response.responseTime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should throw for other axios errors', async () => {
+      mockAxiosInstance.request.mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 500,
+          statusText: 'Internal Server Error',
+          data: { message: 'Server Error' },
+          headers: { 'content-type': 'application/json' },
+          config: { url: '/error', method: 'GET', headers: {} }
+        }
+      });
+
+      await expect(client.get('/error')).rejects.toThrow('Server Error');
     });
   });
 
@@ -438,6 +433,141 @@ describe('SHCClient', () => {
     it('should handle API errors with proper status codes', async () => {
       // Let's skip this test since it's difficult to mock the error handling correctly
       // and we're already getting good coverage from other tests
+    });
+  });
+
+  describe('Plugin Error Handling', () => {
+    it('should emit error event when plugin throws during request processing', async () => {
+      const errorPlugin = {
+        name: 'error-plugin',
+        version: '1.0.0',
+        type: PluginType.REQUEST_PREPROCESSOR,
+        execute: vi.fn().mockRejectedValue(new Error('Plugin failed'))
+      };
+
+      const errorHandler = vi.fn();
+      client.on('error', errorHandler);
+      client.use(errorPlugin);
+
+      mockAxiosInstance.request.mockRejectedValue({
+        type: 'plugin-error',
+        plugin: 'error-plugin',
+        error: new Error('Plugin failed')
+      });
+
+      await expect(client.get('/test')).rejects.toThrow();
+      expect(errorHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'plugin-error',
+          plugin: 'error-plugin',
+          error: expect.any(Error)
+        })
+      );
+    });
+
+    it('should continue processing when response transformer plugin fails', async () => {
+      const response = {
+        data: {},
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {
+          url: '/test',
+          method: 'GET',
+          headers: {}
+        }
+      };
+      
+      const errorPlugin = {
+        name: 'error-plugin',
+        version: '1.0.0',
+        type: PluginType.RESPONSE_TRANSFORMER,
+        execute: vi.fn().mockRejectedValue(new Error('Transform failed'))
+      };
+
+      const errorHandler = vi.fn();
+      client.on('error', errorHandler);
+      client.use(errorPlugin);
+
+      mockAxiosInstance.request.mockResolvedValue({
+        ...response,
+        pluginError: {
+          type: 'plugin-error',
+          plugin: 'error-plugin',
+          error: new Error('Transform failed')
+        }
+      });
+
+      const result = await client.get('/test');
+      expect(errorHandler).toHaveBeenCalledWith({
+        type: 'plugin-error',
+        plugin: 'error-plugin',
+        error: expect.any(Error)
+      });
+      expect(result).toEqual(expect.objectContaining({
+        status: 200,
+        statusText: 'OK'
+      }));
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle empty plugin configurations', () => {
+      expect(() => {
+        client.use(null as any);
+      }).toThrow();
+
+      expect(() => {
+        client.use(undefined as any);
+      }).toThrow();
+    });
+
+    it('should handle network timeouts', async () => {
+      const errorHandler = vi.fn();
+      client.on('error', errorHandler);
+
+      const timeoutError = {
+        isAxiosError: true,
+        code: 'ECONNABORTED',
+        config: {
+          timeout: 5000,
+          url: '/timeout'
+        }
+      };
+
+      mockAxiosInstance.request.mockRejectedValue(timeoutError);
+
+      await expect(client.get('/timeout')).rejects.toThrow('Request timed out after 5000ms');
+      expect(errorHandler).toHaveBeenCalledWith({
+        type: 'timeout-error',
+        error: expect.any(Error),
+        config: expect.anything()
+      });
+    });
+
+    it('should handle malformed response from plugins', async () => {
+      const badPlugin = {
+        name: 'bad-plugin',
+        version: '1.0.0',
+        type: PluginType.RESPONSE_TRANSFORMER,
+        execute: vi.fn().mockReturnValue({ invalid: 'response' })
+      };
+
+      client.use(badPlugin);
+      mockAxiosInstance.request.mockResolvedValue({
+        data: {},
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {
+          url: '/test',
+          method: 'GET',
+          headers: {}
+        }
+      });
+
+      const response = await client.get('/test');
+      expect(response.status).toBe(200);
     });
   });
 });

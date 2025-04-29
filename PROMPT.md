@@ -1,68 +1,41 @@
-# Development Guide
+# Prompt
 
-## Project Overview
-- Review `SPECS.md` and `specs/*` for complete functional specifications
+You are a senior software engineer with 10+ years of experience in building production-grade software.
+Follow this guide for how to contribute to this codebase.
 
-## Development Workflow
+Study `SPECS.md` and `specs/` directory to understand the functional scope of the codebase.
 
-### 1. Initial Quality Check
+## Code Quality Checks
 
-When starting work on any task, the AI assistant should:
+Ensure all quality checks pass before submitting code and before writing code.
+Always run each of the following commands from the root of the monorepo:
 
-1. Run all quality checks from the root
-   ```bash
-   pnpm run test:coverage
-   pnpm run lint
-   pnpm run typecheck
-   pnpm run prettier:check
-   pnpm run build
-   ```
+```bash
+pnpm run test:coverage
+pnpm run lint
+pnpm run typecheck
+pnpm run build
+```
 
-### 2. Address Failing Tests First
-If any tests are failing:
+## Development Guide
 
-* Analyze and understand the failing tests
-* Fix the failing tests before making any other changes
-* Verify fixes by running the tests again
+When following this guide the most important things are:
 
-### 3. Fix Linting and Type Errors
-After tests pass (or if there are no tests):
+- IMPORTANT: Always run quality checks before starting work on any task
+- IMPORTANT: Always run quality checks after completing any task
+- IMPORTANT: Fix all quality issues before moving on to the next task
+- IMPORTANT: Always update `IMPLEMENTATION_STATUS.md` after starting or completing any task
+- IMPORTANT: Always run formatter after completeting a task with `pnpm run prettier:fix` then commit code and move onto the next task
 
-* Address any linting errors: `pnpm run lint`
-* Fix type checking errors: `pnpm run typecheck`
-* Verify all errors are fixed by running the checks again
+### Development Process
 
-### 4. Implementation Phase
-Only after all quality checks pass:
+1. ALWAYS: Fix all issues from the #Code Quality Checks
+2. Check `IMPLEMENTATION_STATUS.md` to understand current project status
+3. Implement the most important feature from `IMPLEMENTATION_STATUS.md`
+4. Write tests for new functionality
+5. Ensure code quality kept to a high standard
 
-* Check `IMPLEMENTATION_STATUS.md` to understand current project status
-* Implement new features
-* New feature should be chosen by highest priority from `IMPLEMENTATION_STATUS.md`
-* Write tests for new functionality
-* Ensure code quality kept to a high standard
-
-### 5. Final Quality Check
-After implementation:
-
-* Run all quality checks again
-* Fix any new issues that arise
-* Format code: `pnpm run prettier:fix`
-
-### 6. Documentation and Status Update
-
-* Update `IMPLEMENTATION_STATUS.md`
-* Document any API changes
-
-## Package Management
+### Package Management
 - Use **pnpm** exclusively for all package operations
 - Add dependencies: `pnpm add <package-name>`
 - Install all dependencies: `pnpm install`
-
-## Quality Standards
-- Ensure all quality checks pass before submitting code
-- Follow the quality check order:
-  1. Build
-  2. Lint
-  3. Type check
-  4. Test
-  5. Format

@@ -10,6 +10,38 @@ import { ConfigManagerImpl } from '../config-manager';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+// Type extensions for plugin error handling
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    pluginError?: {
+      type: 'plugin-error';
+      plugin: string;
+      error: Error;
+    };
+  }
+
+  interface AxiosResponse<T = any> {
+    pluginError?: {
+      type: 'plugin-error';
+      plugin: string;
+      error: Error;
+    };
+  }
+}
+
+// Error type guards
+function isAxiosError(error: unknown): error is import('axios').AxiosError {
+  return typeof error === 'object' && error !== null && 'isAxiosError' in error;
+}
+
+function isTimeoutError(error: unknown): error is { config: { timeout: number } } {
+  return typeof error === 'object' && error !== null && 'config' in error && typeof error.config === 'object' && error.config !== null && 'timeout' in error.config;
+}
+
+function isPluginError(error: unknown): error is { type: 'plugin-error'; plugin: string; error: Error } {
+  return typeof error === 'object' && error !== null && 'type' in error && error.type === 'plugin-error';
+}
+
 /**
  * Implementation of the SHC HTTP Client
  * Provides a wrapper around Axios with additional functionality
@@ -84,24 +116,17 @@ export class SHCClient implements ISHCClient {
     // Set up request interceptor
     this.axiosInstance.interceptors.request.use(
       async (config) => {
-        // Add timestamp for response time calculation
         const configWithTimestamp = { ...config, timestamp: Date.now() };
-
-        // Apply request preprocessor plugins
         let modifiedConfig = { ...configWithTimestamp };
 
-        // Get all request preprocessor plugins
         const preprocessorPlugins = Array.from(this.plugins.values()).filter(
           (plugin) => plugin.type === PluginType.REQUEST_PREPROCESSOR
         );
 
-        // Apply each plugin in sequence
         for (const plugin of preprocessorPlugins) {
           try {
             const result = await plugin.execute(modifiedConfig);
-            // Ensure result is an object
             if (typeof result === 'object' && result !== null) {
-              // Always start with a base config with required properties
               modifiedConfig = {
                 timestamp: Date.now(),
                 headers: new AxiosHeaders(),
@@ -110,68 +135,37 @@ export class SHCClient implements ISHCClient {
             } else {
               throw new Error('Plugin did not return a valid config object');
             }
-            // Ensure timestamp and headers are present (redundant, but safe)
-            if (
-              typeof modifiedConfig === 'object' &&
-              modifiedConfig !== null &&
-              'timestamp' in modifiedConfig &&
-              typeof (modifiedConfig as { timestamp?: number }).timestamp !== 'number'
-            ) {
-              (modifiedConfig as { timestamp?: number }).timestamp = Date.now();
-            }
-            if (
-              typeof modifiedConfig === 'object' &&
-              modifiedConfig !== null &&
-              !('headers' in modifiedConfig)
-            ) {
-              (modifiedConfig as { headers?: AxiosHeaders }).headers = new AxiosHeaders();
-            }
           } catch (pluginError) {
-            this.eventEmitter.emit('error', {
+            const errorObj = {
               type: 'plugin-error',
               plugin: plugin.name,
               error: pluginError,
-            });
+            };
+            this.eventEmitter.emit('error', errorObj);
+            return Promise.reject(errorObj);
           }
         }
 
-        // Ensure type for InternalAxiosRequestConfig<any>
-        if (
-          typeof modifiedConfig === 'object' &&
-          modifiedConfig !== null &&
-          'headers' in modifiedConfig &&
-          typeof (modifiedConfig as { headers?: unknown }).headers === 'object'
-        ) {
-          return modifiedConfig as import('axios').InternalAxiosRequestConfig<unknown>;
-        }
-        // Fallback: create a valid config with required fields
-        return {
-          ...modifiedConfig,
-          headers:
-            modifiedConfig && typeof modifiedConfig === 'object' && 'headers' in modifiedConfig
-              ? (modifiedConfig as { headers: unknown }).headers
-              : {},
-        } as import('axios').InternalAxiosRequestConfig<unknown>;
+        return modifiedConfig as import('axios').InternalAxiosRequestConfig<unknown>;
       },
       (requestError) => {
-        // Emit error event
-        this.eventEmitter.emit('error', requestError);
-        return Promise.reject(requestError);
+        const errorObj = {
+          type: 'request-error',
+          error: requestError instanceof Error ? requestError : new Error(String(requestError))
+        };
+        this.eventEmitter.emit('error', errorObj);
+        return Promise.reject(errorObj);
       }
     );
 
     // Set up response interceptor
     this.axiosInstance.interceptors.response.use(
       async (response) => {
-        // Apply response transformer plugins
         let modifiedResponse = { ...response };
-
-        // Get all response transformer plugins
         const transformerPlugins = Array.from(this.plugins.values()).filter(
           (plugin) => plugin.type === PluginType.RESPONSE_TRANSFORMER
         );
 
-        // Apply each plugin in sequence
         for (const plugin of transformerPlugins) {
           try {
             const pluginResult = await plugin.execute(modifiedResponse);
@@ -188,21 +182,19 @@ export class SHCClient implements ISHCClient {
               throw new Error('Plugin did not return a valid AxiosResponse object');
             }
           } catch (pluginError) {
-            this.eventEmitter.emit('error', {
+            // Store plugin error but continue processing
+            modifiedResponse.pluginError = {
               type: 'plugin-error',
               plugin: plugin.name,
-              error: pluginError,
-            });
+              error: pluginError
+            };
           }
         }
 
-        // Emit response event
         this.eventEmitter.emit('response', modifiedResponse);
-
         return modifiedResponse;
       },
       (responseError) => {
-        // Emit error event
         this.eventEmitter.emit('error', responseError);
         return Promise.reject(responseError);
       }
@@ -346,81 +338,19 @@ export class SHCClient implements ISHCClient {
    */
   async request<T>(config: RequestConfig): Promise<Response<T>> {
     try {
-      // Track request start time for response time calculation
       const startTime = Date.now();
+      const axiosConfig = await this._createAxiosConfig(config);
 
-      // Convert SHC RequestConfig to Axios RequestConfig
-      const axiosConfig: AxiosRequestConfig = {
-        method: config.method,
-        headers: config.headers,
-        params: config.query || config.params,
-        data: config.body || config.data,
-        timeout: config.timeout,
-      };
-
-      // Handle URL construction - if url is not provided but path is, and baseUrl is available
-      if (!config.url && config.path) {
-        // Check if we have a baseUrl in the config
-        const baseUrl = config.baseUrl || this.axiosInstance.defaults.baseURL;
-        if (baseUrl) {
-          // Ensure there's no trailing slash in the base URL and the path has a leading slash
-          const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-          const cleanPath = config.path.startsWith('/') ? config.path : `/${config.path}`;
-          axiosConfig.url = `${cleanBaseUrl}${cleanPath}`;
-        } else {
-          throw new Error('No base URL found and no URL specified in request');
-        }
-      } else {
-        axiosConfig.url = config.url;
-      }
-
-      // If URL is still not set, throw an error
-      if (!axiosConfig.url) {
-        throw new Error('Invalid URL: No URL or path specified in request');
-      }
-
-      // Apply authentication if needed
-      if (config.authentication) {
-        // Find an auth provider plugin that can handle this authentication type
-        const authPlugins = Array.from(this.plugins.values()).filter(
-          (plugin) => plugin.type === PluginType.AUTH_PROVIDER
-        );
-
-        for (const plugin of authPlugins) {
-          try {
-            type AuthResult = { token?: string; tokenType?: string };
-            const authResult = (await plugin.execute({
-              type: config.authentication.type,
-              config: config.authentication,
-            })) as AuthResult;
-
-            // Apply the authentication result to the request
-            if (authResult && authResult.token) {
-              axiosConfig.headers = axiosConfig.headers || {};
-              axiosConfig.headers['Authorization'] =
-                `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
-            }
-
-            break; // Use the first successful auth plugin
-          } catch (error) {
-            this.eventEmitter.emit('error', {
-              type: 'auth-error',
-              plugin: plugin.name,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-      }
-
-      // Send the request
       const response = await this.axiosInstance.request<T>(axiosConfig);
 
-      // Calculate response time
-      const responseTime = Date.now() - startTime;
+      // Check for plugin errors from response interceptor
+      if (response.pluginError) {
+        this.eventEmitter.emit('error', response.pluginError);
+      }
 
-      // Convert Axios response to SHC response
-      const shcResponse: Response<T> = {
-        data: response.data,
+      const responseTime = Date.now() - startTime;
+      return {
+        data: response.data as T,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers as Record<string, string>,
@@ -434,64 +364,65 @@ export class SHCClient implements ISHCClient {
         },
         responseTime,
       };
-
-      // If the response has been transformed by a plugin, include those properties
-      if (typeof response === 'object' && response !== null && 'transformed' in response) {
-        (shcResponse as { transformed?: boolean }).transformed = true;
+    } catch (error: unknown) {
+      // Handle timeout errors specifically
+      if (isTimeoutError(error)) {
+        const timeoutError = {
+          type: 'timeout-error',
+          error: new Error(`Request timed out after ${error.config.timeout}ms`),
+          config: error.config
+        };
+        this.eventEmitter.emit('error', timeoutError);
+        throw timeoutError.error;
       }
 
-      return shcResponse;
-    } catch (error) {
-      // Handle errors and convert to SHC error format
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        error.response &&
-        typeof error.response === 'object' &&
-        error.response !== null &&
-        'data' in error.response &&
-        'status' in error.response &&
-        'headers' in error.response &&
-        'config' in error.response &&
-        typeof (error.response as { config: unknown }).config === 'object' &&
-        error.response.config !== null
-      ) {
-        const errResp = error.response as {
-          data: unknown;
-          status: number;
-          statusText: string;
-          headers: Record<string, string>;
-          config: {
-            url: string;
-            method: RequestConfig['method'];
-            headers: Record<string, string>;
-            params: Record<string, string | number | boolean>;
-            data: unknown;
-            timeout: number;
-            timestamp?: number;
+      // Handle plugin errors from interceptor
+      if (isPluginError(error)) {
+        this.eventEmitter.emit('error', error);
+        throw error.error;
+      }
+
+      // Handle axios errors
+      if (isAxiosError(error)) {
+        const message = error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data
+          ? String(error.response.data.message)
+          : error.message;
+        
+        // For 404 errors, return the response rather than throwing
+        if (error.response?.status === 404) {
+          return {
+            data: error.response.data as T,
+            status: error.response.status,
+            statusText: error.response.statusText,
+            headers: error.response.headers as Record<string, string>,
+            config: {
+              url: error.response.config.url,
+              method: error.response.config.method as RequestConfig['method'],
+              headers: error.response.config.headers as Record<string, string>,
+              params: error.response.config.params as Record<string, string | number | boolean>,
+              body: error.response.config.data,
+              timeout: error.response.config.timeout,
+            },
+            responseTime: 0
           };
-        };
-        // Calculate response time for errors
-        let responseTime = Date.now();
-        const errConfig = errResp.config;
-        if (errConfig && typeof errConfig === 'object' && 'timestamp' in errConfig) {
-          const ts = (errConfig as { timestamp?: unknown }).timestamp;
-          if (typeof ts === 'number') {
-            responseTime -= ts;
-          }
         }
-        return {
-          data: errResp.data as T,
-          status: errResp.status,
-          statusText: errResp.statusText,
-          headers: errResp.headers,
-          config: config,
-          responseTime,
+
+        const axiosError = {
+          type: 'axios-error',
+          error: new Error(message),
+          response: error.response
         };
-      } else {
-        throw error;
+        this.eventEmitter.emit('error', axiosError);
+        throw axiosError.error;
       }
+
+      // Handle other errors
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.eventEmitter.emit('error', {
+        type: 'client-error',
+        error: err
+      });
+      throw err;
     }
   }
 
@@ -668,5 +599,67 @@ export class SHCClient implements ISHCClient {
    */
   getCollectionManager(): unknown {
     return this.collectionManager;
+  }
+
+  private async _createAxiosConfig(config: RequestConfig): Promise<import('axios').AxiosRequestConfig> {
+    const axiosConfig: import('axios').AxiosRequestConfig = {
+      method: config.method,
+      headers: config.headers,
+      params: config.query || config.params,
+      data: config.body || config.data,
+      timeout: config.timeout,
+    };
+
+    // Handle URL construction
+    if (!config.url && config.path) {
+      const baseUrl = config.baseUrl || this.axiosInstance.defaults.baseURL;
+      if (baseUrl) {
+        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        const cleanPath = config.path.startsWith('/') ? config.path : `/${config.path}`;
+        axiosConfig.url = `${cleanBaseUrl}${cleanPath}`;
+      } else {
+        throw new Error('No base URL found and no URL specified in request');
+      }
+    } else {
+      axiosConfig.url = config.url;
+    }
+
+    if (!axiosConfig.url) {
+      throw new Error('Invalid URL: No URL or path specified in request');
+    }
+
+    // Apply authentication if needed
+    if (config.authentication) {
+      const authPlugins = Array.from(this.plugins.values()).filter(
+        (plugin) => plugin.type === PluginType.AUTH_PROVIDER
+      );
+
+      for (const plugin of authPlugins) {
+        try {
+          type AuthResult = { token?: string; tokenType?: string };
+          const authPromise = plugin.execute({
+            type: config.authentication.type,
+            config: config.authentication,
+          });
+          const authResult = await authPromise as AuthResult;
+
+          if (authResult && authResult.token) {
+            axiosConfig.headers = axiosConfig.headers || {};
+            axiosConfig.headers['Authorization'] =
+              `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
+          }
+
+          break;
+        } catch (error) {
+          this.eventEmitter.emit('error', {
+            type: 'auth-error',
+            plugin: plugin.name,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    return axiosConfig;
   }
 }
