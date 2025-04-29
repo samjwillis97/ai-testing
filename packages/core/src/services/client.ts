@@ -226,6 +226,10 @@ export class SHCClient implements ISHCClient {
   }
 
   /**
+   * Create a new HTTP client instance with default configuration
+   */
+  static create(): SHCClient;
+  /**
    * Create a new HTTP client instance with optional configuration
    * @param config Configuration object
    * @param options Additional options for client creation
@@ -251,12 +255,12 @@ export class SHCClient implements ISHCClient {
    * @param options Additional options for client creation
    */
   static create(
-    configOrManager: SHCConfig | ConfigManager,
+    configOrManager?: SHCConfig | ConfigManager,
     options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
   ): SHCClient {
     let config: SHCConfig;
     let configManager: ConfigManagerImpl | null = null;
-    
+
     // Extract config and configManager
     if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
       // It's a ConfigManager
@@ -264,30 +268,30 @@ export class SHCClient implements ISHCClient {
       config = configManager.get('') as SHCConfig;
     } else {
       // It's a regular config object or undefined
-      config = configOrManager as SHCConfig || {};
+      config = (configOrManager as SHCConfig) || {};
     }
-    
+
     // Create a client with deferred plugin loading
     const client = new SHCClient(config, true); // Pass true to defer plugin loading
-    
+
     // Set the ConfigManager if provided
     if (configManager) {
       client._setConfigManager(configManager);
     }
-    
+
     // Register event handlers if provided
     if (options?.eventHandlers) {
       for (const { event, handler } of options.eventHandlers) {
         client.on(event, handler);
       }
     }
-    
+
     // Now load plugins
     client._loadPlugins(config);
-    
+
     return client;
   }
-  
+
   /**
    * Create a builder for configuring an SHCClient with more options
    * @param config Configuration object
@@ -295,7 +299,7 @@ export class SHCClient implements ISHCClient {
   static builder(config?: SHCConfig): SHCClientBuilder {
     return new SHCClientBuilder(config);
   }
-  
+
   /**
    * Create a builder with a ConfigManager
    * @param configManager ConfigManager instance
@@ -804,17 +808,17 @@ class SHCClientBuilder {
 
   build(): SHCClient {
     const client = SHCClient.create(this.config);
-    
+
     // Set the config manager if provided
     if (this.configManager) {
       client._setConfigManager(this.configManager);
     }
-    
+
     // Register all event handlers
     this.eventHandlers.forEach((handler, event) => {
       client.on(event, handler);
     });
-    
+
     return client;
   }
 }
