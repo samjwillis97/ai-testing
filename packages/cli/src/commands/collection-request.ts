@@ -37,6 +37,7 @@ export function addCollectionCommand(program: Command): void {
     .option('-d, --data <data>', 'Override request body')
     .option('-u, --auth <auth>', 'Override authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
+    .option('-v, --verbose', 'Enable verbose output')
     .addOption(new Option('--no-color', 'Disable colors'))
     .action(
       async (collectionName: string, requestName: string, options: Record<string, unknown>) => {
@@ -170,34 +171,44 @@ export function addCollectionCommand(program: Command): void {
               ).start();
 
           try {
-            // Create client with ConfigManager directly
-            const client = SHCClient.create(configManager);
+            // Create client with ConfigManager and register event handlers before plugins are loaded
+            const eventHandlers = outputOptions.verbose
+              ? [
+                  {
+                    event: 'plugin:registered' as const,
+                    handler: (plugin: any) => {
+                      const typedPlugin = plugin as { name: string; version: string };
+                      console.log(
+                        chalk.blue(`Plugin registered: ${typedPlugin.name} v${typedPlugin.version}`)
+                      );
+                    },
+                  },
+                  {
+                    event: 'request' as const,
+                    handler: (req: any) => {
+                      const typedReq = req as { method: string; url: string };
+                      console.log(chalk.blue(`Request: ${typedReq.method} ${typedReq.url}`));
+                    },
+                  },
+                  {
+                    event: 'response' as const,
+                    handler: (res: any) => {
+                      const typedRes = res as { status: number; statusText: string };
+                      console.log(chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`));
+                    },
+                  },
+                  {
+                    event: 'error' as const,
+                    handler: (err: any) => {
+                      console.log(
+                        chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
+                      );
+                    },
+                  },
+                ]
+              : [];
 
-            // Register event handlers for verbose output
-            if (outputOptions.verbose) {
-              client.on('plugin:registered', (plugin) => {
-                const typedPlugin = plugin as { name: string; version: string };
-                console.log(
-                  chalk.blue(`Plugin registered: ${typedPlugin.name} v${typedPlugin.version}`)
-                );
-              });
-
-              client.on('request', (req) => {
-                const typedReq = req as { method: string; url: string };
-                console.log(chalk.blue(`Request: ${typedReq.method} ${typedReq.url}`));
-              });
-
-              client.on('response', (res) => {
-                const typedRes = res as { status: number; statusText: string };
-                console.log(chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`));
-              });
-
-              client.on('error', (err) => {
-                console.log(
-                  chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
-                );
-              });
-            }
+            const client = SHCClient.create(configManager, { eventHandlers });
 
             const response = await client.request(requestOptions);
 

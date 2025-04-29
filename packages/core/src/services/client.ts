@@ -69,30 +69,74 @@ export class SHCClient implements ISHCClient {
   /**
    * Create a new HTTP client instance with optional configuration
    * @param config Configuration object
+   * @param options Additional options for client creation
+   * @param options.eventHandlers Event handlers to register before plugins are loaded
    */
-  static create(config: SHCConfig): SHCClient;
+  static create(
+    config: SHCConfig,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient;
   /**
    * Create a new HTTP client instance with a ConfigManager
    * @param configManager ConfigManager instance
+   * @param options Additional options for client creation
+   * @param options.eventHandlers Event handlers to register before plugins are loaded
    */
-  static create(configManager: ConfigManager): SHCClient;
+  static create(
+    configManager: ConfigManager,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient;
   /**
    * Implementation of create method that handles both config and ConfigManager
    * @param configOrManager Configuration object or ConfigManager instance
+   * @param options Additional options for client creation
    */
-  static create(configOrManager: SHCConfig | ConfigManager): SHCClient {
+  static create(
+    configOrManager: SHCConfig | ConfigManager,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient {
+    let client: SHCClient;
+    
     // Check if the parameter is a ConfigManager by looking for the 'get' method
     if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
       // It's a ConfigManager
       const configManager = configOrManager as ConfigManager;
       const config = configManager.get('') as SHCConfig;
-      const client = new SHCClient(config);
+      client = new SHCClient(config);
       // Set the existing ConfigManager instance instead of creating a new one
-      client.configManager = configManager as ConfigManagerImpl;
-      return client;
+      client._setConfigManager(configManager as ConfigManagerImpl);
+    } else {
+      // It's a regular config object or undefined
+      client = new SHCClient(configOrManager as SHCConfig);
     }
-    // It's a regular config object or undefined
-    return new SHCClient(configOrManager as SHCConfig);
+    
+    // Register event handlers if provided
+    if (options?.eventHandlers) {
+      for (const { event, handler } of options.eventHandlers) {
+        client.on(event, handler);
+      }
+    }
+    
+    return client;
+  }
+  
+  /**
+   * Create a builder for configuring an SHCClient with more options
+   * @param config Configuration object
+   */
+  static builder(config?: SHCConfig): SHCClientBuilder {
+    return new SHCClientBuilder(config);
+  }
+  
+  /**
+   * Create a builder with a ConfigManager
+   * @param configManager ConfigManager instance
+   */
+  static builderWithConfigManager(configManager: ConfigManager): SHCClientBuilder {
+    const config = configManager.get('') as SHCConfig;
+    const builder = new SHCClientBuilder(config);
+    builder.setConfigManager(configManager as ConfigManagerImpl);
+    return builder;
   }
 
   constructor(config?: SHCConfig) {
@@ -638,6 +682,13 @@ export class SHCClient implements ISHCClient {
     return this.collectionManager;
   }
 
+  /**
+   * @internal Set the config manager instance
+   */
+  _setConfigManager(configManager: ConfigManagerImpl): void {
+    this.configManager = configManager;
+  }
+
   private async _createAxiosConfig(
     config: RequestConfig
   ): Promise<import('axios').AxiosRequestConfig> {
@@ -700,5 +751,42 @@ export class SHCClient implements ISHCClient {
     }
 
     return axiosConfig;
+  }
+}
+
+class SHCClientBuilder {
+  private config: SHCConfig;
+  private configManager: ConfigManagerImpl | null;
+  private eventHandlers: Map<SHCEvent, (...args: unknown[]) => void> = new Map();
+
+  constructor(config?: SHCConfig) {
+    this.config = config || {};
+    this.configManager = null;
+  }
+
+  setConfigManager(configManager: ConfigManagerImpl): SHCClientBuilder {
+    this.configManager = configManager;
+    return this;
+  }
+
+  withEventHandler(event: SHCEvent, handler: (...args: unknown[]) => void): SHCClientBuilder {
+    this.eventHandlers.set(event, handler);
+    return this;
+  }
+
+  build(): SHCClient {
+    const client = SHCClient.create(this.config);
+    
+    // Set the config manager if provided
+    if (this.configManager) {
+      client._setConfigManager(this.configManager);
+    }
+    
+    // Register all event handlers
+    this.eventHandlers.forEach((handler, event) => {
+      client.on(event, handler);
+    });
+    
+    return client;
   }
 }
