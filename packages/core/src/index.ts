@@ -1,7 +1,17 @@
 // Sam's HTTP Client (SHC) Core Package
 export * from './types/client.types';
 export * from './types/collection.types';
-export * from './types/config.types';
+export type { 
+  RequestConfig, 
+  ConfigManagerOptions, 
+  TemplateFunction, 
+  TemplateContext, 
+  ValidationResult, 
+  PluginConfig,
+  CLIConfig,
+  AnyObject,
+  TemplateFunctionType
+} from './types/config.types';
 export * from './types/plugin.types';
 export * from './types/plugin-manager.types';
 

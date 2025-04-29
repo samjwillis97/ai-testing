@@ -73,6 +73,41 @@ export interface ValidationResult {
 }
 
 /**
+ * Plugin configuration
+ */
+export interface PluginConfig {
+  name: string;
+  package?: string;
+  path?: string;
+  git?: string;
+  ref?: string;
+  version?: string;
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+  dependencies?: {
+    name: string;
+    package: string;
+  }[];
+  permissions?: {
+    filesystem?: {
+      read?: string[];
+      write?: string[];
+    };
+    network?: string[];
+  };
+}
+
+/**
+ * CLI configuration
+ */
+export interface CLIConfig {
+  plugins?: PluginConfig[];
+  outputFormats?: string[];
+  defaultFormat?: string;
+  autoComplete?: boolean;
+}
+
+/**
  * Configuration manager for SHC
  */
 export interface ConfigManager {

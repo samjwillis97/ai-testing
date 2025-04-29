@@ -67,20 +67,36 @@ export const pluginConfigSchema = z.object({
   version: z.string().optional(),
   enabled: z.boolean().default(true),
   config: z.record(z.string(), z.unknown()).optional(),
-  dependencies: z.array(
-    z.object({
-      name: z.string(),
-      package: z.string(),
+  dependencies: z
+    .array(
+      z.object({
+        name: z.string(),
+        package: z.string(),
+      })
+    )
+    .optional(),
+  permissions: z
+    .object({
+      filesystem: z
+        .object({
+          read: z.array(z.string()).optional(),
+          write: z.array(z.string()).optional(),
+        })
+        .optional(),
+      network: z.array(z.string()).optional(),
+      env: z.array(z.string()).optional(),
     })
-  ).optional(),
-  permissions: z.object({
-    filesystem: z.object({
-      read: z.array(z.string()).optional(),
-      write: z.array(z.string()).optional(),
-    }).optional(),
-    network: z.array(z.string()).optional(),
-    env: z.array(z.string()).optional(),
-  }).optional(),
+    .optional(),
+});
+
+/**
+ * Schema for CLI configuration
+ */
+export const cliSchema = z.object({
+  plugins: z.array(pluginConfigSchema).optional(),
+  outputFormats: z.array(z.string()).optional(),
+  defaultFormat: z.string().optional(),
+  autoComplete: z.boolean().optional(),
 });
 
 /**
@@ -117,6 +133,7 @@ export const configSchema = z.object({
   variable_sets: variableSetsSchema.default({}),
   plugins: pluginsSchema.default({}),
   storage: storageSchema.default({}),
+  cli: cliSchema.optional(),
 });
 
 /**

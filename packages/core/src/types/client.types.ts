@@ -79,6 +79,21 @@ export interface SHCConfig {
     paths?: string[];
     directory?: string;
   };
+  cli?: {
+    plugins?: {
+      name: string;
+      package?: string;
+      path?: string;
+      git?: string;
+      ref?: string;
+      version?: string;
+      enabled?: boolean;
+      config?: Record<string, unknown>;
+    }[];
+    outputFormats?: string[];
+    defaultFormat?: string;
+    autoComplete?: boolean;
+  };
 }
 
 export type SHCEvent =

@@ -4,6 +4,7 @@ import { addDirectCommand } from './commands/direct-request.js';
 import { addCollectionCommand } from './commands/collection-request.js';
 import { addCompletionCommand } from './commands/completion.js';
 import { addListCommand } from './commands/list.js';
+import { initializePlugins } from './plugins/index.js';
 
 const program = new Command();
 
@@ -15,7 +16,12 @@ program
   .option('-e, --env <NAME>', 'Environment name')
   .option('-v, --verbose', 'Verbose output')
   .option('-s, --silent', 'Silent mode')
-  .option('--no-color', 'Disable colors');
+  .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
+  .option('--no-color', 'Disable colors')
+  .hook('preAction', async (thisCommand) => {
+    // Initialize plugins before any command is executed
+    await initializePlugins(thisCommand.opts());
+  });
 
 // Enable passing global options to subcommands
 program.passThroughOptions();
