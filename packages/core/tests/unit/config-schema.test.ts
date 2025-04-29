@@ -41,9 +41,24 @@ describe('Config Schema', () => {
           },
         },
         plugins: {
-          auth: ['basic-auth'],
-          preprocessors: ['request-logger'],
-          transformers: ['response-formatter'],
+          auth: [
+            {
+              name: 'basic-auth',
+              enabled: true
+            }
+          ],
+          preprocessors: [
+            {
+              name: 'request-logger',
+              enabled: true
+            }
+          ],
+          transformers: [
+            {
+              name: 'response-formatter',
+              enabled: true
+            }
+          ],
         },
         storage: {
           collections: {

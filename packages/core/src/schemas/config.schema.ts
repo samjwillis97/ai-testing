@@ -56,12 +56,40 @@ export const variableSetsSchema = z.object({
 });
 
 /**
+ * Schema for plugin configuration
+ */
+export const pluginConfigSchema = z.object({
+  name: z.string(),
+  package: z.string().optional(),
+  path: z.string().optional(),
+  git: z.string().optional(),
+  ref: z.string().optional(),
+  version: z.string().optional(),
+  enabled: z.boolean().default(true),
+  config: z.record(z.string(), z.unknown()).optional(),
+  dependencies: z.array(
+    z.object({
+      name: z.string(),
+      package: z.string(),
+    })
+  ).optional(),
+  permissions: z.object({
+    filesystem: z.object({
+      read: z.array(z.string()).optional(),
+      write: z.array(z.string()).optional(),
+    }).optional(),
+    network: z.array(z.string()).optional(),
+    env: z.array(z.string()).optional(),
+  }).optional(),
+});
+
+/**
  * Schema for plugins configuration
  */
 export const pluginsSchema = z.object({
-  auth: z.array(z.string()).default([]),
-  preprocessors: z.array(z.string()).default([]),
-  transformers: z.array(z.string()).default([]),
+  auth: z.array(pluginConfigSchema).default([]),
+  preprocessors: z.array(pluginConfigSchema).default([]),
+  transformers: z.array(pluginConfigSchema).default([]),
 });
 
 /**
