@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import { SHCClient } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
-import { getEffectiveOptions, createClientConfig } from '../utils/config.js';
+import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -50,8 +50,8 @@ export function addDirectCommand(program: Command): void {
  * Add an HTTP method-specific command
  */
 function addHttpMethodCommand(
-  program: Command, 
-  method: string, 
+  program: Command,
+  method: string,
   description: string,
   hasBody = false
 ): void {
@@ -67,12 +67,12 @@ function addHttpMethodCommand(
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
     .addOption(new Option('--no-color', 'Disable colors'));
-  
+
   // Add data option for methods that can have a request body
   if (hasBody) {
     cmd.option('-d, --data <data>', 'Request body');
   }
-  
+
   cmd.action(async (url: string, options: Record<string, unknown>) => {
     await executeDirectRequest(method.toUpperCase() as HttpMethod, url, options);
   });
@@ -156,7 +156,8 @@ async function executeDirectRequest(
   }
 
   // Create client configuration
-  const clientConfig = createClientConfig(effectiveOptions);
+  const configManager = await createConfigManagerFromOptions(effectiveOptions);
+  const clientConfig = configManager.get('', {});
 
   // Execute request
   const spinner = effectiveOptions.silent
@@ -170,7 +171,7 @@ async function executeDirectRequest(
     // Dynamically import and register the rate-limit plugin
     try {
       const pluginPath = path.resolve(process.cwd(), 'plugins/rate-limit/dist/index.js');
-      
+
       // Check if the plugin file exists
       try {
         await fs.access(pluginPath);
@@ -180,22 +181,23 @@ async function executeDirectRequest(
         }
         // Continue without the plugin
       }
-      
+
       // Try to import the plugin
       const rateLimitPluginModule = await import(pluginPath);
       const RateLimitPlugin = rateLimitPluginModule.default;
-      
+
       if (RateLimitPlugin && typeof RateLimitPlugin === 'object') {
         // Configure the plugin if possible
         if (typeof RateLimitPlugin.configure === 'function') {
           // Extract plugin configuration from options if available
           let pluginConfig = null;
-          
-          if (effectiveOptions.plugins && 
-              typeof effectiveOptions.plugins === 'object' && 
-              'preprocessors' in effectiveOptions.plugins &&
-              Array.isArray(effectiveOptions.plugins.preprocessors)) {
-            
+
+          if (
+            effectiveOptions.plugins &&
+            typeof effectiveOptions.plugins === 'object' &&
+            'preprocessors' in effectiveOptions.plugins &&
+            Array.isArray(effectiveOptions.plugins.preprocessors)
+          ) {
             pluginConfig = effectiveOptions.plugins.preprocessors.find(
               (p: Record<string, unknown>) => {
                 if ('path' in p && typeof p.path === 'string') {
@@ -208,7 +210,7 @@ async function executeDirectRequest(
               }
             )?.config;
           }
-          
+
           if (pluginConfig) {
             await RateLimitPlugin.configure(pluginConfig);
             if (outputOptions.verbose) {
@@ -219,24 +221,26 @@ async function executeDirectRequest(
             await RateLimitPlugin.configure({
               rules: [
                 {
-                  endpoint: ".*", // Match all endpoints
+                  endpoint: '.*', // Match all endpoints
                   limit: 10,
                   window: 60,
-                  priority: 0
-                }
+                  priority: 0,
+                },
               ],
-              queueBehavior: "delay"
+              queueBehavior: 'delay',
             });
             if (outputOptions.verbose) {
               console.log(chalk.blue('Rate-limit plugin configured with default settings'));
             }
           }
         }
-        
+
         // Register the plugin with the client
         client.use(RateLimitPlugin);
         if (outputOptions.verbose) {
-          console.log(chalk.blue(`Plugin registered: ${RateLimitPlugin.name} v${RateLimitPlugin.version}`));
+          console.log(
+            chalk.blue(`Plugin registered: ${RateLimitPlugin.name} v${RateLimitPlugin.version}`)
+          );
         }
       }
     } catch (pluginError) {
@@ -245,7 +249,7 @@ async function executeDirectRequest(
       }
       // Continue without the plugin
     }
-    
+
     // Register event handlers for verbose output
     if (outputOptions.verbose) {
       client.on('plugin:registered', (plugin) => {

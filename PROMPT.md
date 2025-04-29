@@ -26,12 +26,13 @@ When following this guide the most important things are:
 - IMPORTANT: Always fix all quality issues before moving on to the next task
 - IMPORTANT: Always update `IMPLEMENTATION_STATUS.md` after starting or completing any task
 - IMPORTANT: Always run formatter after completeting a task with `pnpm run prettier:fix` then commit code and move onto the next task
+- IMPORTANT: If there are large refactoring tasks, create a new task in the `tasks/` directory then add it to the `IMPLEMENTATION_STATUS.md`
 
 ### Development Process
 
 1. Fix all issues from the #Code Quality Checks
-2. Check `tasks/` directory for tasks to complete. If there are no tasks to complete, check `IMPLEMENTATION_STATUS.md` to understand current project status
-3. Implement the most important task, if there are no tasks to complete, implement the most important feature from `IMPLEMENTATION_STATUS.md` as per the Typescript Rules
+2. Check `IMPLEMENTATION_STATUS.md` to understand current project status
+3. Implement the most important feature from `IMPLEMENTATION_STATUS.md`
 4. Write tests for new functionality
 5. Run quality checks again, fix any issues
 6. Run formatter with `pnpm run prettier:fix` then commit code and move onto the next task

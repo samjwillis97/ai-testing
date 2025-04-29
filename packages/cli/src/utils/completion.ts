@@ -213,7 +213,7 @@ export async function getRequestsForCompletion(
     const collectionDir = await getCollectionDir(options);
     const requests = await getRequests(collectionDir, collectionName);
     // Return just the request IDs for completion
-    return requests.map(req => req.id);
+    return requests.map((req) => req.id);
   } catch (error) {
     return [];
   }

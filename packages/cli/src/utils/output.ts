@@ -79,26 +79,26 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   if (options.verbose) {
     const statusColor =
       response.status >= 400 ? 'red' : response.status >= 300 ? 'yellow' : 'green';
-    
+
     const headerText = `${chalk[statusColor](response.status)} ${chalk.bold(response.statusText)}\n\n${Object.entries(
       response.headers
     )
       .map(([key, value]) => `${chalk.dim(key)}: ${value}`)
       .join('\n')}`;
-    
+
     output += boxen(headerText, {
       title: 'Response',
       titleAlignment: 'center',
       padding: 1,
       borderColor: statusColor,
     });
-    
+
     output += '\n\n';
   }
 
   // Add response body
   output += formatOutput(response.data, options);
-  
+
   return output;
 }
 

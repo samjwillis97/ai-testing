@@ -3,7 +3,7 @@
  */
 import path from 'path';
 import os from 'os';
-import { ConfigManager, SHCConfig } from '@shc/core';
+import { ConfigManager } from '@shc/core';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
@@ -17,13 +17,15 @@ export async function getEffectiveOptions(
 ): Promise<Record<string, unknown>> {
   const configPath = options.config as string;
   let configManager = createConfigManager();
-  
+
   if (configPath) {
     try {
       await configManager.loadFromFile(configPath);
       console.log(`Config loaded from: ${configPath}`);
     } catch (error) {
-      console.error(`Failed to load config file: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
+      );
       // Initialize with default config if loading fails
       configManager = createConfigManager();
     }
@@ -31,19 +33,19 @@ export async function getEffectiveOptions(
 
   // Convert the config to a plain object
   const configData: Record<string, unknown> = {};
-  
+
   // Extract core settings
   configData.core = configManager.get('core');
-  
+
   // Extract storage settings
   configData.storage = configManager.get('storage');
-  
+
   // Extract variable sets
   configData.variable_sets = configManager.get('variable_sets');
-  
+
   // Extract plugins configuration
   configData.plugins = configManager.get('plugins');
-  
+
   // Merge config with CLI options (CLI options take precedence)
   return {
     ...configData,
@@ -62,12 +64,16 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
     collectionDir = options.collectionDir as string;
   }
   // Check if storage.collections.path is defined in the config
-  else if (options.storage && 
-      typeof options.storage === 'object' && 
-      (options.storage as Record<string, unknown>).collections && 
-      typeof (options.storage as Record<string, unknown>).collections === 'object' &&
-      ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path) {
-    collectionDir = ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path as string;
+  else if (
+    options.storage &&
+    typeof options.storage === 'object' &&
+    (options.storage as Record<string, unknown>).collections &&
+    typeof (options.storage as Record<string, unknown>).collections === 'object' &&
+    ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path
+  ) {
+    collectionDir = (
+      (options.storage as Record<string, unknown>).collections as Record<string, unknown>
+    ).path as string;
   }
   // Default to ~/.shc/collections
   else {
@@ -99,55 +105,30 @@ export async function createConfigManagerFromOptions(
 ): Promise<ConfigManager> {
   const configManager = createConfigManager();
   const configPath = options.config as string;
-  
+
   if (configPath) {
     try {
       await configManager.loadFromFile(configPath);
       console.log(`Config loaded from: ${configPath}`);
     } catch (error) {
-      console.error(`Failed to load config file: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
-  
+
   // Apply CLI options to override config values
   if (options.collectionDir) {
     configManager.set('storage.collections.path', options.collectionDir);
   }
-  
+
   if (options.timeout) {
     configManager.set('core.http.timeout', options.timeout);
   }
-  
+
   return configManager;
 }
 
-/**
- * Create an SHC client configuration from effective options
- */
-export function createClientConfig(options: Record<string, unknown>): SHCConfig {
-  const config: SHCConfig = {};
-  
-  // Set timeout if specified
-  if (options.timeout) {
-    config.timeout = parseInt(options.timeout as string, 10);
-  } else if (options.core && 
-             typeof options.core === 'object' && 
-             (options.core as Record<string, unknown>).http && 
-             typeof (options.core as Record<string, unknown>).http === 'object' &&
-             ((options.core as Record<string, unknown>).http as Record<string, unknown>).timeout) {
-    config.timeout = ((options.core as Record<string, unknown>).http as Record<string, unknown>).timeout as number;
-  }
-  
-  // Set storage configuration
-  if (options.storage && typeof options.storage === 'object') {
-    config.storage = options.storage as Record<string, unknown>;
-  }
-  
-  // Set plugins configuration
-  if (options.plugins && typeof options.plugins === 'object') {
-    // We'll let the core package handle plugin loading
-    config.plugins = options.plugins as Record<string, unknown>;
-  }
-  
-  return config;
-}
+// Removed createClientConfig function as it duplicates functionality
+// that should be handled by the core package's ConfigManager.
+// Use createConfigManagerFromOptions instead for proper configuration management.

@@ -11,9 +11,7 @@ import { createConfigManagerFromOptions } from '../utils/config.js';
  * Add list command to program
  */
 export function addListCommand(program: Command): void {
-  const listCommand = program
-    .command('list')
-    .description('List SHC resources');
+  const listCommand = program.command('list').description('List SHC resources');
 
   // List collections subcommand
   listCommand
@@ -26,15 +24,19 @@ export function addListCommand(program: Command): void {
       try {
         // Create config manager from options
         const configManager = await createConfigManagerFromOptions(options);
-        
+
         // Get collection directory from config manager
-        const collectionDir = configManager.get('storage.collections.path', 
-          options.collectionDir as string || configManager.get('storage.collections.path'));
+        const collectionDir = configManager.get(
+          'storage.collections.path',
+          (options.collectionDir as string) || configManager.get('storage.collections.path')
+        );
 
         // Display collections
         await listCollections(collectionDir);
       } catch (error) {
-        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(
+          chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        );
         process.exit(1);
       }
     });
@@ -50,15 +52,19 @@ export function addListCommand(program: Command): void {
       try {
         // Create config manager from options
         const configManager = await createConfigManagerFromOptions(options);
-        
+
         // Get collection directory from config manager
-        const collectionDir = configManager.get('storage.collections.path', 
-          options.collectionDir as string || configManager.get('storage.collections.path'));
+        const collectionDir = configManager.get(
+          'storage.collections.path',
+          (options.collectionDir as string) || configManager.get('storage.collections.path')
+        );
 
         // Display requests
         await listRequests(collectionDir, collection);
       } catch (error) {
-        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(
+          chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        );
         process.exit(1);
       }
     });
@@ -69,7 +75,7 @@ export function addListCommand(program: Command): void {
  */
 async function listCollections(collectionDir: string): Promise<void> {
   console.log(chalk.gray(`Loading collections from ${collectionDir}...`));
-  
+
   try {
     const collections = await getCollections(collectionDir);
     console.log(chalk.green('Collections loaded successfully'));
@@ -86,7 +92,11 @@ async function listCollections(collectionDir: string): Promise<void> {
     });
     console.log(); // Empty line for spacing
   } catch (error) {
-    console.error(chalk.red(`Failed to load collections: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(
+      chalk.red(
+        `Failed to load collections: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
     throw error;
   }
 }
@@ -96,7 +106,7 @@ async function listCollections(collectionDir: string): Promise<void> {
  */
 async function listRequests(collectionDir: string, collectionName: string): Promise<void> {
   console.log(chalk.gray(`Loading requests for collection '${collectionName}'...`));
-  
+
   try {
     const requests = await getRequests(collectionDir, collectionName);
     console.log(chalk.green(`Requests for collection '${collectionName}' loaded successfully`));
@@ -107,90 +117,99 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
     }
 
     console.log(chalk.bold(`\nRequests in collection '${collectionName}':`));
-    
+
     // Calculate column widths for better formatting
-    const idWidth = Math.max(...requests.map(r => r.id?.length || 0), 2) + 2;
-    const nameWidth = Math.max(...requests.map(r => r.name?.length || 0), 4) + 2;
-    
+    const idWidth = Math.max(...requests.map((r) => r.id?.length || 0), 2) + 2;
+    const nameWidth = Math.max(...requests.map((r) => r.name?.length || 0), 4) + 2;
+
     // Print top of table
     console.log(
       chalk.dim('┌─') +
-      chalk.dim('─'.repeat(3)) +
-      chalk.dim('─┬─') +
-      chalk.dim('─'.repeat(idWidth)) +
-      chalk.dim('─┬─') +
-      chalk.dim('─'.repeat(nameWidth)) +
-      chalk.dim('─┬─') +
-      chalk.dim('─'.repeat(8)) +
-      chalk.dim('─┐')
+        chalk.dim('─'.repeat(3)) +
+        chalk.dim('─┬─') +
+        chalk.dim('─'.repeat(idWidth)) +
+        chalk.dim('─┬─') +
+        chalk.dim('─'.repeat(nameWidth)) +
+        chalk.dim('─┬─') +
+        chalk.dim('─'.repeat(8)) +
+        chalk.dim('─┐')
     );
 
     // Print header
     console.log(
       chalk.dim('│ ') +
-      chalk.cyan(chalk.bold('#'.padEnd(3))) +
-      chalk.dim(' │ ') +
-      chalk.cyan(chalk.bold('ID'.padEnd(idWidth))) +
-      chalk.dim(' │ ') +
-      chalk.cyan(chalk.bold('NAME'.padEnd(nameWidth))) +
-      chalk.dim(' │ ') +
-      chalk.cyan(chalk.bold('METHOD'.padEnd(8))) +
-      chalk.dim(' │')
+        chalk.cyan(chalk.bold('#'.padEnd(3))) +
+        chalk.dim(' │ ') +
+        chalk.cyan(chalk.bold('ID'.padEnd(idWidth))) +
+        chalk.dim(' │ ') +
+        chalk.cyan(chalk.bold('NAME'.padEnd(nameWidth))) +
+        chalk.dim(' │ ') +
+        chalk.cyan(chalk.bold('METHOD'.padEnd(8))) +
+        chalk.dim(' │')
     );
-    
+
     // Print separator
     console.log(
       chalk.dim('├─') +
-      chalk.dim('─'.repeat(3)) +
-      chalk.dim('─┼─') +
-      chalk.dim('─'.repeat(idWidth)) +
-      chalk.dim('─┼─') +
-      chalk.dim('─'.repeat(nameWidth)) +
-      chalk.dim('─┼─') +
-      chalk.dim('─'.repeat(8)) +
-      chalk.dim('─┤')
+        chalk.dim('─'.repeat(3)) +
+        chalk.dim('─┼─') +
+        chalk.dim('─'.repeat(idWidth)) +
+        chalk.dim('─┼─') +
+        chalk.dim('─'.repeat(nameWidth)) +
+        chalk.dim('─┼─') +
+        chalk.dim('─'.repeat(8)) +
+        chalk.dim('─┤')
     );
-    
+
     // Print requests
     requests.forEach((request, index) => {
       const method = request.method || '';
-      const methodColor = 
-        method === 'GET' ? chalk.green :
-        method === 'POST' ? chalk.yellow :
-        method === 'PUT' ? chalk.blue :
-        method === 'DELETE' ? chalk.red :
-        method === 'PATCH' ? chalk.magenta :
-        chalk.white;
-      
+      const methodColor =
+        method === 'GET'
+          ? chalk.green
+          : method === 'POST'
+            ? chalk.yellow
+            : method === 'PUT'
+              ? chalk.blue
+              : method === 'DELETE'
+                ? chalk.red
+                : method === 'PATCH'
+                  ? chalk.magenta
+                  : chalk.white;
+
       console.log(
         chalk.dim('│ ') +
-        chalk.cyan(`${index + 1}`.padEnd(3)) +
-        chalk.dim(' │ ') +
-        chalk.white(request.id.padEnd(idWidth)) +
-        chalk.dim(' │ ') +
-        chalk.white(request.name.padEnd(nameWidth)) +
-        chalk.dim(' │ ') +
-        methodColor(method.padEnd(8)) +
-        chalk.dim(' │')
+          chalk.cyan(`${index + 1}`.padEnd(3)) +
+          chalk.dim(' │ ') +
+          chalk.white(request.id.padEnd(idWidth)) +
+          chalk.dim(' │ ') +
+          chalk.white(request.name.padEnd(nameWidth)) +
+          chalk.dim(' │ ') +
+          methodColor(method.padEnd(8)) +
+          chalk.dim(' │')
       );
     });
-    
+
     // Print bottom border
     console.log(
       chalk.dim('└─') +
-      chalk.dim('─'.repeat(3)) +
-      chalk.dim('─┴─') +
-      chalk.dim('─'.repeat(idWidth)) +
-      chalk.dim('─┴─') +
-      chalk.dim('─'.repeat(nameWidth)) +
-      chalk.dim('─┴─') +
-      chalk.dim('─'.repeat(8)) +
-      chalk.dim('─┘')
+        chalk.dim('─'.repeat(3)) +
+        chalk.dim('─┴─') +
+        chalk.dim('─'.repeat(idWidth)) +
+        chalk.dim('─┴─') +
+        chalk.dim('─'.repeat(nameWidth)) +
+        chalk.dim('─┴─') +
+        chalk.dim('─'.repeat(8)) +
+        chalk.dim('─┘')
     );
-    
+
     console.log(); // Empty line for spacing
   } catch (error) {
-    console.error(chalk.red(`Failed to load requests: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(
+      chalk.red(
+        `Failed to load requests: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
     throw error;
   }
 }

@@ -54,15 +54,15 @@ export async function getRequests(
     }
 
     const collection = await loadCollection(collectionPath);
-    
+
     // Handle both array-based and object-based request collections
     if (Array.isArray(collection.requests)) {
       // Array-based collection (like in httpbin.yaml)
-      return collection.requests.map(req => ({
-        id: req.id as string || '',
-        name: req.name as string || req.id as string || 'Unnamed Request',
+      return collection.requests.map((req) => ({
+        id: (req.id as string) || '',
+        name: (req.name as string) || (req.id as string) || 'Unnamed Request',
         description: req.description as string,
-        method: req.method as string
+        method: req.method as string,
       }));
     } else if (typeof collection.requests === 'object' && collection.requests !== null) {
       // Object-based collection (key-value pairs)
@@ -70,10 +70,10 @@ export async function getRequests(
         id,
         name: (req.name as string) || id,
         description: req.description as string,
-        method: req.method as string
+        method: req.method as string,
       }));
     }
-    
+
     return [];
   } catch (error) {
     throw new Error(
@@ -144,14 +144,14 @@ export async function getRequest(
     }
 
     const collection = await loadCollection(collectionPath);
-    
+
     // Handle both array-based and object-based request collections
     let request: RequestOptions | undefined;
-    
+
     if (Array.isArray(collection.requests)) {
       // Array-based collection (like in httpbin.yaml)
-      request = collection.requests.find(req => 
-        (req.id === requestName) || (req.name === requestName)
+      request = collection.requests.find(
+        (req) => req.id === requestName || req.name === requestName
       );
     } else if (typeof collection.requests === 'object' && collection.requests !== null) {
       // Object-based collection (key-value pairs)
@@ -165,7 +165,11 @@ export async function getRequest(
     // Add baseUrl from collection if it exists (handle both camelCase and snake_case)
     if ('base_url' in collection && typeof collection.base_url === 'string' && !request.baseUrl) {
       request.baseUrl = collection.base_url;
-    } else if ('baseUrl' in collection && typeof collection.baseUrl === 'string' && !request.baseUrl) {
+    } else if (
+      'baseUrl' in collection &&
+      typeof collection.baseUrl === 'string' &&
+      !request.baseUrl
+    ) {
       request.baseUrl = collection.baseUrl;
     }
 
@@ -203,22 +207,22 @@ export async function saveRequest(
     // Add or update request
     if (Array.isArray(collection.requests)) {
       // For array-based collections, find and update the existing request or add a new one
-      const index = collection.requests.findIndex(req => 
-        (req.id === requestName) || (req.name === requestName)
+      const index = collection.requests.findIndex(
+        (req) => req.id === requestName || req.name === requestName
       );
-      
+
       if (index >= 0) {
         // Update existing request
         collection.requests[index] = {
           ...collection.requests[index],
           ...request,
-          id: requestName // Ensure ID is set
+          id: requestName, // Ensure ID is set
         };
       } else {
         // Add new request
         collection.requests.push({
           ...request,
-          id: requestName
+          id: requestName,
         });
       }
     } else {
