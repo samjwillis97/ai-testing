@@ -65,81 +65,14 @@ export class SHCClient implements ISHCClient {
   private pluginManager: PluginManager;
   private collectionManager: unknown;
   private configManager: ConfigManagerImpl;
+  private deferPluginLoading: boolean;
 
   /**
    * Create a new HTTP client instance with optional configuration
    * @param config Configuration object
-   * @param options Additional options for client creation
-   * @param options.eventHandlers Event handlers to register before plugins are loaded
+   * @param deferPluginLoading Whether to defer plugin loading until after event handlers are registered
    */
-  static create(
-    config: SHCConfig,
-    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient;
-  /**
-   * Create a new HTTP client instance with a ConfigManager
-   * @param configManager ConfigManager instance
-   * @param options Additional options for client creation
-   * @param options.eventHandlers Event handlers to register before plugins are loaded
-   */
-  static create(
-    configManager: ConfigManager,
-    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient;
-  /**
-   * Implementation of create method that handles both config and ConfigManager
-   * @param configOrManager Configuration object or ConfigManager instance
-   * @param options Additional options for client creation
-   */
-  static create(
-    configOrManager: SHCConfig | ConfigManager,
-    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient {
-    let client: SHCClient;
-    
-    // Check if the parameter is a ConfigManager by looking for the 'get' method
-    if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
-      // It's a ConfigManager
-      const configManager = configOrManager as ConfigManager;
-      const config = configManager.get('') as SHCConfig;
-      client = new SHCClient(config);
-      // Set the existing ConfigManager instance instead of creating a new one
-      client._setConfigManager(configManager as ConfigManagerImpl);
-    } else {
-      // It's a regular config object or undefined
-      client = new SHCClient(configOrManager as SHCConfig);
-    }
-    
-    // Register event handlers if provided
-    if (options?.eventHandlers) {
-      for (const { event, handler } of options.eventHandlers) {
-        client.on(event, handler);
-      }
-    }
-    
-    return client;
-  }
-  
-  /**
-   * Create a builder for configuring an SHCClient with more options
-   * @param config Configuration object
-   */
-  static builder(config?: SHCConfig): SHCClientBuilder {
-    return new SHCClientBuilder(config);
-  }
-  
-  /**
-   * Create a builder with a ConfigManager
-   * @param configManager ConfigManager instance
-   */
-  static builderWithConfigManager(configManager: ConfigManager): SHCClientBuilder {
-    const config = configManager.get('') as SHCConfig;
-    const builder = new SHCClientBuilder(config);
-    builder.setConfigManager(configManager as ConfigManagerImpl);
-    return builder;
-  }
-
-  constructor(config?: SHCConfig) {
+  constructor(config?: SHCConfig, deferPluginLoading?: boolean) {
     // Initialize axios instance with default configuration
     this.axiosInstance = axios.create({
       baseURL: config?.baseURL,
@@ -167,19 +100,8 @@ export class SHCClient implements ISHCClient {
       configManager: this.configManager,
     });
 
-    // Register initial plugins if provided
-    if (config?.plugins) {
-      // Handle the new plugins structure
-      if (config.plugins.auth) {
-        config.plugins.auth.forEach((plugin) => this.use(plugin));
-      }
-      if (config.plugins.preprocessors) {
-        config.plugins.preprocessors.forEach((plugin) => this.use(plugin));
-      }
-      if (config.plugins.transformers) {
-        config.plugins.transformers.forEach((plugin) => this.use(plugin));
-      }
-    }
+    // Set defer plugin loading flag
+    this.deferPluginLoading = deferPluginLoading || false;
 
     // Load collections if provided in the config
     if (config?.collections) {
@@ -277,6 +199,112 @@ export class SHCClient implements ISHCClient {
         return Promise.reject(responseError);
       }
     );
+
+    // Load plugins if not deferred
+    if (!this.deferPluginLoading) {
+      this._loadPlugins(config);
+    }
+  }
+
+  /**
+   * Load plugins from the configuration
+   */
+  private _loadPlugins(config?: SHCConfig): void {
+    // Register initial plugins if provided
+    if (config?.plugins) {
+      // Handle the new plugins structure
+      if (config.plugins.auth) {
+        config.plugins.auth.forEach((plugin) => this.use(plugin));
+      }
+      if (config.plugins.preprocessors) {
+        config.plugins.preprocessors.forEach((plugin) => this.use(plugin));
+      }
+      if (config.plugins.transformers) {
+        config.plugins.transformers.forEach((plugin) => this.use(plugin));
+      }
+    }
+  }
+
+  /**
+   * Create a new HTTP client instance with optional configuration
+   * @param config Configuration object
+   * @param options Additional options for client creation
+   * @param options.eventHandlers Event handlers to register before plugins are loaded
+   */
+  static create(
+    config: SHCConfig,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient;
+  /**
+   * Create a new HTTP client instance with a ConfigManager
+   * @param configManager ConfigManager instance
+   * @param options Additional options for client creation
+   * @param options.eventHandlers Event handlers to register before plugins are loaded
+   */
+  static create(
+    configManager: ConfigManager,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient;
+  /**
+   * Implementation of create method that handles both config and ConfigManager
+   * @param configOrManager Configuration object or ConfigManager instance
+   * @param options Additional options for client creation
+   */
+  static create(
+    configOrManager: SHCConfig | ConfigManager,
+    options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
+  ): SHCClient {
+    let config: SHCConfig;
+    let configManager: ConfigManagerImpl | null = null;
+    
+    // Extract config and configManager
+    if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
+      // It's a ConfigManager
+      configManager = configOrManager as ConfigManagerImpl;
+      config = configManager.get('') as SHCConfig;
+    } else {
+      // It's a regular config object or undefined
+      config = configOrManager as SHCConfig || {};
+    }
+    
+    // Create a client with deferred plugin loading
+    const client = new SHCClient(config, true); // Pass true to defer plugin loading
+    
+    // Set the ConfigManager if provided
+    if (configManager) {
+      client._setConfigManager(configManager);
+    }
+    
+    // Register event handlers if provided
+    if (options?.eventHandlers) {
+      for (const { event, handler } of options.eventHandlers) {
+        client.on(event, handler);
+      }
+    }
+    
+    // Now load plugins
+    client._loadPlugins(config);
+    
+    return client;
+  }
+  
+  /**
+   * Create a builder for configuring an SHCClient with more options
+   * @param config Configuration object
+   */
+  static builder(config?: SHCConfig): SHCClientBuilder {
+    return new SHCClientBuilder(config);
+  }
+  
+  /**
+   * Create a builder with a ConfigManager
+   * @param configManager ConfigManager instance
+   */
+  static builderWithConfigManager(configManager: ConfigManager): SHCClientBuilder {
+    const config = configManager.get('') as SHCConfig;
+    const builder = new SHCClientBuilder(config);
+    builder.setConfigManager(configManager as ConfigManagerImpl);
+    return builder;
   }
 
   /**
