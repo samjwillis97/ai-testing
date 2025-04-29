@@ -7,6 +7,7 @@ import { PluginManager } from '../types/plugin-manager.types';
 import { createPluginManager } from './plugin-manager';
 import { createCollectionManager } from './collection-manager';
 import { ConfigManagerImpl } from '../config-manager';
+import { ConfigManager } from '../types/config.types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -67,9 +68,31 @@ export class SHCClient implements ISHCClient {
 
   /**
    * Create a new HTTP client instance with optional configuration
+   * @param config Configuration object
    */
-  static create(config?: SHCConfig): SHCClient {
-    return new SHCClient(config);
+  static create(config: SHCConfig): SHCClient;
+  /**
+   * Create a new HTTP client instance with a ConfigManager
+   * @param configManager ConfigManager instance
+   */
+  static create(configManager: ConfigManager): SHCClient;
+  /**
+   * Implementation of create method that handles both config and ConfigManager
+   * @param configOrManager Configuration object or ConfigManager instance
+   */
+  static create(configOrManager: SHCConfig | ConfigManager): SHCClient {
+    // Check if the parameter is a ConfigManager by looking for the 'get' method
+    if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
+      // It's a ConfigManager
+      const configManager = configOrManager as ConfigManager;
+      const config = configManager.get('', {}) as SHCConfig;
+      const client = new SHCClient(config);
+      // Set the existing ConfigManager instance instead of creating a new one
+      client.configManager = configManager as ConfigManagerImpl;
+      return client;
+    }
+    // It's a regular config object or undefined
+    return new SHCClient(configOrManager as SHCConfig);
   }
 
   constructor(config?: SHCConfig) {

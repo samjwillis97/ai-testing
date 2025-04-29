@@ -161,7 +161,6 @@ export function addCollectionCommand(program: Command): void {
 
           // Create client configuration
           const configManager = await createConfigManagerFromOptions(effectiveOptions);
-          const clientConfig = configManager.get('', {});
 
           // Execute request
           const requestSpinner = effectiveOptions.silent
@@ -171,8 +170,8 @@ export function addCollectionCommand(program: Command): void {
               ).start();
 
           try {
-            // Create client with configuration
-            const client = SHCClient.create(clientConfig);
+            // Create client with ConfigManager directly
+            const client = SHCClient.create(configManager);
 
             // Register event handlers for verbose output
             if (outputOptions.verbose) {

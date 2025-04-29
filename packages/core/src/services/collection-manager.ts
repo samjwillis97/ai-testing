@@ -31,7 +31,7 @@ export class CollectionManagerImpl implements ICollectionManager {
     this.collections = new Map<string, Collection>();
     this.globalVariableSets = new Map<string, VariableSet>();
     this.storagePath = options?.storagePath || './collections';
-    this.client = options?.client || SHCClient.create();
+    this.client = options?.client || SHCClient.create({});
     this.configManager = options?.configManager || new ConfigManagerImpl();
   }
 
