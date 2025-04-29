@@ -2,45 +2,56 @@
 
 ## Project Overview
 - Review `SPECS.md` and `specs/*` for complete functional specifications
-- Check `IMPLEMENTATION_STATUS.md` to understand current project status
 
 ## Development Workflow
 
-### 1. Understand Requirements
-- Study the specifications thoroughly before making changes
-- Identify the highest priority unimplemented features from `IMPLEMENTATION_STATUS.md`
+### 1. Initial Quality Check
 
-### 2. Development Process
-- Implement features according to specifications
-- Follow TypeScript best practices:
-  - Maintain proper typing for all functions and parameters
-  - Follow Single Responsibility Principle
-  - Use async/await patterns appropriately
-  - Implement proper error handling
+When starting work on any task, the AI assistant should:
 
-### 3. Quality Assurance
-Run the following commands to ensure code quality:
-```bash
-pnpm run test:coverage  # Run tests with coverage reports
-pnpm run lint           # Run ESLint for code linting
-pnpm run typecheck      # Run TypeScript type checking
-pnpm run prettier:fix   # Format code with Prettier
-pnpm run build          # Build the project
-```
+1. Run all quality checks from the root
+   ```bash
+   pnpm run test:coverage
+   pnpm run lint
+   pnpm run typecheck
+   pnpm run prettier:check
+   pnpm run build
+   ```
 
-**IMPORTANT**: Fix any failing tests, lint errors, or type errors before proceeding with further development.
+### 2. Address Failing Tests First
+If any tests are failing:
 
-### 4. Documentation
-- Update `IMPLEMENTATION_STATUS.md` after each feature implementation
-- Document any API changes or new functionality
+* Analyze and understand the failing tests
+* Fix the failing tests before making any other changes
+* Verify fixes by running the tests again
 
-### 5. Version Control
-- After completing changes:
-  1. Run the formatter: `pnpm run prettier:fix`
-  2. Create a commit following conventional commit format:
-     - Use appropriate type (feat, fix, docs, etc.)
-     - Include clear description of changes
-     - Reference related specifications
+### 3. Fix Linting and Type Errors
+After tests pass (or if there are no tests):
+
+* Address any linting errors: `pnpm run lint`
+* Fix type checking errors: `pnpm run typecheck`
+* Verify all errors are fixed by running the checks again
+
+### 4. Implementation Phase
+Only after all quality checks pass:
+
+* Check `IMPLEMENTATION_STATUS.md` to understand current project status
+* Implement new features
+* New feature should be chosen by highest priority from `IMPLEMENTATION_STATUS.md`
+* Write tests for new functionality
+* Ensure code quality kept to a high standard
+
+### 5. Final Quality Check
+After implementation:
+
+* Run all quality checks again
+* Fix any new issues that arise
+* Format code: `pnpm run prettier:fix`
+
+### 6. Documentation and Status Update
+
+* Update `IMPLEMENTATION_STATUS.md`
+* Document any API changes
 
 ## Package Management
 - Use **pnpm** exclusively for all package operations
@@ -55,5 +66,3 @@ pnpm run build          # Build the project
   3. Type check
   4. Test
   5. Format
-
-Remember to implement the highest priority features first and maintain specification compliance throughout development.
