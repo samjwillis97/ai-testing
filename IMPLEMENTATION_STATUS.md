@@ -111,12 +111,27 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] Collection and environment management
 - [ ] Variable and authentication management
 - [ ] Response viewer and output formatting
+  - [ ] Built-in formatters (JSON, YAML, Raw, Table)
+  - [ ] Support for custom formatters via plugins
 - [ ] Command options and flags
 - [ ] Autocomplete & Tab Completion
   - [ ] Tab completion for collections and requests in CLI
   - [ ] Dynamic suggestions based on available collections/requests
   - [ ] Shell compatibility (bash, zsh, fish)
   - [ ] Plugin extensibility for custom completions
+- [ ] CLI Extension System
+  - [ ] Plugin loading mechanisms
+    - [ ] Load from npm packages
+    - [ ] Load from local paths
+    - [ ] Load from git repositories
+    - [ ] Auto-discovery from plugin directories
+  - [ ] Plugin types
+    - [ ] Output formatter plugins
+    - [ ] Custom command plugins
+    - [ ] Shell completion plugins
+    - [ ] Response visualizer plugins
+  - [ ] Plugin configuration in CLI config
+  - [ ] Plugin lifecycle management (enable/disable)
 - [ ] Test suite
 
 ## Web UI Package (`@shc/web-ui`)

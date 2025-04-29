@@ -90,11 +90,98 @@ The CLI provides intelligent autocomplete for commands and arguments using Tab c
 
 ## Output Formats
 
-- JSON (default)
-- YAML
-- Raw
-- Table
-- Custom formats via plugins
+- **JSON** (default): Structured JSON output
+- **YAML**: YAML formatted output
+- **Raw**: Unformatted raw response content
+- **Table**: Tabular format for array data
+- **Custom formats**: Via output formatter plugins
+
+## Extension Support
+
+The CLI package provides its own extension system for CLI-specific functionality, separate from the core package's plugin system. This allows for extending the CLI's capabilities without affecting the core HTTP client.
+
+### CLI Extension Types
+
+- **Output Formatters**: Custom output formats beyond the built-in ones (JSON, YAML, Raw, Table)
+- **Custom Commands**: Additional commands that can be added to the CLI
+- **Shell Completions**: Enhanced completion providers for specific shells
+- **Response Visualizers**: Special handlers for displaying certain response types
+
+### CLI Plugin Architecture
+
+The CLI package supports loading plugins from multiple sources, following the same pattern as the core package:
+
+#### Plugin Source Types
+
+1. **NPM Package Plugin**:
+```yaml
+cli:
+  plugins:
+    - name: "markdown-formatter"
+      package: "shc-cli-plugin-markdown"
+      version: "^1.0.0"
+      config:
+        theme: "github"
+        codeHighlight: true
+```
+
+2. **Local Path Plugin**:
+```yaml
+cli:
+  plugins:
+    - name: "csv-formatter"
+      path: "./plugins/csv-formatter"
+      config:
+        delimiter: ","
+        headers: true
+```
+
+3. **Git Repository Plugin**:
+```yaml
+cli:
+  plugins:
+    - name: "html-formatter"
+      git: "https://github.com/example/shc-cli-plugin-html.git"
+      ref: "main"
+      config:
+        prettyPrint: true
+        inlineCSS: false
+```
+
+#### Plugin Discovery
+
+In addition to explicitly configured plugins, the CLI will also discover plugins from:
+
+1. Global plugin directory (`~/.shc/cli-plugins`)
+2. Project-specific plugin directory (relative to config file)
+
+#### Plugin Requirements
+
+Each CLI plugin must have:
+- A `plugin.json` or `package.json` with `shcCliPlugin` section
+- Type designation (`output-formatter`, `command`, etc.)
+- Required metadata (name, version, description)
+- Implementation files
+
+### Core Plugin Integration
+
+The CLI also integrates with the core package's plugin system for:
+- Authentication providers
+- Request transformers
+- Response handlers
+
+This integration allows the CLI to leverage the core package's plugin ecosystem while maintaining its own extensions for CLI-specific functionality.
+
+### Output Formatter Plugin API
+
+Output formatter plugins must implement:
+```typescript
+interface OutputFormatter {
+  format: string;            // Format identifier
+  formatOutput: (data: unknown, options: OutputOptions) => string;
+  description: string;       // Format description
+}
+```
 
 ## Integration Features
 
@@ -103,14 +190,6 @@ The CLI provides intelligent autocomplete for commands and arguments using Tab c
 - Exit codes
 - Environment variables
 - Config file support
-
-## Extension Support
-
-- Custom commands
-- Output formatters
-- Authentication providers
-- Request transformers
-- Response handlers
 
 ## Development
 
