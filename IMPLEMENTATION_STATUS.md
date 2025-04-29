@@ -5,7 +5,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 ## Current Goals
 
 - [x] Get the plugins working with the CLI client via. adding a path pluggin to the config and loading it, validate that it works
-- [ ] Refactor configuration path resolution and collection management from CLI to core package (see tasks/refactor-config-path-resolution.md)
+- [x] Refactor configuration path resolution and collection management from CLI to core package (see tasks/refactor-config-path-resolution.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
@@ -147,10 +147,10 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] Response handling rules
 
 ## Configuration System
-- [ ] YAML/JSON config file support
-- [ ] Core, variable sets, logging, plugins, security policies
-- [ ] Environment and secret management
-- [ ] Schema validation and error reporting
+- [x] YAML/JSON config file support
+- [x] Core, variable sets, logging, plugins, security policies
+- [x] Environment and secret management
+- [x] Schema validation and error reporting
 
 ## General
 - [ ] TypeScript strict mode and best practices

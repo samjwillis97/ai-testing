@@ -1,5 +1,7 @@
 /**
- * Configuration utilities
+ * Configuration utilities for the CLI package.
+ * These utilities handle configuration loading, path resolution, and integration
+ * with the core package's ConfigManager.
  */
 import path from 'path';
 import os from 'os';
@@ -9,7 +11,13 @@ import { ConfigManager } from '@shc/core';
 export const configManagerFactory = () => new ConfigManager();
 
 /**
- * Get effective options by merging CLI options with config file
+ * Get effective options by merging CLI options with config file settings.
+ * This function loads configuration from a file if specified and merges it with
+ * the provided CLI options, with CLI options taking precedence.
+ * 
+ * @param options - CLI options from Commander
+ * @param createConfigManager - Factory function for creating a ConfigManager instance (for testing)
+ * @returns A merged configuration object with CLI options taking precedence
  */
 export async function getEffectiveOptions(
   options: Record<string, unknown>,
@@ -54,78 +62,74 @@ export async function getEffectiveOptions(
 }
 
 /**
- * Get collection directory path
+ * Get the collection directory path based on options.
+ * This function resolves the collection directory path according to the following rules:
+ * 1. If collectionDir is specified in options, use that
+ * 2. If collectionDir is a relative path and config file is specified, resolve relative to config file directory
+ * 3. If collectionDir is a relative path and no config file is specified, resolve relative to current working directory
+ * 
+ * @param options - CLI options containing collectionDir and possibly config
+ * @returns The resolved absolute path to the collection directory
  */
-export async function getCollectionDir(options: Record<string, unknown>): Promise<string> {
-  let collectionDir: string;
-
-  // CLI option takes precedence
+export function getCollectionDir(options: Record<string, unknown>): string {
+  // If collectionDir is specified in options, use that
   if (options.collectionDir) {
-    collectionDir = options.collectionDir as string;
-  }
-  // Check if storage.collections.path is defined in the config
-  else if (
-    options.storage &&
-    typeof options.storage === 'object' &&
-    (options.storage as Record<string, unknown>).collections &&
-    typeof (options.storage as Record<string, unknown>).collections === 'object' &&
-    ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path
-  ) {
-    collectionDir = (
-      (options.storage as Record<string, unknown>).collections as Record<string, unknown>
-    ).path as string;
-  }
-  // Default to ~/.shc/collections
-  else {
-    const homeDir = os.homedir();
-    collectionDir = path.join(homeDir, '.shc', 'collections');
-  }
-
-  // If the path is relative, resolve it relative to the config file location or current directory
-  if (!path.isAbsolute(collectionDir)) {
-    // If we have a config file path, resolve relative to that
-    if (options.config && typeof options.config === 'string') {
-      const configDir = path.dirname(path.resolve(options.config as string));
-      collectionDir = path.resolve(configDir, collectionDir);
-    } else {
-      // Otherwise resolve relative to current working directory
-      collectionDir = path.resolve(process.cwd(), collectionDir);
+    const collectionDir = options.collectionDir as string;
+    
+    // If it's an absolute path, use it directly
+    if (path.isAbsolute(collectionDir)) {
+      return collectionDir;
     }
+    
+    // If config file is specified, resolve relative to config file directory
+    if (options.config) {
+      const configDir = path.dirname(options.config as string);
+      return path.resolve(configDir, collectionDir);
+    }
+    
+    // Otherwise, resolve relative to current working directory
+    return path.resolve(process.cwd(), collectionDir);
   }
 
-  return collectionDir;
+  // Default to storage.collections.path from config, or ./collections if not specified
+  return path.resolve(process.cwd(), './collections');
 }
 
 /**
- * Create a ConfigManager instance from CLI options
+ * Create a ConfigManager instance from CLI options.
+ * This function creates a ConfigManager instance, loads configuration from a file if specified,
+ * and applies CLI options to override config values.
+ * 
+ * @param options - CLI options from Commander
+ * @param createConfigManager - Factory function for creating a ConfigManager instance (for testing)
+ * @returns A configured ConfigManager instance
  */
 export async function createConfigManagerFromOptions(
   options: Record<string, unknown>,
   createConfigManager = configManagerFactory
 ): Promise<ConfigManager> {
   const configManager = createConfigManager();
-  const configPath = options.config as string;
-
-  if (configPath) {
+  
+  // Load config file if specified
+  if (options.config) {
     try {
-      await configManager.loadFromFile(configPath);
-      console.log(`Config loaded from: ${configPath}`);
+      await configManager.loadFromFile(options.config as string);
     } catch (error) {
       console.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
-
+  
   // Apply CLI options to override config values
   if (options.collectionDir) {
     configManager.set('storage.collections.path', options.collectionDir);
   }
-
+  
   if (options.timeout) {
     configManager.set('core.http.timeout', options.timeout);
   }
-
+  
   return configManager;
 }
 
