@@ -4,6 +4,8 @@
 import { Command, Option } from 'commander';
 import ora from 'ora';
 import chalk from 'chalk';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 import { SHCClient } from '@shc/core';
 import { RequestOptions, OutputOptions } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
@@ -13,8 +15,6 @@ import {
   createConfigManagerFromOptions,
 } from '../utils/config.js';
 import { getRequest, saveRequest } from '../utils/collections.js';
-import path from 'path';
-import * as fs from 'fs/promises';
 
 /**
  * Add collection request command to program
@@ -173,92 +173,6 @@ export function addCollectionCommand(program: Command): void {
           try {
             // Create client with configuration
             const client = SHCClient.create(clientConfig);
-
-            // Dynamically import and register the rate-limit plugin
-            try {
-              const pluginPath = path.resolve(process.cwd(), 'plugins/rate-limit/dist/index.js');
-
-              // Check if the plugin file exists
-              try {
-                await fs.access(pluginPath);
-              } catch (error) {
-                if (outputOptions.verbose) {
-                  console.log(chalk.yellow(`Rate-limit plugin not found at ${pluginPath}`));
-                }
-                // Continue without the plugin
-              }
-
-              // Try to import the plugin
-              const rateLimitPluginModule = await import(pluginPath);
-              const RateLimitPlugin = rateLimitPluginModule.default;
-
-              if (RateLimitPlugin && typeof RateLimitPlugin === 'object') {
-                // Configure the plugin if possible
-                if (typeof RateLimitPlugin.configure === 'function') {
-                  // Extract plugin configuration from options if available
-                  let pluginConfig = null;
-
-                  if (
-                    effectiveOptions.plugins &&
-                    typeof effectiveOptions.plugins === 'object' &&
-                    'preprocessors' in effectiveOptions.plugins &&
-                    Array.isArray(effectiveOptions.plugins.preprocessors)
-                  ) {
-                    pluginConfig = effectiveOptions.plugins.preprocessors.find(
-                      (p: Record<string, unknown>) => {
-                        if ('path' in p && typeof p.path === 'string') {
-                          return p.path.includes('rate-limit');
-                        }
-                        if ('package' in p && typeof p.package === 'string') {
-                          return p.package.includes('rate-limit');
-                        }
-                        return false;
-                      }
-                    )?.config;
-                  }
-
-                  if (pluginConfig) {
-                    await RateLimitPlugin.configure(pluginConfig);
-                    if (outputOptions.verbose) {
-                      console.log(chalk.blue('Rate-limit plugin configured with custom settings'));
-                    }
-                  } else {
-                    // Use default configuration if none provided
-                    await RateLimitPlugin.configure({
-                      rules: [
-                        {
-                          endpoint: '.*', // Match all endpoints
-                          limit: 10,
-                          window: 60,
-                          priority: 0,
-                        },
-                      ],
-                      queueBehavior: 'delay',
-                    });
-                    if (outputOptions.verbose) {
-                      console.log(chalk.blue('Rate-limit plugin configured with default settings'));
-                    }
-                  }
-                }
-
-                // Register the plugin with the client
-                client.use(RateLimitPlugin);
-                if (outputOptions.verbose) {
-                  console.log(
-                    chalk.blue(
-                      `Plugin registered: ${RateLimitPlugin.name} v${RateLimitPlugin.version}`
-                    )
-                  );
-                }
-              }
-            } catch (pluginError) {
-              if (outputOptions.verbose) {
-                console.log(
-                  chalk.yellow(`Failed to load rate-limit plugin: ${String(pluginError)}`)
-                );
-              }
-              // Continue without the plugin
-            }
 
             // Register event handlers for verbose output
             if (outputOptions.verbose) {
