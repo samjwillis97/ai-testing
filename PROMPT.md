@@ -1,6 +1,15 @@
 Study SPECS.md and specs/* for functional specifications.
-Implement what is not implemented
+
+Run tests with: `pnpm run test:coverage`
+Run linter with: `pnpm run lint`
+Run type checker with: `pnpm run typecheck`
+Run formatter with: `pnpm run prettier:fix`
+Build with: `pnpm run build`
+
+IMPORTANT: If any of the tests, lint checks or type checks fail, fix the issues before moving on. 
 
 Study IMPLEMENTATION_STATUS.md and implement the most important piece (ensure tests are authored) if it has not been implemented.
 
-After each change run `pnpm run test:coverage` resolve any errors, run `pnpm run lint` and `pnpm run typecheck` fix any issues, and build with `pnpm run build`. Once completed update the IMPLEMENTATION_STATUS.md file, run `pnpm run prettier:fix` and create a commit.
+Implement what is not implemented
+
+IMPORTANT: After each change run tests, linter, type checker, formatter and build. If any of the tests, lint checks or type checks fail, fix the issues before moving on. After each change update the IMPLEMENTATION_STATUS.md file, run `pnpm run prettier:fix` and create a commit.
