@@ -30,8 +30,8 @@ When following this guide the most important things are:
 ### Development Process
 
 1. Fix all issues from the #Code Quality Checks
-2. Check `IMPLEMENTATION_STATUS.md` to understand current project status
-3. Implement the most important feature from `IMPLEMENTATION_STATUS.md` as per the Typescript Rules
+2. Check `tasks/` directory for tasks to complete. If there are no tasks to complete, check `IMPLEMENTATION_STATUS.md` to understand current project status
+3. Implement the most important task, if there are no tasks to complete, implement the most important feature from `IMPLEMENTATION_STATUS.md` as per the Typescript Rules
 4. Write tests for new functionality
 5. Run quality checks again, fix any issues
 6. Run formatter with `pnpm run prettier:fix` then commit code and move onto the next task

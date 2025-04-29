@@ -1,0 +1,105 @@
+# SHC Configuration File with Plugins (shc-with-plugins.config.yaml)
+version: "1.0.0"
+name: "SHC Demo Workspace with Plugins"
+description: "Example configuration for demonstrating SHC plugins integration"
+
+# Core settings for the SHC client
+core:
+  # HTTP client configuration
+  http:
+    timeout: 30000             # Default request timeout in ms
+    max_redirects: 5           # Maximum number of redirects to follow
+    retry:
+      attempts: 3              # Number of retry attempts
+      backoff: "exponential"   # Retry backoff strategy
+    proxy:
+      no_proxy: ["localhost", "127.0.0.1"]
+    tls:
+      verify: true
+  
+  # Logging configuration
+  logging:
+    level: "info"             # debug, info, warn, error
+    format: "json"            # json, text
+    output: "console"         # console, file
+
+# Variable sets configuration
+variable_sets:
+  # Global variable sets
+  global:
+    api:
+      description: "API configuration for different environments"
+      default_value: "httpbin"
+      active_value: "httpbin"
+      values:
+        httpbin:
+          url: "https://httpbin.org"
+          timeout: 5000
+          debug: true
+        jsonplaceholder:
+          url: "https://jsonplaceholder.typicode.com"
+          timeout: 3000
+          debug: false
+        github:
+          url: "https://api.github.com"
+          timeout: 10000
+          debug: false
+    
+    auth:
+      description: "Authentication configuration"
+      default_value: "default"
+      active_value: "default"
+      values:
+        default:
+          token: "${env.API_TOKEN}"
+          username: "${env.API_USERNAME}"
+          password: "${env.API_PASSWORD}"
+  
+  # Default collection variable sets
+  collection_defaults:
+    user:
+      description: "Default user configurations"
+      default_value: "default"
+      active_value: "default"
+      values:
+        default:
+          id: 1
+          name: "John Doe"
+          email: "john.doe@example.com"
+
+# Plugin configuration - using the format expected by the core package
+plugins:
+  # Authentication plugins
+  auth: []
+  
+  # Request preprocessor plugins
+  preprocessors: 
+    - package: "../plugins/rate-limit/dist/index.js"
+      config:
+        rules:
+          - endpoint: "/api"
+            limit: 5
+            window: 60
+            priority: 0
+          - endpoint: "/status"
+            limit: 2
+            window: 30
+            priority: 10
+        queueBehavior: "delay"
+    - package: "../plugins/logging/dist/index.js"
+      config:
+        level: "info"
+        includeHeaders: true
+        includeBody: true
+        maskSensitiveData: true
+        sensitiveFields: ["password", "token", "apiKey"]
+  
+  # Response transformer plugins
+  transformers: []
+
+# Storage configuration
+storage:
+  # Collection storage
+  collections:
+    type: "file"
+    path: "./collections"

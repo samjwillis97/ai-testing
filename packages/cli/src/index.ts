@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { addDirectRequestCommand } from './commands/direct-request.js';
+import { addDirectCommand } from './commands/direct-request.js';
 import { addCollectionCommand } from './commands/collection-request.js';
 import { addCompletionCommand } from './commands/completion.js';
 import { addListCommand } from './commands/list.js';
@@ -21,7 +21,7 @@ program
 program.passThroughOptions();
 
 // Add direct request command
-addDirectRequestCommand(program);
+addDirectCommand(program);
 
 // Add collection command
 addCollectionCommand(program);

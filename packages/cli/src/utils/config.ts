@@ -3,7 +3,7 @@
  */
 import path from 'path';
 import os from 'os';
-import { ConfigManager } from '@shc/core';
+import { ConfigManager, SHCConfig } from '@shc/core';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
@@ -41,6 +41,9 @@ export async function getEffectiveOptions(
   // Extract variable sets
   configData.variable_sets = configManager.get('variable_sets');
   
+  // Extract plugins configuration
+  configData.plugins = configManager.get('plugins');
+  
   // Merge config with CLI options (CLI options take precedence)
   return {
     ...configData,
@@ -52,23 +55,39 @@ export async function getEffectiveOptions(
  * Get collection directory path
  */
 export async function getCollectionDir(options: Record<string, unknown>): Promise<string> {
+  let collectionDir: string;
+
   // CLI option takes precedence
   if (options.collectionDir) {
-    return options.collectionDir as string;
+    collectionDir = options.collectionDir as string;
   }
-
   // Check if storage.collections.path is defined in the config
-  if (options.storage && 
+  else if (options.storage && 
       typeof options.storage === 'object' && 
       (options.storage as Record<string, unknown>).collections && 
       typeof (options.storage as Record<string, unknown>).collections === 'object' &&
       ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path) {
-    return ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path as string;
+    collectionDir = ((options.storage as Record<string, unknown>).collections as Record<string, unknown>).path as string;
+  }
+  // Default to ~/.shc/collections
+  else {
+    const homeDir = os.homedir();
+    collectionDir = path.join(homeDir, '.shc', 'collections');
   }
 
-  // Default to ~/.shc/collections
-  const homeDir = os.homedir();
-  return path.join(homeDir, '.shc', 'collections');
+  // If the path is relative, resolve it relative to the config file location or current directory
+  if (!path.isAbsolute(collectionDir)) {
+    // If we have a config file path, resolve relative to that
+    if (options.config && typeof options.config === 'string') {
+      const configDir = path.dirname(path.resolve(options.config as string));
+      collectionDir = path.resolve(configDir, collectionDir);
+    } else {
+      // Otherwise resolve relative to current working directory
+      collectionDir = path.resolve(process.cwd(), collectionDir);
+    }
+  }
+
+  return collectionDir;
 }
 
 /**
@@ -100,4 +119,35 @@ export async function createConfigManagerFromOptions(
   }
   
   return configManager;
+}
+
+/**
+ * Create an SHC client configuration from effective options
+ */
+export function createClientConfig(options: Record<string, unknown>): SHCConfig {
+  const config: SHCConfig = {};
+  
+  // Set timeout if specified
+  if (options.timeout) {
+    config.timeout = parseInt(options.timeout as string, 10);
+  } else if (options.core && 
+             typeof options.core === 'object' && 
+             (options.core as Record<string, unknown>).http && 
+             typeof (options.core as Record<string, unknown>).http === 'object' &&
+             ((options.core as Record<string, unknown>).http as Record<string, unknown>).timeout) {
+    config.timeout = ((options.core as Record<string, unknown>).http as Record<string, unknown>).timeout as number;
+  }
+  
+  // Set storage configuration
+  if (options.storage && typeof options.storage === 'object') {
+    config.storage = options.storage as Record<string, unknown>;
+  }
+  
+  // Set plugins configuration
+  if (options.plugins && typeof options.plugins === 'object') {
+    // We'll let the core package handle plugin loading
+    config.plugins = options.plugins as Record<string, unknown>;
+  }
+  
+  return config;
 }

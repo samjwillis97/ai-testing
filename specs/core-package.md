@@ -276,33 +276,39 @@ const response = await collectionManager.executeRequest('my-api', 'get-user-prof
 
 ```typescript
 interface ConfigManager {
-  // Load and parse configuration
-  loadFromFile(path: string): Promise<void>;
-  loadFromString(content: string): Promise<void>;
+  // Loading configuration
+  loadFromFile(filePath: string): Promise<void>;
+  loadFromObject(config: Record<string, any>): void;
+  merge(config: Record<string, any>): void;
   
-  // Configuration access
+  // Accessing configuration
   get<T>(path: string, defaultValue?: T): T;
-  set(path: string, value: any): void;
   has(path: string): boolean;
+  set(path: string, value: any): void;
   
-  // Environment variables
-  getEnv(name: string, defaultValue?: string): string;
-  requireEnv(name: string): string;
+  // Path resolution
+  resolvePath(relativePath: string, basePath?: string): string;
+  resolveCollectionPath(collectionPath: string): string;
+  resolvePluginPath(pluginPath: string): string;
   
   // Template resolution
   resolve(template: string): Promise<string>;
-  resolveObject<T>(obj: T): Promise<T>;
+  resolveObject<T>(object: T): Promise<T>;
 }
 
 // Example Usage:
 const config = new ConfigManager();
 
-// Load configuration
+// Load configuration from file
 await config.loadFromFile('config.yaml');
 
 // Access configuration values
 const apiKey = config.get('api.key');
 const dbConfig = config.get('database', { host: 'localhost' });
+
+// Resolve paths
+const absoluteCollectionPath = config.resolveCollectionPath('./collections');
+const absolutePluginPath = config.resolvePluginPath('../plugins/rate-limit');
 
 // Resolve templates
 const resolvedUrl = await config.resolve(
@@ -318,6 +324,31 @@ const requestConfig = await config.resolveObject({
   }
 });
 ```
+
+### Path Resolution and Configuration Management Requirements
+
+The core package is responsible for all configuration parsing, path resolution, and collection management functionality. This includes:
+
+1. **Configuration File Handling**:
+   - Loading configuration files from various formats (YAML, JSON)
+   - Merging configurations from multiple sources
+   - Providing a unified configuration interface
+
+2. **Path Resolution**:
+   - Resolving relative paths in configuration files to absolute paths
+   - Handling path resolution relative to configuration file location
+   - Providing consistent path resolution across different operating systems
+
+3. **Collection Management**:
+   - Managing collection storage locations
+   - Resolving collection paths from configuration
+   - Handling collection file operations
+
+4. **Plugin Configuration**:
+   - Loading and configuring plugins based on configuration
+   - Resolving plugin paths and dependencies
+
+All client applications (CLI, Web UI, etc.) should delegate these responsibilities to the core package and not implement their own configuration parsing or path resolution logic. This ensures consistent behavior across all interfaces and prevents duplication of functionality.
 
 ### Plugin System API
 
