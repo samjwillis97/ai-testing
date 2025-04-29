@@ -212,6 +212,51 @@ This rule establishes pnpm as the required package manager for all JavaScript/Ty
      - Enable strict type checking
      - Configure proper module resolution
 
+# Package Version Management Rules
+
+## Description
+This rule establishes standards for managing package versions to ensure compatibility, security, and maintainability across all projects.
+
+## Rule
+1. MUST use latest compatible versions
+   - All dependencies MUST be kept updated to the latest compatible versions
+   - Security vulnerabilities MUST be addressed by updating affected packages promptly
+   - Breaking changes MUST be carefully evaluated before major version upgrades
+
+2. MUST implement version pinning strategy
+   - Production dependencies MUST use exact version pinning (e.g., "4.2.0" not "^4.2.0")
+   - Development dependencies MAY use caret ranges (^) for minor version flexibility
+   - NEVER use tilde ranges (~) or wildcard (*) version specifiers
+
+3. MUST perform regular dependency audits
+   - Run `pnpm audit` weekly to identify security vulnerabilities
+   - Document any vulnerabilities that cannot be immediately addressed
+   - Implement mitigation strategies for unresolved vulnerabilities
+
+4. MUST validate version compatibility
+   - Test thoroughly after dependency updates
+   - Maintain a compatibility matrix for critical dependencies
+   - Document known incompatibilities between package versions
+
+5. MUST follow semantic versioning principles
+   - When publishing packages, strictly adhere to semver guidelines
+   - Major version: Breaking changes
+   - Minor version: New features (non-breaking)
+   - Patch version: Bug fixes and minor updates
+
+## Benefits
+- Enhanced security through regular updates
+- Reduced technical debt from outdated dependencies
+- Improved stability with consistent version management
+- Better developer experience with predictable dependencies
+- Simplified troubleshooting with known-good version combinations
+
+## Implementation
+- Configure renovate or dependabot for automated dependency updates
+- Include dependency update schedule in CI/CD pipeline
+- Document version policy in project README
+- Create version compatibility tests for critical dependencies
+
 # Security Guidelines
 
 1. MUST follow security best practices
