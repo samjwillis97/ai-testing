@@ -29,5 +29,6 @@ export default defineConfig({
       enabled: true,
       tsconfig: './tsconfig.test.json'
     },
+    globals: false
   },
 });
