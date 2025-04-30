@@ -105,41 +105,61 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Plugin configuration and best practices
 
 ## CLI Package (`@shc/cli`)
-- [ ] Direct request mode
-- [ ] Collection mode
-- [ ] Request execution (all HTTP methods)
-- [ ] Collection and environment management
-- [ ] Variable and authentication management
-- [ ] Response viewer and output formatting
-  - [ ] Built-in formatters (JSON, YAML, Raw, Table)
-  - [ ] Support for custom formatters via plugins
-- [ ] Command options and flags
-- [ ] Autocomplete & Tab Completion
-  - [ ] Tab completion for collections and requests in CLI
-  - [ ] Dynamic suggestions based on available collections/requests
-  - [ ] Shell compatibility (bash, zsh, fish)
-  - [ ] Plugin extensibility for custom completions
-- [ ] CLI Extension System
-  - [ ] Plugin loading mechanisms
-    - [ ] Load from npm packages
-    - [ ] Load from local paths
-    - [ ] Load from git repositories
-    - [ ] Auto-discovery from plugin directories
-  - [ ] Plugin types
-    - [ ] Output formatter plugins
-    - [ ] Custom command plugins
-    - [ ] Shell completion plugins
-    - [ ] Response visualizer plugins
-  - [ ] Plugin configuration in CLI config
-  - [ ] Plugin lifecycle management (enable/disable)
-- [ ] Test suite
+- [x] Direct request mode
+  - [x] HTTP method and URL execution
+  - [x] Header, data, query, and auth options
+- [x] Collection mode
+  - [x] Run requests from collections
+  - [x] Support for environment variables
+- [x] List command
+  - [x] List collections
+  - [x] List requests within collections
+- [x] Global options
+  - [x] Config file path
+  - [ ] Set config values
+  - [x] Verbose/silent modes
+  - [x] Output format selection
+  - [x] Color control
+- [x] Request execution (all HTTP methods)
+- [x] Collection and environment management
+- [x] Variable and authentication management
+- [x] Response viewer and output formatting
+  - [x] Built-in formatters (JSON, YAML, Raw, Table)
+  - [-] Support for custom formatters via plugins
+- [x] Command options and flags
+- [-] Autocomplete & Tab Completion
+  - [x] Collection name completion
+  - [x] Request name completion within collections
+  - [x] Dynamic suggestions based on available collections/requests
+  - [x] Multi-level completion with Tab cycling
+  - [-] Shell compatibility (bash, zsh, fish)
+- [-] CLI Extension System
+  - [-] Plugin loading mechanisms
+    - [-] Load from npm packages
+    - [x] Load from local paths
+    - [-] Load from git repositories
+    - [-] Auto-discovery from plugin directories
+  - [-] Plugin types
+    - [x] Output formatter plugins
+    - [-] Custom command plugins
+    - [-] Shell completion plugins
+    - [-] Response visualizer plugins
+  - [-] Plugin configuration in CLI config
+  - [-] Plugin lifecycle management
+  - [-] Integration with core package plugins
+- [-] Integration features
+  - [x] Pipe support (stdin/stdout)
+  - [-] Shell completion
+  - [x] Exit codes
+  - [x] Environment variables
+- [x] Test suite
 
 ## Web UI Package (`@shc/web-ui`)
 - [ ] Request management interface (builder, history, preview)
 - [ ] Collection editor (tree navigation, import/export)
 - [ ] Environment and variable management UI
 - [ ] Request builder components (method, URL, headers, body, etc.)
-- [ ] Response viewer (status, headers, body, metrics)
+- [ ] Response viewer (status, headers, body)
 - [ ] Extension marketplace and plugin management UI
 - [ ] Responsive design, dark/light theme, accessibility
 - [ ] Keyboard shortcuts

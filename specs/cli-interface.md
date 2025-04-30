@@ -29,6 +29,7 @@ The Command-Line Interface package provides a powerful, scriptable interface for
 Applied to every command of SHC
 
 - `-c, --config <path>`: Config file path
+- `-V, --set <key>=<value>`: Set config value, (i.e. --set storage.collections.path="./collections")
 - `-v, --verbose`: Verbose output
 - `-s, --silent`: Silent mode
 - `-o, --output <format>`: Output format
@@ -56,10 +57,6 @@ Collection request mode allows you to run a specific request from a collection t
 ```bash
 shc [options] <collection> <request>
 ```
-
-#### Command Options
-
-- `--collection-dir <dir>`: Collection directory
 
 ### List
 
