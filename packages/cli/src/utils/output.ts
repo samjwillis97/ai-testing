@@ -155,10 +155,19 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
  */
 export function printResponse(response: ResponseData, options: OutputOptions): void {
   if (options.silent) {
-    // In silent mode, only output the raw data without any console.log wrapper
-    const output = formatResponse(response, options);
-    if (output) {
-      process.stdout.write(output);
+    // In silent mode, only output the data without any console.log wrapper
+    if (options.format === 'raw') {
+      // For raw format in silent mode, output the raw data directly
+      const rawOutput = formatRawData(response.data);
+      if (rawOutput) {
+        process.stdout.write(rawOutput);
+      }
+    } else {
+      // For other formats in silent mode, use formatResponse
+      const output = formatResponse(response, options);
+      if (output) {
+        process.stdout.write(output);
+      }
     }
     return;
   }

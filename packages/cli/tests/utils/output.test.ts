@@ -40,7 +40,7 @@ describe('Output Formatting', () => {
   });
 
   describe('formatOutput', () => {
-    it('should return empty string when silent is true', () => {
+    it('should return formatted data when silent is true', () => {
       const options: OutputOptions = {
         format: 'json' as OutputOptions['format'], 
         color: true,
@@ -48,7 +48,7 @@ describe('Output Formatting', () => {
         silent: true,
       };
       const result = formatOutput({ test: 'data' }, options);
-      expect(result).toBe('');
+      expect(result).toBe(JSON.stringify({ test: 'data' }, null, 2));
     });
 
     it('should format JSON output', () => {
@@ -141,7 +141,7 @@ describe('Output Formatting', () => {
       data: { result: 'success' },
     };
 
-    it('should return empty string when silent is true', () => {
+    it('should return formatted data when silent is true', () => {
       const options: OutputOptions = {
         format: 'json' as OutputOptions['format'], 
         color: true,
@@ -149,7 +149,7 @@ describe('Output Formatting', () => {
         silent: true,
       };
       const result = formatResponse(mockResponse, options);
-      expect(result).toBe('');
+      expect(result).toBe(JSON.stringify({ result: 'success' }, null, 2));
     });
 
     it('should format response with status for non-raw formats', () => {
