@@ -25,5 +25,9 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,ts}'],
     exclude: ['node_modules', 'dist'],
     testTimeout: 10000,
+    typecheck: {
+      enabled: true,
+      tsconfig: './tsconfig.test.json'
+    },
   },
 });
