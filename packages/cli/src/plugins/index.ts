@@ -37,6 +37,22 @@ export async function initializePlugins(options: Record<string, unknown>): Promi
     // Get the configuration
     const config = configManager.get('') as SHCConfig;
 
+    // Store the config file path for plugin discovery
+    const configFilePath = options.config as string;
+    if (configFilePath) {
+      (config as any).configFilePath = configFilePath;
+    }
+
+    // Store the output format in the config for use by plugins
+    if (options.output && typeof options.output === 'string') {
+      if (!config.cli) {
+        (config as any).cli = {};
+      }
+      if (!(config as any).cli.defaultFormat) {
+        (config as any).cli.defaultFormat = options.output;
+      }
+    }
+
     // Load plugins from configuration
     await cliPluginManager.loadPlugins(config);
   } catch (error) {
@@ -63,4 +79,4 @@ export {
   CommandHandler,
   CompletionHandler,
   ResponseVisualizer,
-} from './plugin-manager.js';
+} from '../types/cli-plugin.types.js';

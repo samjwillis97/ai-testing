@@ -45,6 +45,12 @@
       "rules": {
         "@typescript-eslint/no-unsafe-assignment": "off"
       }
+    },
+    {
+      "files": ["src/services/client.ts"],
+      "rules": {
+        "@typescript-eslint/no-unnecessary-type-assertion": "off"
+      }
     }
   ]
 }

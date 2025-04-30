@@ -42,7 +42,7 @@ describe('Output Formatting', () => {
   describe('formatOutput', () => {
     it('should return formatted data when silent is true', () => {
       const options: OutputOptions = {
-        format: 'json' as OutputOptions['format'], 
+        format: 'json' as OutputOptions['format'],
         color: true,
         verbose: false,
         silent: true,
@@ -143,7 +143,7 @@ describe('Output Formatting', () => {
 
     it('should return formatted data when silent is true', () => {
       const options: OutputOptions = {
-        format: 'json' as OutputOptions['format'], 
+        format: 'json' as OutputOptions['format'],
         color: true,
         verbose: false,
         silent: true,

@@ -29,8 +29,8 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
     }
     // For other formats in silent mode, use the formatter but without any decorations
     const formatters: Record<string, (data: unknown) => string> = {
-      json: (data: unknown) => JSON.stringify(data, null, 2),
-      yaml: (data: unknown) => yaml.dump(data),
+      json: formatJsonData,
+      yaml: formatYamlData,
       table: formatTableData,
       raw: formatRawData,
     };
@@ -47,10 +47,10 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
 
   // Built-in formatters
   const formatters: Record<string, (data: unknown) => string> = {
-    json: (data: unknown) => JSON.stringify(data, null, 2),
-    yaml: (data: unknown) => yaml.dump(data),
-    raw: formatRawData,
+    json: formatJsonData,
+    yaml: formatYamlData,
     table: formatTableData,
+    raw: formatRawData,
   };
 
   const formatter = formatters[options.format] || formatters.json;
@@ -76,6 +76,20 @@ function formatRawData(data: unknown): string {
     }
   }
   return String(data);
+}
+
+/**
+ * Format data as JSON
+ */
+function formatJsonData(data: unknown): string {
+  return JSON.stringify(data, null, 2);
+}
+
+/**
+ * Format data as YAML
+ */
+function formatYamlData(data: unknown): string {
+  return yaml.dump(data);
 }
 
 /**

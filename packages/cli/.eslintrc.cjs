@@ -25,7 +25,8 @@ module.exports = {
     {
       files: ['**/*.test.ts'],
       env: {
-        vitest: true,
+        node: true,
+        jest: true,
       },
     },
   ],

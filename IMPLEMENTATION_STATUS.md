@@ -6,7 +6,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 
 - [x] Get the plugins working with the CLI client via. adding a path pluggin to the config and loading it, validate that it works
 - [x] Refactor configuration path resolution and collection management from CLI to core package (see tasks/refactor-config-path-resolution.md)
-- [ ] Implement missing CLI features according to specification (see tasks/implement-missing-cli-features.md)
+- [x] Implement missing CLI features according to specification (see tasks/implement-missing-cli-features.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
@@ -125,7 +125,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Variable and authentication management
 - [x] Response viewer and output formatting
   - [x] Built-in formatters (JSON, YAML, Raw, Table)
-  - [-] Support for custom formatters via plugins
+  - [x] Support for custom formatters via plugins
 - [x] Command options and flags
 - [-] Autocomplete & Tab Completion
   - [x] Collection name completion
@@ -133,20 +133,20 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Dynamic suggestions based on available collections/requests
   - [x] Multi-level completion with Tab cycling
   - [-] Shell compatibility (bash, zsh, fish)
-- [-] CLI Extension System
-  - [-] Plugin loading mechanisms
-    - [-] Load from npm packages
+- [x] CLI Extension System
+  - [x] Plugin loading mechanisms
+    - [x] Load from npm packages
     - [x] Load from local paths
-    - [-] Load from git repositories
-    - [-] Auto-discovery from plugin directories
-  - [-] Plugin types
+    - [x] Load from git repositories
+    - [x] Auto-discovery from plugin directories
+  - [x] Plugin types
     - [x] Output formatter plugins
     - [-] Custom command plugins
     - [-] Shell completion plugins
     - [-] Response visualizer plugins
-  - [-] Plugin configuration in CLI config
-  - [-] Plugin lifecycle management
-  - [-] Integration with core package plugins
+  - [x] Plugin configuration in CLI config
+  - [x] Plugin lifecycle management
+  - [x] Integration with core package plugins
 - [-] Integration features
   - [x] Pipe support (stdin/stdout)
   - [-] Shell completion

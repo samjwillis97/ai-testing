@@ -6,64 +6,22 @@ import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import { SHCConfig } from '@shc/core';
-
-/**
- * CLI Plugin Types
- */
-export enum CLIPluginType {
-  OUTPUT_FORMATTER = 'output_formatter',
-  CUSTOM_COMMAND = 'custom_command',
-  SHELL_COMPLETION = 'shell_completion',
-  RESPONSE_VISUALIZER = 'response_visualizer',
-}
-
-/**
- * CLI Plugin Context
- * Provides access to CLI functionality for plugins
- */
-export interface CLIPluginContext {
-  registerOutputFormatter: (name: string, formatter: OutputFormatter) => void;
-  registerCommand: (name: string, handler: CommandHandler) => void;
-  registerShellCompletion: (shell: string, handler: CompletionHandler) => void;
-  registerResponseVisualizer: (name: string, visualizer: ResponseVisualizer) => void;
-  silent: boolean; // Whether silent mode is enabled
-}
-
-/**
- * CLI Plugin interface
- */
-export interface CLIPlugin {
-  name: string;
-  type: CLIPluginType;
-  version?: string;
-  description?: string;
-  register: (context: CLIPluginContext) => void;
-}
-
-/**
- * Output formatter function
- */
-export type OutputFormatter = (data: unknown) => string;
-
-/**
- * Command handler function
- */
-export type CommandHandler = (args: string[], options: Record<string, unknown>) => Promise<void>;
-
-/**
- * Completion handler function
- */
-export type CompletionHandler = (line: string, point: number) => string[];
-
-/**
- * Response visualizer function
- */
-export type ResponseVisualizer = (response: unknown) => void;
+import {
+  CLIPlugin,
+  CLIPluginType,
+  CLIPluginContext,
+  OutputFormatter,
+  CommandHandler,
+  CompletionHandler,
+  ResponseVisualizer,
+  CLIPluginConfig,
+  OutputFormatterPlugin,
+} from '../types/cli-plugin.types.js';
 
 /**
  * CLI Plugin Manager
  */
-export class CLIPluginManager implements CLIPluginContext {
+export class CLIPluginManager {
   private outputFormatters: Map<string, OutputFormatter> = new Map();
   private commands: Map<string, CommandHandler> = new Map();
   private shellCompletions: Map<string, CompletionHandler> = new Map();
@@ -71,9 +29,6 @@ export class CLIPluginManager implements CLIPluginContext {
   private loadedPlugins: Map<string, CLIPlugin> = new Map();
   private silentMode = false;
 
-  /**
-   * Create a new CLI Plugin Manager
-   */
   constructor() {}
 
   /**
@@ -88,7 +43,7 @@ export class CLIPluginManager implements CLIPluginContext {
    * Log a message if not in silent mode
    * @param message Message to log
    */
-  private log(message: string): void {
+  log(message: string): void {
     if (!this.silentMode) {
       console.log(message);
     }
@@ -99,7 +54,7 @@ export class CLIPluginManager implements CLIPluginContext {
    * @param message Error message
    * @param error Error object
    */
-  private logError(message: string, error?: unknown): void {
+  logError(message: string, error?: unknown): void {
     if (!this.silentMode) {
       console.error(message, error);
     }
@@ -117,7 +72,8 @@ export class CLIPluginManager implements CLIPluginContext {
       this.logError('Failed to load example plugins:', error);
     }
 
-    if (!config.cli?.plugins) {
+    // Safely check if cli plugins exist in the config
+    if (!config.cli || !config.cli.plugins || !Array.isArray(config.cli.plugins)) {
       return;
     }
 
@@ -130,24 +86,72 @@ export class CLIPluginManager implements CLIPluginContext {
           continue;
         }
 
-        // Load from npm package
+        // Load plugin based on source type
         if (pluginConfig.package) {
+          // NPM package plugin
           plugin = await this.loadNpmPlugin(pluginConfig.package, pluginConfig.version);
-        }
-        // Load from local path
-        else if (pluginConfig.path) {
+        } else if (pluginConfig.path) {
+          // Local path plugin
           plugin = await this.loadPathPlugin(pluginConfig.path);
-        }
-        // Load from git repository
-        else if (pluginConfig.git) {
+        } else if (pluginConfig.git) {
+          // Git repository plugin
           plugin = await this.loadGitPlugin(pluginConfig.git, pluginConfig.ref || 'main');
         }
 
         if (plugin) {
           this.registerPlugin(plugin);
+          this.log(`Loaded plugin: ${plugin.name}`);
         }
       } catch (error) {
         this.logError(`Failed to load plugin ${pluginConfig.name}:`, error);
+      }
+    }
+
+    // Load plugins from global and project-specific directories
+    await this.loadPluginsFromDirectories(config);
+  }
+
+  /**
+   * Load plugins from global and project-specific directories
+   */
+  private async loadPluginsFromDirectories(config: SHCConfig): Promise<void> {
+    const directories: string[] = [];
+
+    // Add global plugin directory
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    if (homeDir) {
+      directories.push(path.join(homeDir, '.shc', 'cli-plugins'));
+    }
+
+    // Add project-specific plugin directory if config file path is available
+    // We need to check for configFilePath which might be added by the CLI
+    if ((config as any).configFilePath) {
+      const configDir = path.dirname((config as any).configFilePath);
+      directories.push(path.join(configDir, 'cli-plugins'));
+    }
+
+    // Load plugins from each directory
+    for (const directory of directories) {
+      try {
+        if (fs.existsSync(directory) && fs.statSync(directory).isDirectory()) {
+          const entries = fs.readdirSync(directory);
+
+          for (const entry of entries) {
+            const pluginPath = path.join(directory, entry);
+
+            if (fs.statSync(pluginPath).isDirectory()) {
+              try {
+                const plugin = await this.loadPathPlugin(pluginPath);
+                this.registerPlugin(plugin);
+                this.log(`Loaded plugin from directory: ${plugin.name}`);
+              } catch (error) {
+                this.logError(`Failed to load plugin from ${pluginPath}:`, error);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        this.logError(`Failed to load plugins from directory ${directory}:`, error);
       }
     }
   }
@@ -178,11 +182,41 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   private async loadPathPlugin(pluginPath: string): Promise<CLIPlugin> {
     try {
-      const resolvedPath = path.resolve(pluginPath);
-      if (!fs.existsSync(resolvedPath)) {
-        throw new Error(`Plugin path does not exist: ${resolvedPath}`);
+      // Resolve to absolute path if relative
+      const absolutePath = path.isAbsolute(pluginPath)
+        ? pluginPath
+        : path.resolve(process.cwd(), pluginPath);
+
+      // Check if path exists
+      if (!fs.existsSync(absolutePath)) {
+        throw new Error(`Plugin path does not exist: ${absolutePath}`);
       }
-      return require(resolvedPath);
+
+      // Check for plugin.json or package.json
+      let pluginInfo: any = null;
+      const pluginJsonPath = path.join(absolutePath, 'plugin.json');
+      const packageJsonPath = path.join(absolutePath, 'package.json');
+
+      if (fs.existsSync(pluginJsonPath)) {
+        pluginInfo = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+      } else if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        pluginInfo = packageJson.shcCliPlugin || packageJson;
+      } else {
+        throw new Error(`No plugin.json or package.json found in ${absolutePath}`);
+      }
+
+      // Check for main file
+      const mainFile = pluginInfo.main || 'index.js';
+      const mainFilePath = path.join(absolutePath, mainFile);
+
+      if (!fs.existsSync(mainFilePath)) {
+        throw new Error(`Plugin main file not found: ${mainFilePath}`);
+      }
+
+      // Load plugin
+      const plugin = require(mainFilePath);
+      return plugin.default || plugin;
     } catch (error) {
       throw new Error(`Failed to load path plugin ${pluginPath}: ${error}`);
     }
@@ -193,32 +227,22 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   private async loadGitPlugin(repoUrl: string, ref: string): Promise<CLIPlugin> {
     try {
-      // Create a temporary directory for the git clone
-      const tempDir = path.join(process.cwd(), '.shc', 'plugins', 'git');
-      const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'plugin';
-      const pluginDir = path.join(tempDir, repoName);
+      // Create a temporary directory for the plugin
+      const tempDir = path.join(process.cwd(), 'temp', `plugin-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
 
-      // Create directory if it doesn't exist
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      // Clone the repository if it doesn't exist
-      if (!fs.existsSync(pluginDir)) {
-        this.log(`Cloning plugin repository: ${repoUrl}`);
-        execSync(`git clone ${repoUrl} ${pluginDir}`, { stdio: 'inherit' });
-      }
-
-      // Checkout the specified ref
-      this.log(`Checking out ref: ${ref}`);
-      execSync(`cd ${pluginDir} && git fetch && git checkout ${ref}`, { stdio: 'inherit' });
+      // Clone the repository
+      this.log(`Cloning plugin repository: ${repoUrl}#${ref}`);
+      execSync(`git clone --depth 1 --branch ${ref} ${repoUrl} ${tempDir}`, {
+        stdio: 'inherit',
+      });
 
       // Install dependencies
       this.log('Installing plugin dependencies');
-      execSync(`cd ${pluginDir} && pnpm install`, { stdio: 'inherit' });
+      execSync('pnpm install', { cwd: tempDir, stdio: 'inherit' });
 
       // Load the plugin
-      return require(pluginDir);
+      return this.loadPathPlugin(tempDir);
     } catch (error) {
       throw new Error(`Failed to load git plugin ${repoUrl}: ${error}`);
     }
@@ -227,16 +251,28 @@ export class CLIPluginManager implements CLIPluginContext {
   /**
    * Register a plugin
    */
-  private registerPlugin(plugin: CLIPlugin): void {
+  registerPlugin(plugin: CLIPlugin): void {
     if (this.loadedPlugins.has(plugin.name)) {
-      this.logError(`Plugin ${plugin.name} is already registered. Skipping.`);
+      this.log(`Plugin ${plugin.name} already loaded, skipping`);
       return;
     }
 
-    // Register the plugin
-    plugin.register(this);
-    this.loadedPlugins.set(plugin.name, plugin);
-    this.log(`Registered CLI plugin: ${plugin.name}`);
+    // Create plugin context
+    const context: CLIPluginContext = {
+      registerOutputFormatter: this.registerOutputFormatter.bind(this),
+      registerCommand: this.registerCommand.bind(this),
+      registerShellCompletion: this.registerShellCompletion.bind(this),
+      registerResponseVisualizer: this.registerResponseVisualizer.bind(this),
+      silent: this.silentMode,
+    };
+
+    // Register plugin
+    try {
+      plugin.register(context);
+      this.loadedPlugins.set(plugin.name, plugin);
+    } catch (error) {
+      this.logError(`Failed to register plugin ${plugin.name}:`, error);
+    }
   }
 
   /**
@@ -244,7 +280,6 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   registerOutputFormatter(name: string, formatter: OutputFormatter): void {
     this.outputFormatters.set(name, formatter);
-    this.log(`Registered output formatter: ${name}`);
   }
 
   /**
@@ -252,7 +287,6 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   registerCommand(name: string, handler: CommandHandler): void {
     this.commands.set(name, handler);
-    this.log(`Registered command: ${name}`);
   }
 
   /**
@@ -260,7 +294,6 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   registerShellCompletion(shell: string, handler: CompletionHandler): void {
     this.shellCompletions.set(shell, handler);
-    this.log(`Registered shell completion for: ${shell}`);
   }
 
   /**
@@ -268,7 +301,6 @@ export class CLIPluginManager implements CLIPluginContext {
    */
   registerResponseVisualizer(name: string, visualizer: ResponseVisualizer): void {
     this.responseVisualizers.set(name, visualizer);
-    this.log(`Registered response visualizer: ${name}`);
   }
 
   /**
@@ -327,6 +359,9 @@ export class CLIPluginManager implements CLIPluginContext {
     return this.responseVisualizers;
   }
 
+  /**
+   * Check if silent mode is enabled
+   */
   get silent(): boolean {
     return this.silentMode;
   }

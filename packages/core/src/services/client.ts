@@ -265,10 +265,10 @@ export class SHCClient implements ISHCClient {
     if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
       // It's a ConfigManager
       configManager = configOrManager as ConfigManagerImpl;
-      config = configManager.get('') as SHCConfig;
+      config = configManager.get('');
     } else {
       // It's a regular config object or undefined
-      config = (configOrManager as SHCConfig) || {};
+      config = configOrManager || {};
     }
 
     // Create a client with deferred plugin loading

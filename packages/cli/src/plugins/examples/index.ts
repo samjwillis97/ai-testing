@@ -2,7 +2,7 @@
  * Example Plugins Loader
  * Automatically loads example plugins for development and testing
  */
-import { CLIPlugin, CLIPluginContext } from '../plugin-manager.js';
+import { CLIPlugin, CLIPluginContext } from '../../types/cli-plugin.types.js';
 import markdownFormatterPlugin from './markdown-formatter.js';
 
 /**

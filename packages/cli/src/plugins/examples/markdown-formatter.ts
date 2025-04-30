@@ -2,7 +2,7 @@
  * Markdown Formatter Plugin
  * A sample CLI plugin that formats output as a markdown table
  */
-import { CLIPlugin, CLIPluginType, CLIPluginContext } from '../plugin-manager.js';
+import { CLIPlugin, CLIPluginType, CLIPluginContext } from '../../types/cli-plugin.types.js';
 
 /**
  * Format data as a markdown table
