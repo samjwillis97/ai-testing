@@ -194,7 +194,9 @@ export function addCollectionCommand(program: Command): void {
                     event: 'response' as const,
                     handler: (res: any) => {
                       const typedRes = res as { status: number; statusText: string };
-                      console.log(chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`));
+                      console.log(
+                        chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`)
+                      );
                     },
                   },
                   {

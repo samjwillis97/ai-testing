@@ -8,28 +8,33 @@ import { CLIPlugin, CLIPluginType, CLIPluginContext } from '../plugin-manager.js
  * Format data as a markdown table
  */
 function formatMarkdownTable(data: unknown): string {
-  if (!Array.isArray(data) || data.length === 0 || typeof data[0] !== 'object' || data[0] === null) {
+  if (
+    !Array.isArray(data) ||
+    data.length === 0 ||
+    typeof data[0] !== 'object' ||
+    data[0] === null
+  ) {
     return JSON.stringify(data, null, 2);
   }
 
   // Get headers from the first object
   const headers = Object.keys(data[0] as Record<string, unknown>);
-  
+
   // Create header row
   let markdown = `| ${headers.join(' | ')} |\n`;
-  
+
   // Create separator row
   markdown += `| ${headers.map(() => '---').join(' | ')} |\n`;
-  
+
   // Create data rows
   for (const item of data) {
-    const row = headers.map(header => {
+    const row = headers.map((header) => {
       const value = (item as Record<string, unknown>)[header];
       return value === null || value === undefined ? '' : String(value);
     });
     markdown += `| ${row.join(' | ')} |\n`;
   }
-  
+
   return markdown;
 }
 
@@ -44,7 +49,7 @@ const markdownFormatterPlugin: CLIPlugin = {
   register: (context: CLIPluginContext) => {
     // Register the markdown formatter
     context.registerOutputFormatter('markdown', formatMarkdownTable);
-  }
+  },
 };
 
 export default markdownFormatterPlugin;

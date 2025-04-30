@@ -15,13 +15,12 @@ export function loadExamplePlugins(context: CLIPluginContext): void {
     // Add more example plugins here
   ];
 
-  // Register each plugin
+  // Register each plugin (plugins will respect silent mode internally)
   for (const plugin of plugins) {
     try {
       plugin.register(context);
-      console.log(`Loaded example plugin: ${plugin.name}`);
     } catch (error) {
-      console.error(`Failed to load example plugin ${plugin.name}:`, error);
+      // Error logging is handled by the plugin manager
     }
   }
 }

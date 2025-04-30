@@ -4,7 +4,6 @@
  * with the core package's ConfigManager.
  */
 import path from 'path';
-import os from 'os';
 import { ConfigManager } from '@shc/core';
 
 // Export for testing purposes
@@ -14,7 +13,7 @@ export const configManagerFactory = () => new ConfigManager();
  * Get effective options by merging CLI options with config file settings.
  * This function loads configuration from a file if specified and merges it with
  * the provided CLI options, with CLI options taking precedence.
- * 
+ *
  * @param options - CLI options from Commander
  * @param createConfigManager - Factory function for creating a ConfigManager instance (for testing)
  * @returns A merged configuration object with CLI options taking precedence
@@ -64,7 +63,7 @@ export async function getEffectiveOptions(
 /**
  * Get the collection directory path based on options.
  * This function uses the ConfigManager from the core package to resolve the collection directory path.
- * 
+ *
  * @param options - CLI options containing collectionDir and possibly config
  * @returns The resolved absolute path to the collection directory
  */
@@ -72,18 +71,18 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
   // If collectionDir is specified in options, use that
   if (options.collectionDir) {
     const collectionDir = options.collectionDir as string;
-    
+
     // If it's an absolute path, use it directly
     if (path.isAbsolute(collectionDir)) {
       return collectionDir;
     }
-    
+
     // If config file is specified, resolve relative to config file directory
     if (options.config) {
       const configDir = path.dirname(options.config as string);
       return path.resolve(configDir, collectionDir);
     }
-    
+
     // Otherwise, resolve relative to current working directory
     return path.resolve(process.cwd(), collectionDir);
   }
@@ -97,7 +96,7 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
  * Create a ConfigManager instance from CLI options.
  * This function creates a ConfigManager instance, loads configuration from a file if specified,
  * and applies CLI options to override config values.
- * 
+ *
  * @param options - CLI options from Commander
  * @param createConfigManager - Factory function for creating a ConfigManager instance (for testing)
  * @returns A configured ConfigManager instance
@@ -107,7 +106,7 @@ export async function createConfigManagerFromOptions(
   createConfigManager = configManagerFactory
 ): Promise<ConfigManager> {
   const configManager = createConfigManager();
-  
+
   // Load config file if specified
   if (options.config) {
     try {
@@ -118,16 +117,16 @@ export async function createConfigManagerFromOptions(
       );
     }
   }
-  
+
   // Apply CLI options to override config values
   if (options.collectionDir) {
     configManager.set('storage.collections.path', options.collectionDir);
   }
-  
+
   if (options.timeout) {
     configManager.set('core.http.timeout', options.timeout);
   }
-  
+
   return configManager;
 }
 

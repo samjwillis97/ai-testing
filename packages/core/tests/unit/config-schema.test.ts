@@ -44,20 +44,20 @@ describe('Config Schema', () => {
           auth: [
             {
               name: 'basic-auth',
-              enabled: true
-            }
+              enabled: true,
+            },
           ],
           preprocessors: [
             {
               name: 'request-logger',
-              enabled: true
-            }
+              enabled: true,
+            },
           ],
           transformers: [
             {
               name: 'response-formatter',
-              enabled: true
-            }
+              enabled: true,
+            },
           ],
         },
         storage: {

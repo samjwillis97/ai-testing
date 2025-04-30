@@ -5,6 +5,16 @@ import { addCollectionCommand } from './commands/collection-request.js';
 import { addCompletionCommand } from './commands/completion.js';
 import { addListCommand } from './commands/list.js';
 import { initializePlugins } from './plugins/index.js';
+import { executeSilently } from './silent-wrapper.js';
+
+// Store original console methods
+const originalConsole = {
+  log: console.log,
+  info: console.info,
+  warn: console.warn,
+  error: console.error,
+  debug: console.debug,
+};
 
 const program = new Command();
 
@@ -19,8 +29,19 @@ program
   .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
   .option('--no-color', 'Disable colors')
   .hook('preAction', async (thisCommand) => {
-    // Initialize plugins before any command is executed
-    await initializePlugins(thisCommand.opts());
+    // Get options
+    const options = thisCommand.opts();
+    const isSilent = Boolean(options.silent);
+
+    // If silent mode is enabled, execute initialization in silent mode
+    if (isSilent) {
+      await executeSilently(async () => {
+        await initializePlugins(options);
+      });
+    } else {
+      // Initialize plugins normally
+      await initializePlugins(options);
+    }
   });
 
 // Enable passing global options to subcommands
@@ -42,5 +63,24 @@ addCompletionCommand(program);
 if (process.argv.length <= 2) {
   program.help();
 } else {
-  program.parseAsync(process.argv);
+  // Check for silent mode flag in command line arguments
+  const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
+
+  // If silent mode is enabled, execute the CLI in silent mode
+  if (isSilent) {
+    executeSilently(async () => {
+      await program.parseAsync(process.argv);
+    }).catch((error) => {
+      // Restore console methods to show critical errors
+      console.error = originalConsole.error;
+      console.error('Critical error:', error);
+      process.exit(1);
+    });
+  } else {
+    // Execute the CLI normally
+    program.parseAsync(process.argv).catch((error) => {
+      console.error('Error:', error);
+      process.exit(1);
+    });
+  }
 }
