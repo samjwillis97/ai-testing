@@ -22,11 +22,6 @@ interface ResponseData {
  * Format response data according to output options
  */
 export function formatOutput(data: unknown, options: OutputOptions): string {
-  // For backward compatibility with tests
-  if (options.silent && options.format === 'json' as any) {
-    return '';
-  }
-
   // In silent mode, only return raw data for the raw format
   if (options.silent) {
     if (options.format === 'raw') {
@@ -112,11 +107,6 @@ function formatTableData(data: unknown): string {
  * Format response for display
  */
 export function formatResponse(response: ResponseData, options: OutputOptions): string {
-  // For backward compatibility with tests
-  if (options.silent && options.format === 'json' as any) {
-    return '';
-  }
-
   // In silent mode, only return the data without any decorations
   if (options.silent) {
     return formatOutput(response.data, options);
