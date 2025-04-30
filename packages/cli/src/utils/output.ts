@@ -129,8 +129,7 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   // Check if there's a response visualizer plugin for this format
   const visualizer = cliPluginManager.getResponseVisualizer(options.format);
   if (visualizer) {
-    visualizer(response);
-    return ''; // Visualizers handle their own output
+    return visualizer(response.data);
   }
 
   // Format the response data

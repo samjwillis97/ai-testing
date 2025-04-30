@@ -4,6 +4,9 @@
  */
 import { CLIPlugin, CLIPluginContext } from '../../types/cli-plugin.types.js';
 import markdownFormatterPlugin from './markdown-formatter.js';
+import helpCommandPlugin from './help-command.js';
+import jsonVisualizerPlugin from './json-visualizer.js';
+import bashCompletionPlugin from './bash-completion.js';
 
 /**
  * Load all example plugins
@@ -12,6 +15,9 @@ import markdownFormatterPlugin from './markdown-formatter.js';
 export function loadExamplePlugins(context: CLIPluginContext): void {
   const plugins: CLIPlugin[] = [
     markdownFormatterPlugin,
+    helpCommandPlugin,
+    jsonVisualizerPlugin,
+    bashCompletionPlugin,
     // Add more example plugins here
   ];
 

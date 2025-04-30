@@ -7,6 +7,7 @@ import {
   getCollectionsForCompletion,
   getRequestsForCompletion,
 } from '../utils/completion.js';
+import { cliPluginManager } from '../plugins/index.js';
 
 /**
  * Add completion command to program
@@ -30,6 +31,36 @@ export function addCompletionCommand(program: Command): void {
         console.error(
           `Failed to generate completion script: ${error instanceof Error ? error.message : String(error)}`
         );
+        process.exit(1);
+      }
+    });
+
+  // Dynamic completion command for plugins
+  program
+    .command('--complete', { hidden: true })
+    .argument('<shell>', 'Shell type')
+    .argument('<line>', 'Current command line')
+    .argument('<point>', 'Cursor position')
+    .action((shell: string, line: string, pointStr: string) => {
+      try {
+        const point = parseInt(pointStr, 10);
+        const completionHandler = cliPluginManager.getShellCompletion(shell);
+
+        if (completionHandler) {
+          const completions = completionHandler(line, point);
+          console.log(completions.join('\n'));
+        } else {
+          // Fall back to basic completions
+          if (
+            line.includes('list') &&
+            !line.includes('collections') &&
+            !line.includes('requests')
+          ) {
+            console.log('collections\nrequests');
+          }
+        }
+      } catch (error) {
+        // Silently fail for completion errors
         process.exit(1);
       }
     });

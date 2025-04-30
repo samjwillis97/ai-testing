@@ -116,7 +116,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] List requests within collections
 - [x] Global options
   - [x] Config file path
-  - [ ] Set config values
+  - [x] Set config values
   - [x] Verbose/silent modes
   - [x] Output format selection
   - [x] Color control
@@ -141,9 +141,9 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
     - [x] Auto-discovery from plugin directories
   - [x] Plugin types
     - [x] Output formatter plugins
-    - [-] Custom command plugins
-    - [-] Shell completion plugins
-    - [-] Response visualizer plugins
+    - [x] Custom command plugins
+    - [x] Shell completion plugins
+    - [x] Response visualizer plugins
   - [x] Plugin configuration in CLI config
   - [x] Plugin lifecycle management
   - [x] Integration with core package plugins

@@ -10,6 +10,8 @@ export default defineConfig({
         'dist/**',
         '**/node_modules/**',
         '**/*.d.ts',
+        '**/*.js',
+        '**/*.cjs',
         '**/*.config.{js,ts}',
         '**/vitest.{workspace,setup}.{js,ts}',
         '**/*.{test,spec}.{js,ts}',

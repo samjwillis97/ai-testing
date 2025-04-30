@@ -3,11 +3,29 @@
  */
 import { getCollections, getRequests } from './collections.js';
 import { getCollectionDir } from './config.js';
+import { cliPluginManager } from '../plugins/index.js';
 
 /**
  * Generate completion script for the specified shell
  */
 export function generateCompletionScript(shell: 'bash' | 'zsh' | 'fish'): string {
+  // Check if we have a plugin for this shell
+  const completionHandler = cliPluginManager.getShellCompletion(shell);
+  if (completionHandler) {
+    // Use the plugin to generate completions
+    const completions = completionHandler('', 0); // Empty line for initial script generation
+    if (
+      Array.isArray(completions) &&
+      completions.length === 1 &&
+      typeof completions[0] === 'string' &&
+      completions[0].startsWith('#!')
+    ) {
+      // If the plugin returns a shell script, use it directly
+      return completions[0];
+    }
+  }
+
+  // Fall back to built-in completion scripts
   switch (shell) {
     case 'bash':
       return generateBashCompletionScript();

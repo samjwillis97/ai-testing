@@ -127,6 +127,51 @@ export async function createConfigManagerFromOptions(
     configManager.set('core.http.timeout', options.timeout);
   }
 
+  // Apply config values from --set options
+  if (options.set && Array.isArray(options.set)) {
+    for (const setValue of options.set as string[]) {
+      try {
+        // Parse key=value format
+        const match = setValue.match(/^([^=]+)=(.*)$/);
+        if (!match) {
+          console.error(`Invalid set format: ${setValue}. Expected format: key=value`);
+          continue;
+        }
+
+        const [, key, rawValue] = match;
+        let value: unknown;
+
+        // Try to parse the value as JSON if it starts with a quote, bracket, or brace
+        if (/^[{"[]/.test(rawValue)) {
+          try {
+            value = JSON.parse(rawValue);
+          } catch (e) {
+            // If JSON parsing fails, use the raw string
+            value = rawValue;
+          }
+        } else if (rawValue === 'true') {
+          value = true;
+        } else if (rawValue === 'false') {
+          value = false;
+        } else if (rawValue === 'null') {
+          value = null;
+        } else if (!isNaN(Number(rawValue))) {
+          // Convert to number if it's numeric
+          value = Number(rawValue);
+        } else {
+          // Use as string
+          value = rawValue;
+        }
+
+        // Set the config value
+        configManager.set(key, value);
+        console.log(`Set config value: ${key}=${JSON.stringify(value)}`);
+      } catch (error) {
+        console.error(`Failed to set config value: ${setValue}`, error);
+      }
+    }
+  }
+
   return configManager;
 }
 

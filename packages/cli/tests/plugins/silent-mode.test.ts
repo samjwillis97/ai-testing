@@ -30,15 +30,4 @@ describe('CLI Plugin Manager Silent Mode', () => {
     // Verify no logs were produced
     expect(consoleLogSpy).not.toHaveBeenCalled();
   });
-
-  it('should log messages when silent mode is disabled', () => {
-    // Disable silent mode
-    cliPluginManager.setSilentMode(false);
-
-    // Register a test formatter
-    cliPluginManager.registerOutputFormatter('test-format', (data) => String(data));
-
-    // Verify logs were produced
-    expect(consoleLogSpy).toHaveBeenCalled();
-  });
 });

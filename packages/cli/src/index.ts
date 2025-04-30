@@ -4,7 +4,7 @@ import { addDirectCommand } from './commands/direct-request.js';
 import { addCollectionCommand } from './commands/collection-request.js';
 import { addCompletionCommand } from './commands/completion.js';
 import { addListCommand } from './commands/list.js';
-import { initializePlugins } from './plugins/index.js';
+import { initializePlugins, cliPluginManager } from './plugins/index.js';
 import { executeSilently } from './silent-wrapper.js';
 
 // Store original console methods
@@ -23,6 +23,17 @@ program
   .description('SHC Command Line Interface')
   .version('0.1.0')
   .option('-c, --config <PATH>', 'Config file path')
+  .option(
+    '-V, --set <key>=<value>',
+    'Set config value, (i.e. --set storage.collections.path="./collections")',
+    (value: string, previous: string[]) => {
+      // Allow multiple --set options
+      const values = previous || [];
+      values.push(value);
+      return values;
+    },
+    []
+  )
   .option('-e, --env <NAME>', 'Environment name')
   .option('-v, --verbose', 'Verbose output')
   .option('-s, --silent', 'Silent mode')
@@ -59,10 +70,34 @@ addListCommand(program);
 // Add completion command
 addCompletionCommand(program);
 
+// Function to register custom commands from plugins
+async function registerCustomCommands() {
+  // Get all registered commands from the plugin manager
+  const customCommands = cliPluginManager.getAllCommands();
+
+  // Register each custom command
+  for (const [name, handler] of customCommands.entries()) {
+    program
+      .command(name)
+      .description(`Custom command: ${name}`)
+      .allowUnknownOption(true)
+      .action(async (options) => {
+        const args = program.args.filter((arg) => typeof arg === 'string');
+        await handler(args, options);
+      });
+  }
+}
+
+// Initialize plugins
+await initializePlugins(program.opts());
+
+// Register custom commands from plugins
+await registerCustomCommands();
+
 // Show help if no arguments are provided
 if (process.argv.length <= 2) {
   program.help();
-} else {
+} else {  
   // Check for silent mode flag in command line arguments
   const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
 
