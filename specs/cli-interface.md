@@ -60,9 +60,10 @@ shc [options] <collection> <request>
 
 ### List
 
-List mode allows you to list the collections and requests available in the config.
+List mode allows you to list available requests.
 
 ```bash
+shc [options] list
 shc [options] list collections
 shc [options] list requests <collection>
 ```

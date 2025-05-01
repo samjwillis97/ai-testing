@@ -14,7 +14,7 @@ import {
   getCollectionDir,
   createConfigManagerFromOptions,
 } from '../utils/config.js';
-import { getRequest, saveRequest } from '../utils/collections.js';
+import { getRequest } from '../utils/collections.js';
 
 /**
  * Add collection request command to program
@@ -28,9 +28,6 @@ export function addCollectionCommand(program: Command): void {
     .argument('<request>', 'Request name')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
-    .option('--save', 'Save request to collection')
-    .option('--export <path>', 'Export collection to file')
-    .option('--import <path>', 'Import collection from file')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-H, --header <header...>', 'Add or override header (key:value)')
     .option('-q, --query <query...>', 'Add or override query parameter (key=value)')
@@ -55,24 +52,6 @@ export function addCollectionCommand(program: Command): void {
             console.error(
               chalk.red(
                 `Failed to create collection directory: ${error instanceof Error ? error.message : String(error)}`
-              )
-            );
-            process.exit(1);
-          }
-        }
-
-        // Import collection if specified
-        if (options.import) {
-          try {
-            const importSpinner = ora(`Importing collection from ${options.import}`).start();
-            const content = await fs.readFile(options.import as string, 'utf-8');
-            const importPath = path.join(collectionDir, `${collectionName}.json`);
-            await fs.writeFile(importPath, content, 'utf-8');
-            importSpinner.succeed(chalk.green(`Collection imported to ${importPath}`));
-          } catch (error) {
-            console.error(
-              chalk.red(
-                `Failed to import collection: ${error instanceof Error ? error.message : String(error)}`
               )
             );
             process.exit(1);
@@ -219,37 +198,6 @@ export function addCollectionCommand(program: Command): void {
             }
 
             printResponse(response, outputOptions);
-
-            // Save request if specified
-            if (options.save) {
-              const saveSpinner = ora(`Saving request to collection`).start();
-              try {
-                await saveRequest(collectionDir, collectionName, requestName, requestOptions);
-                saveSpinner.succeed(chalk.green(`Request saved to collection`));
-              } catch (error) {
-                saveSpinner.fail(chalk.red(`Failed to save request`));
-                console.error(
-                  chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
-                );
-              }
-            }
-
-            // Export collection if specified
-            if (options.export) {
-              const exportSpinner = ora(`Exporting collection to ${options.export}`).start();
-              try {
-                const collectionPath = path.join(collectionDir, `${collectionName}.json`);
-                const content = await fs.readFile(collectionPath, 'utf-8');
-                await fs.writeFile(options.export as string, content, 'utf-8');
-                exportSpinner.succeed(chalk.green(`Collection exported to ${options.export}`));
-              } catch (error) {
-                exportSpinner.fail(chalk.red(`Failed to export collection`));
-                console.error(
-                  chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
-                );
-              }
-            }
-
             process.exit(0);
           } catch (error) {
             if (requestSpinner) {
