@@ -183,32 +183,6 @@ $ shc get https://api.example.com/users | jq '.[] | select(.active==true)'
 #### Integration Tests
 - `/packages/cli/tests/integration/`: Create integration tests for end-to-end workflows
 
-## Implementation Plan
-
-1. **Phase 1: Command Tests**
-   - Implement tests for direct request commands
-   - Implement tests for collection request commands
-   - Enhance tests for completion command
-   - Ensure all command tests follow a consistent pattern
-
-2. **Phase 2: Plugin Tests**
-   - Implement tests for plugin manager
-   - Implement tests for plugin initialization
-   - Implement tests for example plugins
-   - Test plugin integration with CLI commands
-
-3. **Phase 3: Utility Tests**
-   - Implement tests for collections utility
-   - Implement tests for completion utility
-   - Implement tests for config utility
-   - Enhance tests for program utility
-
-4. **Phase 4: Core and Integration Tests**
-   - Enhance tests for main entry point
-   - Implement tests for silent wrapper
-   - Create integration tests for end-to-end workflows
-   - Test error handling and edge cases
-
 ## Testing Strategies
 
 ### Ensuring High-Value Tests
@@ -223,27 +197,24 @@ $ shc get https://api.example.com/users | jq '.[] | select(.active==true)'
    - Make tests readable and maintainable
    - Document the purpose of each test section with comments
 
-3. **Leverage Test Helpers**
-   - Use the `makeProgram()` utility for consistent program creation
-   - Use test helpers to reduce boilerplate code
-   - Create reusable mock factories for common dependencies
+3. **Minimize Mocking**
+   - **Only mock Axios HTTP calls to guarantee responses**
+   - Use real config files from the repo whenever possible
+   - Create additional config files for specific test cases if necessary
+   - Do not mock internal functions, file system operations, or other components
+   - Prefer integration-style tests that test multiple components together
 
-4. **Implement Targeted Mocking**
-   - Mock external dependencies to isolate the code being tested
-   - Create realistic mock responses that match production behavior
-   - Use spies to verify interactions without changing behavior
-
-5. **Test Edge Cases**
+4. **Test Edge Cases**
    - Test with empty inputs, invalid inputs, and boundary conditions
    - Test error handling and recovery mechanisms
    - Test with unexpected or malformed data
 
-6. **Follow TypeScript Best Practices**
+5. **Follow TypeScript Best Practices**
    - Ensure proper typing for all test variables and mocks
    - Use type assertions judiciously and only when necessary
    - Leverage TypeScript's type system to catch errors at compile time
 
-7. **Maintain Test Quality**
+6. **Maintain Test Quality**
    - Run linters on test code to ensure quality
    - Format test files consistently using prettier
    - Follow the project's code quality rules for tests
@@ -269,6 +240,37 @@ $ shc get https://api.example.com/users | jq '.[] | select(.active==true)'
    - Focus on testing our code, not third-party libraries
    - Mock external dependencies rather than testing their behavior
    - Test integration points, not the libraries themselves
+
+5. **Avoid Excessive Mocking**
+   - Excessive mocks create tests that don't reflect real-world usage
+   - Tests with too many mocks often test the mocks, not the actual code
+   - Mocking too many internal components can hide real issues
+
+## Implementation Plan
+
+1. **Phase 1: Command Tests with Real Configs**
+   - Use existing config files in the repo for testing
+   - Create minimal test fixtures for specific test cases
+   - Focus on testing command behavior with real inputs and outputs
+   - Only mock Axios HTTP calls when necessary
+
+2. **Phase 2: Plugin Tests**
+   - Implement tests for plugin manager
+   - Implement tests for plugin initialization
+   - Implement tests for example plugins
+   - Test plugin integration with CLI commands
+
+3. **Phase 3: Utility Tests**
+   - Implement tests for collections utility
+   - Implement tests for completion utility
+   - Implement tests for config utility
+   - Enhance tests for program utility
+
+4. **Phase 4: Core and Integration Tests**
+   - Enhance tests for main entry point
+   - Implement tests for silent wrapper
+   - Create integration tests for end-to-end workflows
+   - Test error handling and edge cases
 
 ## Acceptance Criteria
 - ⬜ Statement coverage meets or exceeds 80%
