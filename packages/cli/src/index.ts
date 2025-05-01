@@ -1,10 +1,5 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import { addDirectCommand } from './commands/direct-request.js';
-import { addCollectionCommand } from './commands/collection-request.js';
-import { addCompletionCommand } from './commands/completion.js';
-import { addListCommand } from './commands/list.js';
-import { initializePlugins, cliPluginManager } from './plugins/index.js';
+import { makeProgram } from './utils/program.js';
 import { executeSilently } from './silent-wrapper.js';
 
 // Store original console methods
@@ -16,106 +11,46 @@ const originalConsole = {
   debug: console.debug,
 };
 
-const program = new Command();
-
-program
-  .name('shc')
-  .description('SHC Command Line Interface')
-  .version('0.1.0')
-  .option('-c, --config <PATH>', 'Config file path')
-  .option(
-    '-V, --set <key>=<value>',
-    'Set config value, (i.e. --set storage.collections.path="./collections")',
-    (value: string, previous: string[]) => {
-      // Allow multiple --set options
-      const values = previous || [];
-      values.push(value);
-      return values;
-    },
-    []
-  )
-  .option('-e, --env <NAME>', 'Environment name')
-  .option('-v, --verbose', 'Verbose output')
-  .option('-s, --silent', 'Silent mode')
-  .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
-  .option('--no-color', 'Disable colors')
-  .hook('preAction', async (thisCommand) => {
-    // Get options
-    const options = thisCommand.opts();
-    const isSilent = Boolean(options.silent);
-
-    // If silent mode is enabled, execute initialization in silent mode
-    if (isSilent) {
-      await executeSilently(async () => {
-        await initializePlugins(options);
-      });
-    } else {
-      // Initialize plugins normally
-      await initializePlugins(options);
+async function main() {
+  try {
+    // Create the program
+    const program = await makeProgram({
+      initPlugins: true,
+    });
+    
+    // Show help if no arguments are provided
+    if (process.argv.length <= 2) {
+      program.help();
+    } else {  
+      // Check for silent mode flag in command line arguments
+      const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
+    
+      // If silent mode is enabled, execute the CLI in silent mode
+      if (isSilent) {
+        executeSilently(async () => {
+          await program.parseAsync(process.argv);
+        }).catch((error) => {
+          // Restore console methods to show critical errors
+          console.error = originalConsole.error;
+          console.error('Critical error:', error);
+          process.exit(1);
+        });
+      } else {
+        // Execute the CLI normally
+        program.parseAsync(process.argv).catch((error) => {
+          console.error('Error:', error);
+          process.exit(1);
+        });
+      }
     }
-  });
-
-// Enable passing global options to subcommands
-program.passThroughOptions();
-
-// Add direct request command
-addDirectCommand(program);
-
-// Add collection command
-addCollectionCommand(program);
-
-// Add list command
-addListCommand(program);
-
-// Add completion command
-addCompletionCommand(program);
-
-// Function to register custom commands from plugins
-async function registerCustomCommands() {
-  // Get all registered commands from the plugin manager
-  const customCommands = cliPluginManager.getAllCommands();
-
-  // Register each custom command
-  for (const [name, handler] of customCommands.entries()) {
-    program
-      .command(name)
-      .description(`Custom command: ${name}`)
-      .allowUnknownOption(true)
-      .action(async (options) => {
-        const args = program.args.filter((arg) => typeof arg === 'string');
-        await handler(args, options);
-      });
+  } catch (error) {
+    console.error('Error initializing CLI:', error);
+    process.exit(1);
   }
 }
 
-// Initialize plugins
-await initializePlugins(program.opts());
-
-// Register custom commands from plugins
-await registerCustomCommands();
-
-// Show help if no arguments are provided
-if (process.argv.length <= 2) {
-  program.help();
-} else {  
-  // Check for silent mode flag in command line arguments
-  const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
-
-  // If silent mode is enabled, execute the CLI in silent mode
-  if (isSilent) {
-    executeSilently(async () => {
-      await program.parseAsync(process.argv);
-    }).catch((error) => {
-      // Restore console methods to show critical errors
-      console.error = originalConsole.error;
-      console.error('Critical error:', error);
-      process.exit(1);
-    });
-  } else {
-    // Execute the CLI normally
-    program.parseAsync(process.argv).catch((error) => {
-      console.error('Error:', error);
-      process.exit(1);
-    });
-  }
-}
+// Run the main function
+main().catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

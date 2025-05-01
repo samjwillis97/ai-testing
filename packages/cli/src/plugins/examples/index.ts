@@ -20,6 +20,7 @@ export function loadExamplePlugins(context: CLIPluginContext): void {
     bashCompletionPlugin,
     // Add more example plugins here
   ];
+  console.log('Loading example plugins...');
 
   // Register each plugin (plugins will respect silent mode internally)
   for (const plugin of plugins) {
