@@ -22,5 +22,8 @@
   "dependencies": {
     "@types/blessed": "^0.1.25",
     "blessed": "^0.1.81"
+  },
+  "devDependencies": {
+    "axios": "^1.6.0"
   }
 }
