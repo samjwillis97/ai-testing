@@ -8,6 +8,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Refactor configuration path resolution and collection management from CLI to core package (see tasks/refactor-config-path-resolution.md)
 - [x] Implement missing CLI features according to specification (see tasks/implement-missing-cli-features.md)
 - [x] Refactor CLI package for testability with a makeProgram() function (see tasks/refactor-cli-for-testability.md)
+- [ ] Improve CLI package test coverage to meet project thresholds (see tasks/improve-cli-test-coverage.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
