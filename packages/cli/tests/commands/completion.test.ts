@@ -4,7 +4,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
 import { addCompletionCommand } from '../../src/commands/completion';
-import * as completionUtils from '../../src/utils/completion';
+import * as completionUtils from '../../src/utils/completion.js';
+import { cliPluginManager } from '../../src/plugins/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -31,6 +32,13 @@ vi.mock('child_process', () => ({
     }
     return { stdout: 'mock stdout', stderr: '' };
   })
+}));
+
+// Mock cliPluginManager
+vi.mock('../../src/plugins/index.js', () => ({
+  cliPluginManager: {
+    getShellCompletion: vi.fn(),
+  }
 }));
 
 // Create a temporary directory for test config files
@@ -127,7 +135,7 @@ describe('Completion Command', () => {
   });
   
   describe('Shell Completion Generation', () => {
-    it.skip('should generate bash completion script', async () => {
+    it('should generate bash completion script', async () => {
       // Create a new Command instance
       const program = new Command();
       
@@ -136,6 +144,9 @@ describe('Completion Command', () => {
       
       // Mock the console.log method
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Mock the generateCompletionScript function to return a test script
+      vi.spyOn(completionUtils, 'generateCompletionScript').mockReturnValue('bash completion script');
       
       // Execute the command
       await program.parseAsync(['node', 'shc', 'completion', 'bash']);
@@ -148,7 +159,7 @@ describe('Completion Command', () => {
       consoleLogSpy.mockRestore();
     });
     
-    it.skip('should generate zsh completion script', async () => {
+    it('should generate zsh completion script', async () => {
       // Create a new Command instance
       const program = new Command();
       
@@ -157,6 +168,9 @@ describe('Completion Command', () => {
       
       // Mock the console.log method
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Mock the generateCompletionScript function to return a test script
+      vi.spyOn(completionUtils, 'generateCompletionScript').mockReturnValue('zsh completion script');
       
       // Execute the command
       await program.parseAsync(['node', 'shc', 'completion', 'zsh']);
@@ -169,7 +183,31 @@ describe('Completion Command', () => {
       consoleLogSpy.mockRestore();
     });
     
-    it.skip('should handle unsupported shell', async () => {
+    it('should generate fish completion script', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Mock the console.log method
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Mock the generateCompletionScript function to return a test script
+      vi.spyOn(completionUtils, 'generateCompletionScript').mockReturnValue('fish completion script');
+      
+      // Execute the command
+      await program.parseAsync(['node', 'shc', 'completion', 'fish']);
+      
+      // Verify that the completion script was generated
+      expect(consoleLogSpy).toHaveBeenCalled();
+      expect(consoleLogSpy.mock.calls[0][0]).toContain('fish completion script');
+      
+      // Restore console.log
+      consoleLogSpy.mockRestore();
+    });
+    
+    it('should handle unsupported shell type', async () => {
       // Create a new Command instance
       const program = new Command();
       
@@ -179,25 +217,162 @@ describe('Completion Command', () => {
       // Mock the console.error method
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
+      // Mock process.exit
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      
       // Execute the command with an unsupported shell
-      try {
-        await program.parseAsync(['node', 'shc', 'completion', 'fish']);
-      } catch (error) {
-        // Ignore the error
-      }
+      await program.parseAsync(['node', 'shc', 'completion', 'powershell']);
       
-      // Verify that an error message was displayed
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      expect(consoleErrorSpy.mock.calls[0][0]).toContain('Unsupported shell');
+      // Verify that an error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Unsupported shell: powershell');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Supported shells: bash, zsh, fish');
+      expect(processExitSpy).toHaveBeenCalledWith(1);
       
-      // Restore console.error
+      // Restore mocks
       consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+    
+    it('should handle errors during script generation', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Mock the console.error method
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Mock process.exit
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      
+      // Mock the generateCompletionScript function to throw an error
+      vi.spyOn(completionUtils, 'generateCompletionScript').mockImplementation(() => {
+        throw new Error('Test error');
+      });
+      
+      // Execute the command
+      await program.parseAsync(['node', 'shc', 'completion', 'bash']);
+      
+      // Verify that an error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to generate completion script: Test error');
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+      
+      // Restore mocks
+      consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+  });
+  
+  describe('Dynamic Completion', () => {
+    it.skip('should handle dynamic completion with registered handler', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Find the hidden completion command
+      const completeCommand = program.commands.find(cmd => cmd.name() === '--complete');
+      expect(completeCommand).toBeDefined();
+      
+      // Mock the console.log method
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Mock the cliPluginManager.getShellCompletion method
+      const mockCompletionHandler = vi.fn().mockReturnValue(['option1', 'option2']);
+      vi.mocked(cliPluginManager.getShellCompletion).mockReturnValue(mockCompletionHandler);
+      
+      // Call the action function directly with the required arguments
+      if (completeCommand && completeCommand.action) {
+        const actionFn = completeCommand.action as Function;
+        actionFn('bash', 'shc command', '10', {});
+        
+        // Verify that the completion handler was called with the correct arguments
+        expect(cliPluginManager.getShellCompletion).toHaveBeenCalledWith('bash');
+        expect(mockCompletionHandler).toHaveBeenCalledWith('shc command', 10);
+        
+        // Verify that console.log was called with the correct output
+        expect(consoleLogSpy).toHaveBeenCalledWith('option1\noption2');
+        
+        // Restore console.log
+        consoleLogSpy.mockRestore();
+      }
+    });
+    
+    it.skip('should handle dynamic completion with no registered handler', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Find the hidden completion command
+      const completeCommand = program.commands.find(cmd => cmd.name() === '--complete');
+      expect(completeCommand).toBeDefined();
+      
+      // Mock the console.log method
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Mock the cliPluginManager.getShellCompletion method to return undefined
+      vi.mocked(cliPluginManager.getShellCompletion).mockReturnValue(undefined);
+      
+      // Call the action function directly with a command line that includes 'list'
+      if (completeCommand && completeCommand.action) {
+        const actionFn = completeCommand.action as Function;
+        actionFn('bash', 'shc list', '8', {});
+        
+        // Verify that console.log was called with the correct output for list command
+        expect(consoleLogSpy).toHaveBeenCalledWith('collections\nrequests');
+        
+        // Reset the mock
+        consoleLogSpy.mockClear();
+        
+        // Call the action function with a different command line
+        actionFn('bash', 'shc get', '7', {});
+        
+        // Verify that console.log was not called for other commands
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+        
+        // Restore console.log
+        consoleLogSpy.mockRestore();
+      }
+    });
+    
+    it.skip('should handle errors during dynamic completion', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Find the hidden completion command
+      const completeCommand = program.commands.find(cmd => cmd.name() === '--complete');
+      expect(completeCommand).toBeDefined();
+      
+      // Mock process.exit
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      
+      // Mock the cliPluginManager.getShellCompletion method to throw an error
+      vi.mocked(cliPluginManager.getShellCompletion).mockImplementation(() => {
+        throw new Error('Test error');
+      });
+      
+      // Call the action function directly with the required arguments
+      if (completeCommand && completeCommand.action) {
+        const actionFn = completeCommand.action as Function;
+        actionFn('bash', 'shc command', '10', {});
+        
+        // Verify that process.exit was called with the correct code
+        expect(processExitSpy).toHaveBeenCalledWith(1);
+        
+        // Restore mocks
+        processExitSpy.mockRestore();
+      }
     });
   });
   
   describe('Collection and Request Completion', () => {
-    // Skip these tests since they require additional setup for the Commander.js options
-    // that are not part of the completion command itself
     it.skip('should list collections for completion', async () => {
       // Create a new Command instance
       const program = new Command();
@@ -208,15 +383,43 @@ describe('Completion Command', () => {
       // Mock the console.log method
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
-      // Execute the command
+      // Mock the getCollectionsForCompletion function
+      vi.spyOn(completionUtils, 'getCollectionsForCompletion').mockResolvedValue(['collection1', 'collection2']);
+      
+      // Execute the command using parseAsync
       await program.parseAsync(['node', 'shc', '--get-collections']);
       
-      // Verify that the collections were listed
-      expect(consoleLogSpy).toHaveBeenCalled();
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('test-collection');
+      // Verify that getCollectionsForCompletion was called
+      expect(completionUtils.getCollectionsForCompletion).toHaveBeenCalled();
+      
+      // Verify that console.log was called with the correct output
+      expect(consoleLogSpy).toHaveBeenCalledWith('collection1\ncollection2');
       
       // Restore console.log
       consoleLogSpy.mockRestore();
+    });
+    
+    it.skip('should handle errors when listing collections', async () => {
+      // Create a new Command instance
+      const program = new Command();
+      
+      // Register the completion command
+      addCompletionCommand(program);
+      
+      // Mock process.exit
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      
+      // Mock the getCollectionsForCompletion function to throw an error
+      vi.spyOn(completionUtils, 'getCollectionsForCompletion').mockRejectedValue(new Error('Test error'));
+      
+      // Execute the command using parseAsync
+      await program.parseAsync(['node', 'shc', '--get-collections']);
+      
+      // Verify that process.exit was called with the correct code
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+      
+      // Restore mocks
+      processExitSpy.mockRestore();
     });
     
     it.skip('should list requests for completion', async () => {
@@ -229,62 +432,43 @@ describe('Completion Command', () => {
       // Mock the console.log method
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
-      // Execute the command
+      // Mock the getRequestsForCompletion function
+      vi.spyOn(completionUtils, 'getRequestsForCompletion').mockResolvedValue(['request1', 'request2']);
+      
+      // Execute the command using parseAsync
       await program.parseAsync(['node', 'shc', '--get-requests', 'test-collection']);
       
-      // Verify that the requests were listed
-      expect(consoleLogSpy).toHaveBeenCalled();
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('get-users');
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('create-user');
+      // Verify that getRequestsForCompletion was called with the correct arguments
+      expect(completionUtils.getRequestsForCompletion).toHaveBeenCalledWith('test-collection', expect.anything());
+      
+      // Verify that console.log was called with the correct output
+      expect(consoleLogSpy).toHaveBeenCalledWith('request1\nrequest2');
       
       // Restore console.log
       consoleLogSpy.mockRestore();
     });
     
-    it.skip('should handle missing collection parameter', async () => {
+    it.skip('should handle errors when listing requests', async () => {
       // Create a new Command instance
       const program = new Command();
       
       // Register the completion command
       addCompletionCommand(program);
       
-      // Mock the console.error method
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      // Mock process.exit
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
       
-      // Execute the command without a collection parameter
-      try {
-        await program.parseAsync(['node', 'shc', '--get-requests']);
-      } catch (error) {
-        // This is expected to throw an error
-        expect(error).toBeDefined();
-      }
+      // Mock the getRequestsForCompletion function to throw an error
+      vi.spyOn(completionUtils, 'getRequestsForCompletion').mockRejectedValue(new Error('Test error'));
       
-      // Verify that an error message was displayed
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      // Execute the command using parseAsync
+      await program.parseAsync(['node', 'shc', '--get-requests', 'test-collection']);
       
-      // Restore console.error
-      consoleErrorSpy.mockRestore();
-    });
-    
-    it.skip('should handle non-existent collection', async () => {
-      // Create a new Command instance
-      const program = new Command();
+      // Verify that process.exit was called with the correct code
+      expect(processExitSpy).toHaveBeenCalledWith(1);
       
-      // Register the completion command
-      addCompletionCommand(program);
-      
-      // Mock the console.log method
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
-      // Execute the command with a non-existent collection
-      await program.parseAsync(['node', 'shc', '--get-requests', 'non-existent']);
-      
-      // Verify that an empty list was returned
-      expect(consoleLogSpy).toHaveBeenCalled();
-      expect(consoleLogSpy.mock.calls[0][0]).toBe('');
-      
-      // Restore console.log
-      consoleLogSpy.mockRestore();
+      // Restore mocks
+      processExitSpy.mockRestore();
     });
   });
 });

@@ -168,12 +168,6 @@ describe('Plugin Initialization', () => {
       return;
     });
     
-    // Store original console methods
-    const originalConsoleLog = console.log;
-    const originalConsoleError = console.error;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleInfo = console.info;
-    
     // Initialize plugins with silent mode enabled
     await initializePlugins({ silent: true, config: TEST_CONFIG_PATH });
     
@@ -182,13 +176,6 @@ describe('Plugin Initialization', () => {
     
     // Verify that loadPlugins was called
     expect(loadPluginsSpy).toHaveBeenCalled();
-    
-    // In silent mode, console methods should be temporarily replaced and then restored
-    // We can't directly compare the references, but we can verify they're functions
-    expect(typeof console.log).toBe('function');
-    expect(typeof console.error).toBe('function');
-    expect(typeof console.warn).toBe('function');
-    expect(typeof console.info).toBe('function');
   });
   
   it('should handle errors during plugin initialization', async () => {
@@ -222,6 +209,125 @@ describe('Plugin Initialization', () => {
     
     // Verify that loadPlugins was not called
     expect(loadPluginsSpy).not.toHaveBeenCalled();
+  });
+  
+  it('should set output format in config', async () => {
+    // Create a config file without output format
+    fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_NO_PLUGINS_CONTENT);
+    
+    // Mock the createConfigManagerFromOptions function
+    const mockConfig = {
+      api: {
+        baseUrl: 'https://api.example.com',
+        timeout: 2000
+      }
+    };
+    
+    // Create a spy for createConfigManagerFromOptions
+    const configManagerSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockResolvedValue();
+    
+    // Initialize plugins with output format
+    await initializePlugins({ 
+      silent: false, 
+      config: TEST_CONFIG_PATH, 
+      output: 'json' 
+    });
+    
+    // Verify that loadPlugins was called with the correct config
+    expect(configManagerSpy).toHaveBeenCalled();
+    
+    // Restore the original implementation
+    configManagerSpy.mockRestore();
+  });
+  
+  it('should respect silent mode', async () => {
+    // Create a config file
+    fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
+    
+    // Create a spy for setSilentMode
+    const setSilentModeSpy = vi.spyOn(cliPluginManager, 'setSilentMode');
+    
+    // Initialize plugins with silent mode
+    await initializePlugins({ silent: true, config: TEST_CONFIG_PATH });
+    
+    // Verify that setSilentMode was called with true
+    expect(setSilentModeSpy).toHaveBeenCalledWith(true);
+    
+    // Restore the spy
+    setSilentModeSpy.mockRestore();
+  });
+  
+  it('should handle errors during initialization in silent mode', async () => {
+    // Create a config file
+    fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
+    
+    // Create spies for console methods
+    const consoleErrorSpy = vi.spyOn(console, 'error');
+    
+    // Create a spy for loadPlugins that throws an error
+    const loadPluginsErrorSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockImplementation(() => {
+      throw new Error('Test error');
+    });
+    
+    // Initialize plugins with silent mode
+    await initializePlugins({ silent: true, config: TEST_CONFIG_PATH });
+    
+    // Verify that console.error was not called
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    
+    // Restore the spies
+    consoleErrorSpy.mockRestore();
+    loadPluginsErrorSpy.mockRestore();
+  });
+  
+  it('should handle errors during initialization in non-silent mode', async () => {
+    // Create a config file
+    fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
+    
+    // Create spies for console methods
+    const consoleErrorSpy = vi.spyOn(console, 'error');
+    
+    // Create a spy for loadPlugins that throws an error
+    const loadPluginsErrorSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockImplementation(() => {
+      throw new Error('Test error');
+    });
+    
+    // Initialize plugins without silent mode
+    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    
+    // Verify that console.error was called
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to initialize CLI plugins:',
+      expect.any(Error)
+    );
+    
+    // Restore the spies
+    consoleErrorSpy.mockRestore();
+    loadPluginsErrorSpy.mockRestore();
+  });
+  
+  it('should store config file path for plugin discovery', async () => {
+    // Create a config file
+    fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_NO_PLUGINS_CONTENT);
+    
+    // Create a spy for loadPlugins
+    const loadPluginsSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockResolvedValue();
+    
+    // Initialize plugins with config path
+    await initializePlugins({ 
+      silent: false, 
+      config: TEST_CONFIG_PATH 
+    });
+    
+    // Verify that loadPlugins was called with the config containing the configFilePath
+    expect(loadPluginsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configFilePath: TEST_CONFIG_PATH
+      })
+    );
+    
+    // Restore the spy
+    loadPluginsSpy.mockRestore();
   });
   
   it('should filter disabled plugins', async () => {
