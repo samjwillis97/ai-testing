@@ -2,7 +2,7 @@
   description = "SHC - HTTP Client Tools";
 
   inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -13,61 +13,53 @@
           inherit system;
         };
 
+        node = pkgs.nodejs_20;
+        pnpm = pkgs.pnpm_9;
+
         # Build the SHC CLI package using stdenv
-        shc = pkgs.stdenv.mkDerivation {
+        shc = pkgs.stdenv.mkDerivation (finalAttrs: rec {
           pname = "shc";
           version = "0.1.0";
+
           src = ./.;
-          
-          buildInputs = with pkgs; [
-            nodejs_20
-            pnpm
-            cacert
+
+          nativeBuildInputs = [ 
+            node
+            pnpm.configHook
           ];
-          
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          
-          # Allow network access during build for pnpm
-          __noChroot = true;
-          
+
+          # pnpmRoot = "cli";
+          pnpmWorkspaces = [ "@shc/core" "@shc/cli" ];
+          pnpmDeps = pnpm.fetchDeps {
+            inherit (finalAttrs) pname version src pnpmWorkspaces;
+            # sourceRoot = "${src}/packages/cli";
+            hash = "sha256-5+PTF+OmV3GL3MDTMBbzqr4iQ+HRzPC75BArE+TobLc=";
+          };
+
           buildPhase = ''
-            # Set up environment
-            export HOME=$(mktemp -d)
-            export NODE_EXTRA_CA_CERTS="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-            export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-            
-            # Disable strict SSL for pnpm to work in restricted Nix build environment
-            pnpm config set strict-ssl false
-            
+            runHook preBuild
+
             # Install dependencies and build
-            pnpm install --frozen-lockfile
-            pnpm build
+            pnpm --filter=@shc/core build
+            pnpm --filter=@shc/cli build
+
+            runHook postBuild
           '';
-          
+
           installPhase = ''
-            # Create output directories
-            mkdir -p $out/bin
-            mkdir -p $out/lib/node_modules
-            
-            # Copy the entire node_modules directory to include all dependencies
-            cp -r node_modules $out/lib/
-            
-            # Copy the packages to the correct locations
-            mkdir -p $out/lib/node_modules/@shc/cli
-            mkdir -p $out/lib/node_modules/@shc/core
-            
-            cp -r packages/cli/dist $out/lib/node_modules/@shc/cli/
-            cp -r packages/cli/package.json $out/lib/node_modules/@shc/cli/
-            
-            cp -r packages/core/dist $out/lib/node_modules/@shc/core/
-            cp -r packages/core/package.json $out/lib/node_modules/@shc/core/
-            
-            # Create executable wrapper
-            makeWrapper ${pkgs.nodejs_20}/bin/node $out/bin/shc \
-              --add-flags "$out/lib/node_modules/@shc/cli/dist/index.js" \
-              --set NODE_PATH "$out/lib/node_modules:$out/lib/node_modules/@shc/cli/node_modules:$out/lib/node_modules/@shc/core/node_modules:$out/lib/node_modules"
+            mkdir -p $out/bin $out/lib/${pname}
+            cp -r packages node_modules $out/lib/${pname}
+
+            # # We need to make a wrapper script because TSC doesn't write
+            # # shebangs.
+            cat <<EOF > $out/bin/${pname}
+            #! ${pkgs.bash}/bin/bash
+            exec ${node}/bin/node ${placeholder "out"}/lib/${pname}/packages/cli/dist/index.js "\$@"
+            EOF
+
+            chmod +x $out/bin/${pname}
           '';
-        };
+        });
 
       in {
         packages = {
@@ -85,22 +77,18 @@
         devShells = {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              nodejs_20
+              node
               pnpm
               git
               nodePackages.typescript
               nodePackages.typescript-language-server
               nodePackages.eslint
               nodePackages.prettier
-              cacert # Add SSL certificates
             ];
 
             # Environment variables
             shellHook = ''
               export NODE_ENV="development"
-              # Set SSL certificate path for Node.js
-              export NODE_EXTRA_CA_CERTS="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-              export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
               
               echo "SHC Development Environment"
               echo "Node.js: $(node --version)"
