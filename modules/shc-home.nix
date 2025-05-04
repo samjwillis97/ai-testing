@@ -2,10 +2,10 @@
   config, lib, pkgs, ...
 }:
 with lib; let
-  cfg = config.shc;
+  cfg = config.programs.shc;
 in
 {
-  options.shc = {
+  options.programs.shc = {
     package = mkPackageOption pkgs "shc" {};
 
     enable = mkOption {
