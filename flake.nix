@@ -67,6 +67,9 @@
           shc = shc;
         };
 
+        homeManagerModules.shc = ./modules/shc-home.nix;
+        homeManagerModules.default = self.homeManagerModules.shc;
+
         apps = {
           default = {
             type = "app";
