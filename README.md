@@ -104,6 +104,113 @@ const errorPlugin: HttpClientPlugin = {
 };
 ```
 
+## Nix Integration
+
+SHC provides comprehensive Nix integration through a flake-based approach, allowing for reproducible builds, development environments, and easy installation.
+
+### Development Environment
+
+The project includes a Nix development shell with all necessary dependencies pre-configured:
+
+```bash
+# Clone the repository
+git clone https://github.com/samjwillis97/ai-testing.git
+cd ai-testing
+
+# Enter the development environment
+nix develop
+
+# Build the project
+pnpm build
+
+# Run tests
+pnpm test
+```
+
+### Installing SHC with Nix
+
+#### Direct Installation
+
+You can install SHC directly using the Nix package manager:
+
+```bash
+# Install from GitHub
+nix profile install github:samjwillis97/ai-testing
+
+# Or from a local checkout
+nix profile install .
+```
+
+#### Using in a Nix Configuration
+
+Add SHC to your system configuration:
+
+```nix
+{
+  inputs.shc.url = "github:samjwillis97/ai-testing";
+  
+  outputs = { self, nixpkgs, shc, ... }: {
+    nixosConfigurations.mySystem = nixpkgs.lib.nixosSystem {
+      # ...
+      modules = [
+        ({ pkgs, ... }: {
+          environment.systemPackages = [
+            shc.packages.${pkgs.system}.default
+          ];
+        })
+      ];
+    };
+  };
+}
+```
+
+### Home Manager Integration
+
+SHC provides a Home Manager module for easy integration into your user environment:
+
+```nix
+{
+  inputs.shc.url = "github:samjwillis97/ai-testing";
+  
+  outputs = { self, nixpkgs, home-manager, shc, ... }: {
+    homeConfigurations.myUser = home-manager.lib.homeManagerConfiguration {
+      # ...
+      modules = [
+        shc.homeManagerModules.default
+        {
+          shc = {
+            enable = true;
+            enableZshIntegration = true;  # Optional: enables shell completion for Zsh
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Building from Source with Nix
+
+The flake provides multiple ways to build and use SHC:
+
+```bash
+# Build the default package
+nix build .
+
+# Run without installing
+nix run .
+
+# Enter a development shell
+nix develop
+```
+
+### Flake Structure
+
+The project's Nix integration consists of:
+
+- `flake.nix`: Main flake file defining packages, apps, and development shells
+- `modules/shc-home.nix`: Home Manager module for user environment integration
+
 ## Contributing
 
 1. Fork the repository
