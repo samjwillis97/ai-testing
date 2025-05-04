@@ -21,6 +21,10 @@
           pname = "shc";
           version = "0.1.0";
 
+          meta = {
+            mainProgram = "shc";
+          };
+
           src = ./.;
 
           nativeBuildInputs = [ 
