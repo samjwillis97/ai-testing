@@ -17,14 +17,14 @@ async function main() {
     const program = await makeProgram({
       initPlugins: true,
     });
-    
+
     // Show help if no arguments are provided
     if (process.argv.length <= 2) {
       program.help();
-    } else {  
+    } else {
       // Check for silent mode flag in command line arguments
       const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
-    
+
       // If silent mode is enabled, execute the CLI in silent mode
       if (isSilent) {
         executeSilently(async () => {

@@ -18,8 +18,8 @@ vi.mock('../../src/utils/output.js', () => {
 
 // Mock axios module
 vi.mock('axios', async () => {
-  const actual = await vi.importActual('axios') as any;
-  
+  const actual = (await vi.importActual('axios')) as any;
+
   // Create a mock implementation that preserves the structure of axios
   return {
     default: {
@@ -55,9 +55,9 @@ vi.mock('axios', async () => {
             },
           },
         };
-        
+
         // Add all the methods from axios to the instance
-        ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'].forEach(method => {
+        ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'].forEach((method) => {
           instance[method] = vi.fn().mockImplementation((url, data, config) => {
             return instance.request({
               method,
@@ -67,7 +67,7 @@ vi.mock('axios', async () => {
             });
           });
         });
-        
+
         return instance;
       }),
     },
@@ -88,58 +88,62 @@ process.stdout.write = vi.fn() as any;
 describe('Direct Request Command', () => {
   let program: Command;
   let captured: CapturedOutput;
-  
+
   // Get the path to the repo root directory
   const repoRoot = path.resolve(process.cwd(), '..', '..');
   // Path to a real config file
   const configPath = path.resolve(repoRoot, 'configs', 'shc.config.yaml');
-  
+
   beforeEach(async () => {
     // Reset mocks
     vi.clearAllMocks();
-    
+
     // Create a test program with mocked console output
     [program, captured] = await createTestProgram({
       captureOutput: true,
       mockExit: true,
-      initPlugins: false
+      initPlugins: false,
     });
-    
+
     // Add the direct command to the program
     addDirectCommand(program);
   });
-  
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
-  
+
   afterAll(() => {
     // Restore process.exit after all tests
     process.exit = originalExit;
     process.stdout.write = originalStdoutWrite;
   });
-  
+
   describe('HTTP Method Commands', () => {
     it('should execute a GET request successfully', async () => {
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the printResponse function was called
       expect(output.printResponse).toHaveBeenCalled();
     });
-    
+
     it('should execute a POST request with data', async () => {
       const requestData = { name: 'Test User', email: 'test@example.com' };
-      
+
       // Create a custom axios instance for this test
       const postAxiosInstance = {
         request: vi.fn().mockResolvedValue({
@@ -150,8 +154,8 @@ describe('Direct Request Command', () => {
           config: {
             url: 'https://api.example.com/users',
             method: 'POST',
-            data: requestData
-          }
+            data: requestData,
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -168,33 +172,38 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(postAxiosInstance);
-      
+
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'post', 'https://api.example.com/users',
-        '-c', configPath,
-        '-d', JSON.stringify(requestData)
+        'node',
+        'shc',
+        'post',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
+        '-d',
+        JSON.stringify(requestData),
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made with the correct data
       expect(postAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the printResponse function was called
       expect(output.printResponse).toHaveBeenCalled();
     });
-    
+
     it('should execute a PUT request with data', async () => {
       const requestData = { name: 'Updated User' };
-      
+
       // Create a custom axios instance for this test
       const putAxiosInstance = {
         request: vi.fn().mockResolvedValue({
@@ -205,8 +214,8 @@ describe('Direct Request Command', () => {
           config: {
             url: 'https://api.example.com/users/123',
             method: 'PUT',
-            data: requestData
-          }
+            data: requestData,
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -223,30 +232,35 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(putAxiosInstance);
-      
+
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'put', 'https://api.example.com/users/123',
-        '-c', configPath,
-        '-d', JSON.stringify(requestData)
+        'node',
+        'shc',
+        'put',
+        'https://api.example.com/users/123',
+        '-c',
+        configPath,
+        '-d',
+        JSON.stringify(requestData),
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made with the correct data
       expect(putAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the printResponse function was called
       expect(output.printResponse).toHaveBeenCalled();
     });
-    
+
     it('should execute a DELETE request', async () => {
       // Create a custom axios instance for this test
       const deleteAxiosInstance = {
@@ -257,8 +271,8 @@ describe('Direct Request Command', () => {
           headers: { 'content-type': 'application/json' },
           config: {
             url: 'https://api.example.com/users/123',
-            method: 'DELETE'
-          }
+            method: 'DELETE',
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -275,30 +289,34 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(deleteAxiosInstance);
-      
+
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'delete', 'https://api.example.com/users/123',
-        '-c', configPath
+        'node',
+        'shc',
+        'delete',
+        'https://api.example.com/users/123',
+        '-c',
+        configPath,
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(deleteAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the printResponse function was called
       expect(output.printResponse).toHaveBeenCalled();
     });
   });
-  
+
   describe('Request Options', () => {
     it('should add headers to the request', async () => {
       // Create a custom axios instance for this test
@@ -307,13 +325,13 @@ describe('Direct Request Command', () => {
           // Verify that the headers were added to the request
           expect(config.headers).toHaveProperty('Content-Type', 'application/json');
           expect(config.headers).toHaveProperty('Authorization', 'Bearer token123');
-          
+
           return Promise.resolve({
             data: { success: true },
             status: 200,
             statusText: 'OK',
             headers: { 'content-type': 'application/json' },
-            config
+            config,
           });
         }),
         interceptors: {
@@ -331,28 +349,34 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(headersAxiosInstance);
-      
+
       // Execute the command with headers
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath,
-        '-H', 'Content-Type:application/json',
-        '-H', 'Authorization:Bearer token123'
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
+        '-H',
+        'Content-Type:application/json',
+        '-H',
+        'Authorization:Bearer token123',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(headersAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should add query parameters to the request', async () => {
       // Create a custom axios instance for this test
       const queryAxiosInstance = {
@@ -360,13 +384,13 @@ describe('Direct Request Command', () => {
           // Verify that the query parameters were added to the request
           expect(config.params).toHaveProperty('page', '1');
           expect(config.params).toHaveProperty('limit', '10');
-          
+
           return Promise.resolve({
             data: { success: true },
             status: 200,
             statusText: 'OK',
             headers: { 'content-type': 'application/json' },
-            config
+            config,
           });
         }),
         interceptors: {
@@ -384,41 +408,47 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(queryAxiosInstance);
-      
+
       // Execute the command with query parameters
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath,
-        '-q', 'page=1',
-        '-q', 'limit=10'
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
+        '-q',
+        'page=1',
+        '-q',
+        'limit=10',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(queryAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should set timeout for the request', async () => {
       // Create a custom axios instance for this test
       const timeoutAxiosInstance = {
         request: vi.fn().mockImplementation((config) => {
           // Verify that the timeout was set for the request
           expect(config.timeout).toBe(5000);
-          
+
           return Promise.resolve({
             data: { success: true },
             status: 200,
             statusText: 'OK',
             headers: { 'content-type': 'application/json' },
-            config
+            config,
           });
         }),
         interceptors: {
@@ -436,28 +466,33 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(timeoutAxiosInstance);
-      
+
       // Execute the command with timeout
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath,
-        '-t', '5000'
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
+        '-t',
+        '5000',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(timeoutAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
   });
-  
+
   describe('Error Handling', () => {
     it('should handle request errors gracefully', async () => {
       // We need to mock the axios.create to return a custom instance for this test
@@ -470,9 +505,9 @@ describe('Direct Request Command', () => {
             headers: {},
             config: {
               url: 'https://api.example.com/users',
-              method: 'GET'
-            }
-          }
+              method: 'GET',
+            },
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -489,20 +524,24 @@ describe('Direct Request Command', () => {
           },
         },
       });
-      
+
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
       ]);
-      
+
       // Verify error was handled
       expect(process.exit).toHaveBeenCalledWith(1);
-      
+
       // Verify that the printError function was called
       expect(output.printError).toHaveBeenCalled();
     });
-    
+
     it('should handle network errors gracefully', async () => {
       // We need to mock the axios.create to return a custom instance for this test
       (axios.create as any).mockReturnValueOnce({
@@ -522,21 +561,25 @@ describe('Direct Request Command', () => {
           },
         },
       });
-      
+
       // Execute the command
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
       ]);
-      
+
       // Verify error was handled
       expect(process.exit).toHaveBeenCalledWith(1);
-      
+
       // Verify that the printError function was called
       expect(output.printError).toHaveBeenCalled();
     });
   });
-  
+
   describe('Output Options', () => {
     it('should use the specified output format', async () => {
       // Create a custom axios instance for this test
@@ -548,8 +591,8 @@ describe('Direct Request Command', () => {
           headers: { 'content-type': 'application/json' },
           config: {
             url: 'https://api.example.com/users',
-            method: 'GET'
-          }
+            method: 'GET',
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -566,33 +609,38 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(formatAxiosInstance);
-      
+
       // Execute the command with output format
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath,
-        '-o', 'yaml'
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
+        '-o',
+        'yaml',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(formatAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the printResponse function was called with the correct format
       expect(output.printResponse).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ format: 'yaml' })
       );
     });
-    
+
     it('should handle silent mode with raw format', async () => {
       // Create a custom axios instance for this test
       const silentAxiosInstance = {
@@ -603,8 +651,8 @@ describe('Direct Request Command', () => {
           headers: { 'content-type': 'application/json' },
           config: {
             url: 'https://api.example.com/users',
-            method: 'GET'
-          }
+            method: 'GET',
+          },
         }),
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
@@ -621,27 +669,32 @@ describe('Direct Request Command', () => {
           },
         },
       };
-      
+
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(silentAxiosInstance);
-      
+
       // Execute the command with silent mode and raw format
       await program.parseAsync([
-        'node', 'shc', 'get', 'https://api.example.com/users',
-        '-c', configPath,
+        'node',
+        'shc',
+        'get',
+        'https://api.example.com/users',
+        '-c',
+        configPath,
         '--silent',
-        '-o', 'raw'
+        '-o',
+        'raw',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(silentAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that process.stdout.write was called (raw output)
       expect(process.stdout.write).toHaveBeenCalled();
     });

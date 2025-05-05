@@ -46,11 +46,11 @@ describe('CLI Entry Point', () => {
     warn: console.warn,
     info: console.info,
   };
-  
+
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    
+
     // Create test directories and files
     if (!fs.existsSync(TEST_DIR)) {
       fs.mkdirSync(TEST_DIR, { recursive: true });
@@ -58,48 +58,48 @@ describe('CLI Entry Point', () => {
     if (!fs.existsSync(TEST_COLLECTIONS_DIR)) {
       fs.mkdirSync(TEST_COLLECTIONS_DIR, { recursive: true });
     }
-    
+
     // Write test config file
     fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
-    
+
     // Set environment variables for testing
     process.env.SHC_CONFIG = TEST_CONFIG_PATH;
     process.env.SHC_COLLECTION_DIR = TEST_COLLECTIONS_DIR;
-    
+
     // Mock console methods
     console.log = vi.fn();
     console.error = vi.fn();
     console.warn = vi.fn();
     console.info = vi.fn();
-    
+
     // Reset module cache to ensure fresh imports
     vi.resetModules();
   });
-  
+
   afterEach(() => {
     // Restore process.argv
     process.argv = originalArgv;
-    
+
     // Restore console methods
     console.log = originalConsole.log;
     console.error = originalConsole.error;
     console.warn = originalConsole.warn;
     console.info = originalConsole.info;
-    
+
     // Restore environment variables
     process.env = { ...originalEnv };
-    
+
     // Clean up test directory
     if (fs.existsSync(TEST_DIR)) {
       fs.rmSync(TEST_DIR, { recursive: true, force: true });
     }
   });
-  
+
   afterAll(() => {
     // Restore process.exit
     process.exit = originalExit;
   });
-  
+
   it('shows help with no args', () => {
     const cliPath = path.join(__dirname, '../../dist/index.js');
     try {
@@ -110,76 +110,76 @@ describe('CLI Entry Point', () => {
       console.warn('Skipping CLI help test - CLI not built');
     }
   });
-  
+
   it('should show help when no arguments are provided', async () => {
     // Set up process.argv with no arguments
     process.argv = ['node', 'shc'];
-    
+
     // Create a spy for console.log
     const consoleLogSpy = vi.spyOn(console, 'log');
-    
+
     try {
       // Import and execute the CLI entry point
       await import('../../src/index');
     } catch (error) {
       // Ignore any errors that might bubble up
     }
-    
+
     // Since we're not mocking the program.help() method, we can only check
     // that the process didn't exit with an error
     expect(process.exit).not.toHaveBeenCalledWith(1);
   });
-  
+
   it.skip('should execute the CLI normally when arguments are provided', async () => {
     // Set up process.argv with arguments
     process.argv = ['node', 'shc', 'get', 'https://api.example.com/users'];
-    
+
     try {
       // Import and execute the CLI entry point
       await import('../../src/index');
     } catch (error) {
       // Ignore any errors that might bubble up
     }
-    
+
     // Since we're not mocking the actual execution, we can only verify
     // that the process didn't exit with an error
     expect(process.exit).not.toHaveBeenCalledWith(1);
   });
-  
+
   it.skip('should execute the CLI in silent mode when --silent flag is provided', async () => {
     // Set up process.argv with silent flag and help command (which should work without errors)
     process.argv = ['node', 'shc', '--silent', '--help'];
-    
+
     try {
       // Import and execute the CLI entry point
       await import('../../src/index');
     } catch (error) {
       // Ignore any errors that might bubble up
     }
-    
+
     // In silent mode, the process should still execute without errors
     expect(process.exit).not.toHaveBeenCalledWith(1);
   });
-  
+
   it.skip('should execute the CLI in silent mode when -s flag is provided', async () => {
     // Set up process.argv with silent flag and help command (which should work without errors)
     process.argv = ['node', 'shc', '-s', '--help'];
-    
+
     try {
       // Import and execute the CLI entry point
       await import('../../src/index');
     } catch (error) {
       // Ignore any errors that might bubble up
     }
-    
+
     // In silent mode, the process should still execute without errors
     expect(process.exit).not.toHaveBeenCalledWith(1);
   });
-  
+
   it.skip('should handle errors during command execution', async () => {
     // This test is skipped until we can find a better way to test error handling
   });
-  
+
   it.skip('should handle critical errors in silent mode', async () => {
     // This test is skipped until we can find a better way to test error handling
   });

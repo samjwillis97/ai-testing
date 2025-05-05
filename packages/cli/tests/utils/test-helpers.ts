@@ -14,12 +14,12 @@ export interface TestProgramOptions {
    * Whether to initialize plugins
    */
   initPlugins?: boolean;
-  
+
   /**
    * Whether to capture console output
    */
   captureOutput?: boolean;
-  
+
   /**
    * Whether to mock process.exit
    */
@@ -34,27 +34,27 @@ export interface CapturedOutput {
    * Captured console.log messages
    */
   logs: string[];
-  
+
   /**
    * Captured console.error messages
    */
   errors: string[];
-  
+
   /**
    * Captured console.warn messages
    */
   warnings: string[];
-  
+
   /**
    * Captured console.info messages
    */
   infos: string[];
-  
+
   /**
    * Captured process.exit codes
    */
   exitCodes: number[];
-  
+
   /**
    * Clear all captured output
    */
@@ -84,7 +84,7 @@ export async function createTestProgram(
       captured.exitCodes = [];
     },
   };
-  
+
   // Create mock console methods if capturing output
   const mockConsole = options.captureOutput
     ? {
@@ -114,15 +114,15 @@ export async function createTestProgram(
         },
       }
     : undefined;
-  
+
   // Create mock exit function if mocking process.exit
   const mockExit = options.mockExit
-    ? ((code = 0) => {
+    ? (code = 0) => {
         captured.exitCodes.push(code);
         throw new Error(`Process exited with code ${code}`);
-      })
+      }
     : undefined;
-  
+
   // Create the program
   const program = await makeProgram({
     exitOverride: true,
@@ -131,7 +131,7 @@ export async function createTestProgram(
     mockConsole,
     mockExit,
   });
-  
+
   return [program, captured];
 }
 

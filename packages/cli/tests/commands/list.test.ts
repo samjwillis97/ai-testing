@@ -9,7 +9,13 @@ import { addListCommand } from '../../src/commands/list.js';
 import * as configUtils from '../../src/utils/config.js';
 import * as collectionsUtils from '../../src/utils/collections.js';
 import chalk from 'chalk';
-import { createTestProgram, runCommand, mockConfigUtils, mockCollectionsUtils, CapturedOutput } from '../utils/test-helpers.js';
+import {
+  createTestProgram,
+  runCommand,
+  mockConfigUtils,
+  mockCollectionsUtils,
+  CapturedOutput,
+} from '../utils/test-helpers.js';
 
 // Mock dependencies
 vi.mock('fs/promises', () => ({
@@ -194,7 +200,10 @@ describe('List Command', () => {
       await runCommand(program, ['list', 'requests', 'collection1']);
 
       // Verify getRequests was called with the correct collection
-      expect(collectionsUtils.getRequests).toHaveBeenCalledWith('./test-collections', 'collection1');
+      expect(collectionsUtils.getRequests).toHaveBeenCalledWith(
+        './test-collections',
+        'collection1'
+      );
     });
 
     it('should show a message when no requests exist', async () => {

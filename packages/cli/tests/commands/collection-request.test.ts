@@ -7,17 +7,19 @@ vi.mock('../../src/utils/collections.js', () => ({
     if (collectionName === 'non-existent') {
       return Promise.reject(new Error(`Collection '${collectionName}' not found`));
     }
-    
+
     if (requestName === 'non-existent') {
-      return Promise.reject(new Error(`Request '${requestName}' not found in collection '${collectionName}'`));
+      return Promise.reject(
+        new Error(`Request '${requestName}' not found in collection '${collectionName}'`)
+      );
     }
-    
+
     if (collectionName === 'test-collection' && requestName === 'get-users') {
       return Promise.resolve({
         method: 'GET',
         url: 'https://api.example.com/users',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
     } else if (collectionName === 'test-collection' && requestName === 'create-user') {
@@ -26,7 +28,7 @@ vi.mock('../../src/utils/collections.js', () => ({
         url: 'https://api.example.com/users',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         data: {
           name: 'Test User',
@@ -34,7 +36,9 @@ vi.mock('../../src/utils/collections.js', () => ({
         },
       });
     } else {
-      return Promise.reject(new Error(`Request '${requestName}' not found in collection '${collectionName}'`));
+      return Promise.reject(
+        new Error(`Request '${requestName}' not found in collection '${collectionName}'`)
+      );
     }
   }),
   getCollectionDir: vi.fn().mockResolvedValue('/mock/collections/dir'),
@@ -115,24 +119,24 @@ describe('Collection Request Command', () => {
   let program: Command;
   let captured: CapturedOutput;
   let mockAxiosInstance: any;
-  
+
   beforeEach(async () => {
     // Reset mocks
     vi.clearAllMocks();
-    
+
     // Get the mock axios instance
     mockAxiosInstance = (axios.create as any)();
-    
+
     // Create a test program with mocked console output
     [program, captured] = await createTestProgram({
       captureOutput: true,
       mockExit: true,
-      initPlugins: false
+      initPlugins: false,
     });
-    
+
     // Add the collection command to the program
     addCollectionCommand(program);
-    
+
     // Set up a default successful response
     mockAxiosInstance.request.mockResolvedValue({
       data: { success: true, message: 'Test response' },
@@ -145,145 +149,159 @@ describe('Collection Request Command', () => {
       },
     });
   });
-  
+
   afterEach(() => {
     // Clear captured output
     captured.clear();
   });
-  
+
   afterAll(() => {
     // Restore process.exit
     process.exit = originalExit;
   });
-  
+
   describe('Collection Request Execution', () => {
     it('should execute a GET request from a collection', async () => {
       // Execute the command
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'test-collection', 'get-users']);
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should execute a POST request from a collection', async () => {
       // Execute the command
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'create-user',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'test-collection', 'create-user']);
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should handle non-existent collection gracefully', async () => {
       // Execute the command with a non-existent collection
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'non-existent', 'get-users',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'non-existent', 'get-users']);
+
       // Verify error was handled
       expect(process.exit).toHaveBeenCalledWith(1);
     });
-    
+
     it('should handle non-existent request gracefully', async () => {
       // Execute the command with a non-existent request
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'non-existent',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'test-collection', 'non-existent']);
+
       // Verify error was handled
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
-  
+
   describe('Request Option Overrides', () => {
     it('should override headers in the request', async () => {
       // Execute the command with header overrides
       await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-        '-H', 'Content-Type:application/json',
-        '-H', 'Authorization:Bearer token123',
+        'node',
+        'shc',
+        'collection',
+        'test-collection',
+        'get-users',
+        '-H',
+        'Content-Type:application/json',
+        '-H',
+        'Authorization:Bearer token123',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should override query parameters in the request', async () => {
       // Execute the command with query parameter overrides
       await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-        '-q', 'page=1',
-        '-q', 'limit=10',
+        'node',
+        'shc',
+        'collection',
+        'test-collection',
+        'get-users',
+        '-q',
+        'page=1',
+        '-q',
+        'limit=10',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should override request body in the request', async () => {
       const newRequestData = { name: 'New User', email: 'new@example.com' };
-      
+
       // Execute the command with body override
       await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'create-user',
-        '-d', JSON.stringify(newRequestData),
+        'node',
+        'shc',
+        'collection',
+        'test-collection',
+        'create-user',
+        '-d',
+        JSON.stringify(newRequestData),
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
-    
+
     it('should override timeout in the request', async () => {
       // Execute the command with timeout override
       await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-        '-t', '5000',
+        'node',
+        'shc',
+        'collection',
+        'test-collection',
+        'get-users',
+        '-t',
+        '5000',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
     });
   });
-  
+
   describe('Error Handling', () => {
     it('should handle request errors gracefully', async () => {
       // Mock axios request to reject with an error
@@ -295,51 +313,52 @@ describe('Collection Request Command', () => {
           headers: {},
           config: {
             url: 'https://api.example.com/users',
-            method: 'GET'
-          }
-        }
+            method: 'GET',
+          },
+        },
       });
-      
+
       // Execute the command
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'test-collection', 'get-users']);
+
       // Check if the command exited with an error code
       expect(process.exit).toHaveBeenCalledWith(1);
     });
-    
+
     it('should handle network errors gracefully', async () => {
       // Mock axios request to reject with a network error
       mockAxiosInstance.request.mockRejectedValueOnce(new Error('Network Error'));
-      
+
       // Execute the command
-      await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-      ]);
-      
+      await program.parseAsync(['node', 'shc', 'collection', 'test-collection', 'get-users']);
+
       // Check if the command exited with an error code
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
-  
+
   describe('Output Options', () => {
     it('should use the specified output format', async () => {
       // Execute the command with output format
       await program.parseAsync([
-        'node', 'shc', 'collection', 'test-collection', 'get-users',
-        '-o', 'json',
+        'node',
+        'shc',
+        'collection',
+        'test-collection',
+        'get-users',
+        '-o',
+        'json',
       ]);
-      
+
       // Verify the axios instance was created
       expect(axios.create).toHaveBeenCalled();
-      
+
       // Verify that the request was made
       expect(mockAxiosInstance.request).toHaveBeenCalled();
-      
+
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Verify that the output was formatted as JSON
       expect(output.printResponse).toHaveBeenCalled();
     });

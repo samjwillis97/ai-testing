@@ -13,12 +13,12 @@ describe('Help Command', () => {
     const program = await makeProgram({
       exitOverride: true,
       suppressOutput: true,
-      initPlugins: false
+      initPlugins: false,
     });
-    
+
     // Mock stdout to capture output
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-    
+
     try {
       // This should trigger help display
       await program.parseAsync(['node', 'shc', '--help'], { from: 'user' });

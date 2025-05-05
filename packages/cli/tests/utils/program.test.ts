@@ -76,9 +76,9 @@ describe('Program Creation Utility', () => {
     expect(program.name()).toBe('shc');
     expect(program.description()).toBe('SHC Command Line Interface');
     expect(program.version()).toBe('0.1.0');
-    
+
     // Check that commands were added
-    const commandNames = program.commands.map(cmd => cmd.name());
+    const commandNames = program.commands.map((cmd) => cmd.name());
     expect(commandNames).toContain('get');
     expect(commandNames).toContain('post');
     expect(commandNames).toContain('put');
@@ -91,7 +91,7 @@ describe('Program Creation Utility', () => {
 
   it('creates a program with exitOverride option', async () => {
     const program = await makeProgram({ exitOverride: true });
-    
+
     // Test that exitOverride works by triggering help (which normally exits)
     try {
       await program.parseAsync(['node', 'shc', '--help'], { from: 'user' });
@@ -105,16 +105,16 @@ describe('Program Creation Utility', () => {
 
   it('creates a program with suppressOutput option', async () => {
     const program = await makeProgram({ suppressOutput: true });
-    
+
     // Verify that output is suppressed
     const outputConfig = (program as any)._outputConfiguration;
     expect(outputConfig.writeOut).toBeDefined();
     expect(outputConfig.writeErr).toBeDefined();
-    
+
     // Call the output methods to ensure they don't throw
     outputConfig.writeOut('test');
     outputConfig.writeErr('test');
-    
+
     // No console output should have occurred
     expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -123,29 +123,29 @@ describe('Program Creation Utility', () => {
   it('creates a program with mockConsole option', async () => {
     const mockLog = vi.fn();
     const mockError = vi.fn();
-    
+
     const program = await makeProgram({
       mockConsole: {
         log: mockLog,
         error: mockError,
       },
     });
-    
+
     // Verify that console methods were temporarily replaced
     expect(console.log).not.toBe(mockLog);
     expect(console.error).not.toBe(mockError);
-    
+
     // Original console methods should be restored after program creation
     console.log('test');
     console.error('test error');
-    
+
     expect(mockLog).not.toHaveBeenCalled();
     expect(mockError).not.toHaveBeenCalled();
   });
 
   it('skips plugin initialization when initPlugins is false', async () => {
     const program = await makeProgram({ initPlugins: false });
-    
+
     // Verify that plugins were not initialized
     expect(pluginManager.cliPluginManager.loadPlugins).not.toHaveBeenCalled();
   });

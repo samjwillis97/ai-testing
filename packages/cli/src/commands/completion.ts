@@ -13,7 +13,7 @@ import { cliPluginManager } from '../plugins/index.js';
  * Add completion command to program
  */
 export function addCompletionCommand(program: Command): void {
-  const completionCommand = program
+  program
     .command('completion')
     .description('Generate shell completion script')
     .argument('<shell>', 'Shell type (bash, zsh, fish)')
@@ -30,7 +30,7 @@ export function addCompletionCommand(program: Command): void {
         if (options.eval) {
           process.env.SHC_COMPLETION_EVAL_MODE = 'true';
         }
-        
+
         const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
         console.log(script);
       } catch (error) {
