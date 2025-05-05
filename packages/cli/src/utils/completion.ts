@@ -74,12 +74,12 @@ _shc_completion() {
 
   # Complete command options
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color --var-set" -- "$cur"))
+    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color --var-set --set --output" -- "$cur"))
     return
   fi
 
   # Complete subcommands
-  COMPREPLY=($(compgen -W "collection" -- "$cur"))
+  COMPREPLY=($(compgen -W "collection c get post put patch delete head options direct" -- "$cur"))
   return
 }
 
@@ -100,6 +100,14 @@ _shc() {
   commands=(
     'collection:Execute a request from a collection'
     'c:Execute a request from a collection'
+    'get:Execute a GET request'
+    'post:Execute a POST request'
+    'put:Execute a PUT request'
+    'patch:Execute a PATCH request'
+    'delete:Execute a DELETE request'
+    'head:Execute a HEAD request'
+    'options:Execute an OPTIONS request'
+    'direct:Execute an HTTP request with the specified method'
   )
 
   _arguments -C \\
@@ -111,6 +119,10 @@ _shc() {
     '--env[Specify environment]:environment name:' \\
     '--no-color[Disable colors]' \\
     '--var-set[Override variable set for this request]:namespace=value:' \\
+    '-V[Set config value]:key=value:' \\
+    '--set[Set config value]:key=value:' \\
+    '-o[Output format]:format:(json yaml raw table)' \\
+    '--output[Output format]:format:(json yaml raw table)' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -143,7 +155,8 @@ _shc() {
               '-u[Authentication]:auth:' \\
               '--auth[Authentication]:auth:' \\
               '-t[Request timeout]:timeout:' \\
-              '--timeout[Request timeout]:timeout:'
+              '--timeout[Request timeout]:timeout:' \\
+              '--var-set[Override variable set for this request]:namespace=value:'
           fi
           ;;
       esac
@@ -169,6 +182,14 @@ function _shc {
   commands=(
     'collection:Execute a request from a collection'
     'c:Execute a request from a collection'
+    'get:Execute a GET request'
+    'post:Execute a POST request'
+    'put:Execute a PUT request'
+    'patch:Execute a PATCH request'
+    'delete:Execute a DELETE request'
+    'head:Execute a HEAD request'
+    'options:Execute an OPTIONS request'
+    'direct:Execute an HTTP request with the specified method'
   )
 
   _arguments -C \\
@@ -180,6 +201,10 @@ function _shc {
     '--env[Specify environment]:environment name:' \\
     '--no-color[Disable colors]' \\
     '--var-set[Override variable set for this request]:namespace=value:' \\
+    '-V[Set config value]:key=value:' \\
+    '--set[Set config value]:key=value:' \\
+    '-o[Output format]:format:(json yaml raw table)' \\
+    '--output[Output format]:format:(json yaml raw table)' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -212,7 +237,8 @@ function _shc {
               '-u[Authentication]:auth:' \\
               '--auth[Authentication]:auth:' \\
               '-t[Request timeout]:timeout:' \\
-              '--timeout[Request timeout]:timeout:'
+              '--timeout[Request timeout]:timeout:' \\
+              '--var-set[Override variable set for this request]:namespace=value:'
           fi
           ;;
       esac
@@ -242,6 +268,14 @@ end
 complete -c shc -f
 complete -c shc -n "__fish_use_subcommand" -a "collection" -d "Execute a request from a collection"
 complete -c shc -n "__fish_use_subcommand" -a "c" -d "Execute a request from a collection"
+complete -c shc -n "__fish_use_subcommand" -a "get" -d "Execute a GET request"
+complete -c shc -n "__fish_use_subcommand" -a "post" -d "Execute a POST request"
+complete -c shc -n "__fish_use_subcommand" -a "put" -d "Execute a PUT request"
+complete -c shc -n "__fish_use_subcommand" -a "patch" -d "Execute a PATCH request"
+complete -c shc -n "__fish_use_subcommand" -a "delete" -d "Execute a DELETE request"
+complete -c shc -n "__fish_use_subcommand" -a "head" -d "Execute a HEAD request"
+complete -c shc -n "__fish_use_subcommand" -a "options" -d "Execute an OPTIONS request"
+complete -c shc -n "__fish_use_subcommand" -a "direct" -d "Execute an HTTP request with the specified method"
 
 # Global options
 complete -c shc -l help -d "Show help"
@@ -252,6 +286,17 @@ complete -c shc -l config -d "Specify config file" -r
 complete -c shc -l env -d "Specify environment" -r
 complete -c shc -l no-color -d "Disable colors"
 complete -c shc -l var-set -d "Override variable set for this request" -r
+complete -c shc -s V -l set -d "Set config value" -r
+complete -c shc -s o -l output -d "Output format" -a "json yaml raw table"
+
+# HTTP method commands options
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s H -l header -d "Add header" -r
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s q -l query -d "Add query parameter" -r
+complete -c shc -n "__fish_seen_subcommand_from post put patch direct" -s d -l data -d "Request body" -r
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s u -l auth -d "Authentication" -r
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s t -l timeout -d "Request timeout" -r
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s o -l output -d "Output format" -a "json yaml raw table"
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -l var-set -d "Override variable set for this request" -r
 
 # Collection command
 complete -c shc -n "__fish_seen_subcommand_from collection c" -a "(__shc_collections)" -d "Collection"
@@ -269,6 +314,7 @@ complete -c shc -n "__fish_seen_subcommand_from collection c" -s d -l data -d "R
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s u -l auth -d "Authentication" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s t -l timeout -d "Request timeout" -r
 `;
+
 }
 
 /**
