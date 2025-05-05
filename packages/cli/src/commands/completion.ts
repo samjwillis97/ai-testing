@@ -13,11 +13,12 @@ import { cliPluginManager } from '../plugins/index.js';
  * Add completion command to program
  */
 export function addCompletionCommand(program: Command): void {
-  program
+  const completionCommand = program
     .command('completion')
     .description('Generate shell completion script')
     .argument('<shell>', 'Shell type (bash, zsh, fish)')
-    .action((shell: string) => {
+    .option('--eval', 'Generate completion script suitable for eval')
+    .action((shell: string, options) => {
       if (!['bash', 'zsh', 'fish'].includes(shell)) {
         console.error(`Unsupported shell: ${shell}`);
         console.error('Supported shells: bash, zsh, fish');
@@ -25,6 +26,11 @@ export function addCompletionCommand(program: Command): void {
       }
 
       try {
+        // Set environment variable for eval mode if needed
+        if (options.eval) {
+          process.env.SHC_COMPLETION_EVAL_MODE = 'true';
+        }
+        
         const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
         console.log(script);
       } catch (error) {

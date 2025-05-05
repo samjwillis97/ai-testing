@@ -25,12 +25,15 @@ export function generateCompletionScript(shell: 'bash' | 'zsh' | 'fish'): string
     }
   }
 
+  // Check if we should generate an eval-compatible script
+  const isEvalMode = process.env.SHC_COMPLETION_EVAL_MODE === 'true';
+
   // Fall back to built-in completion scripts
   switch (shell) {
     case 'bash':
       return generateBashCompletionScript();
     case 'zsh':
-      return generateZshCompletionScript();
+      return isEvalMode ? generateZshEvalCompletionScript() : generateZshCompletionScript();
     case 'fish':
       return generateFishCompletionScript();
     default:
@@ -148,6 +151,75 @@ _shc() {
 }
 
 _shc
+`;
+}
+
+/**
+ * Generate Zsh completion script compatible with eval
+ */
+function generateZshEvalCompletionScript(): string {
+  return `# Zsh completion script for shc (eval compatible)
+
+# Define the completion function
+function _shc {
+  local -a commands
+  local -a collection_commands
+
+  commands=(
+    'collection:Execute a request from a collection'
+    'c:Execute a request from a collection'
+  )
+
+  _arguments -C \\
+    '--help[Show help]' \\
+    '--version[Show version]' \\
+    '--verbose[Enable verbose output]' \\
+    '--silent[Disable all output]' \\
+    '--config[Specify config file]:config file:_files' \\
+    '--env[Specify environment]:environment name:' \\
+    '--no-color[Disable colors]' \\
+    '1: :{_describe "command" commands}' \\
+    '*::arg:->args'
+
+  case $state in
+    args)
+      case $words[1] in
+        collection|c)
+          if [[ $CURRENT -eq 2 ]]; then
+            local -a collections
+            collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
+            _describe 'collections' collections
+          elif [[ $CURRENT -eq 3 ]]; then
+            local -a requests
+            requests=(\${(f)"$(shc --get-requests $words[2] 2>/dev/null)"})
+            _describe 'requests' requests
+          else
+            _arguments \\
+              '--collection-dir[Specify collection directory]:directory:_files -/' \\
+              '--save[Save request to collection]' \\
+              '--export[Export collection to file]:file:_files' \\
+              '--import[Import collection from file]:file:_files' \\
+              '-o[Output format]:format:(json yaml raw table)' \\
+              '--output[Output format]:format:(json yaml raw table)' \\
+              '-H[Add header]:header:' \\
+              '--header[Add header]:header:' \\
+              '-q[Add query parameter]:query:' \\
+              '--query[Add query parameter]:query:' \\
+              '-d[Request body]:data:' \\
+              '--data[Request body]:data:' \\
+              '-u[Authentication]:auth:' \\
+              '--auth[Authentication]:auth:' \\
+              '-t[Request timeout]:timeout:' \\
+              '--timeout[Request timeout]:timeout:'
+          fi
+          ;;
+      esac
+      ;;
+  esac
+}
+
+# Register the completion function
+compdef _shc shc
 `;
 }
 

@@ -26,7 +26,7 @@ in
 
     # Zsh integration
     programs.zsh.initContent = mkIf cfg.enableZshIntegration ''
-      eval "$(${getExe cfg.package} completion zsh)"
+      eval "$(${getExe cfg.package} completion zsh --eval)"
     '';
   };
 }
