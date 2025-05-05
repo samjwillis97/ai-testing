@@ -5,9 +5,24 @@
  */
 import path from 'path';
 import { ConfigManager } from '@shc/core';
+import { promises as fsPromises } from 'fs';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
+
+/**
+ * Check if a file exists
+ * @param filePath Path to the file
+ * @returns Promise that resolves to true if the file exists, false otherwise
+ */
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fsPromises.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Get effective options by merging CLI options with config file settings.
@@ -106,15 +121,59 @@ export async function createConfigManagerFromOptions(
   createConfigManager = configManagerFactory
 ): Promise<ConfigManager> {
   const configManager = createConfigManager();
+  let configLoaded = false;
 
-  // Load config file if specified
+  // Load config file if specified via CLI options
   if (options.config) {
     try {
       await configManager.loadFromFile(options.config as string);
+      console.log(`Config loaded from: ${options.config}`);
+      configLoaded = true;
     } catch (error) {
       console.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
+    }
+  } 
+  // If no config file specified, try default locations
+  else {
+    // Try ~/.config/shc/config.yaml first
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    if (homeDir) {
+      const defaultConfigPath = path.join(homeDir, '.config', 'shc', 'config.yaml');
+      try {
+        const exists = await fileExists(defaultConfigPath);
+        if (exists) {
+          await configManager.loadFromFile(defaultConfigPath);
+          console.log(`Config loaded from: ${defaultConfigPath}`);
+          configLoaded = true;
+        }
+      } catch (error) {
+        // Silently fail and continue with defaults
+      }
+    }
+
+    // If home config not found, try current directory
+    if (!configLoaded) {
+      const localConfigPaths = [
+        path.join(process.cwd(), 'shc.config.yaml'),
+        path.join(process.cwd(), 'shc.config.yml'),
+        path.join(process.cwd(), 'shc.config.json')
+      ];
+
+      for (const configPath of localConfigPaths) {
+        try {
+          const exists = await fileExists(configPath);
+          if (exists) {
+            await configManager.loadFromFile(configPath);
+            console.log(`Config loaded from: ${configPath}`);
+            configLoaded = true;
+            break;
+          }
+        } catch (error) {
+          // Silently fail and continue with next path
+        }
+      }
     }
   }
 
@@ -174,7 +233,3 @@ export async function createConfigManagerFromOptions(
 
   return configManager;
 }
-
-// Removed createClientConfig function as it duplicates functionality
-// that should be handled by the core package's ConfigManager.
-// Use createConfigManagerFromOptions instead for proper configuration management.

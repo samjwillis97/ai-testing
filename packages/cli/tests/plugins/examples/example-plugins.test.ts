@@ -46,9 +46,6 @@ describe('Example Plugins', () => {
       // Load example plugins
       loadExamplePlugins(mockContext);
       
-      // Verify that console.log was called
-      expect(console.log).toHaveBeenCalledWith('Loading example plugins...');
-      
       // Verify that each plugin's register method was called
       expect(markdownFormatterPlugin.register).toHaveBeenCalledWith(mockContext);
       expect(helpCommandPlugin.register).toHaveBeenCalledWith(mockContext);

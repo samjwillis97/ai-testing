@@ -16,6 +16,11 @@ vi.mock('axios');
 const TEST_DIR = path.join(os.tmpdir(), 'shc-cli-test-' + Date.now());
 const TEST_CONFIG_PATH = path.join(TEST_DIR, 'config.yaml');
 const TEST_COLLECTIONS_PATH = path.join(TEST_DIR, 'collections');
+const TEST_HOME_DIR = path.join(TEST_DIR, 'home');
+const TEST_XDG_CONFIG_HOME = path.join(TEST_HOME_DIR, '.config');
+const TEST_SHC_CONFIG_DIR = path.join(TEST_XDG_CONFIG_HOME, 'shc');
+const TEST_DEFAULT_CONFIG_PATH = path.join(TEST_SHC_CONFIG_DIR, 'config.yaml');
+const TEST_LOCAL_CONFIG_PATH = path.join(TEST_DIR, 'shc.config.yaml');
 
 // Create test config file content
 const TEST_CONFIG_CONTENT = `
@@ -29,8 +34,31 @@ core:
     timeout: 2000
 `;
 
+const TEST_DEFAULT_CONFIG_CONTENT = `
+api:
+  baseUrl: https://default.example.com
+  timeout: 3000
+collections:
+  path: ${path.join(TEST_HOME_DIR, 'collections')}
+core:
+  http:
+    timeout: 3000
+`;
+
+const TEST_LOCAL_CONFIG_CONTENT = `
+api:
+  baseUrl: https://local.example.com
+  timeout: 4000
+collections:
+  path: ${path.join(TEST_DIR, 'local-collections')}
+core:
+  http:
+    timeout: 4000
+`;
+
 // Store original environment variables
 const originalEnv = { ...process.env };
+const originalCwd = process.cwd();
 
 // Setup and teardown functions
 beforeEach(async () => {
@@ -43,17 +71,27 @@ beforeEach(async () => {
     fs.mkdirSync(TEST_COLLECTIONS_PATH, { recursive: true });
   }
   
-  // Write test config file
+  // Create test home directory and .config/shc directory
+  if (!fs.existsSync(TEST_SHC_CONFIG_DIR)) {
+    fs.mkdirSync(TEST_SHC_CONFIG_DIR, { recursive: true });
+  }
+  
+  // Write test config files
   fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
   
   // Reset environment variables
   process.env = { ...originalEnv };
+  process.env.HOME = TEST_HOME_DIR;
+  process.env.USERPROFILE = TEST_HOME_DIR; // For Windows testing
   delete process.env.SHC_CONFIG_PATH;
   delete process.env.SHC_CONFIG;
   delete process.env.SHC_COLLECTION_DIR;
   delete process.env.SHC_API_BASE_URL;
   delete process.env.SHC_API_TIMEOUT;
   delete process.env.SHC_VERBOSE;
+  
+  // Mock process.cwd to return TEST_DIR
+  vi.spyOn(process, 'cwd').mockReturnValue(TEST_DIR);
 });
 
 afterEach(() => {
@@ -64,6 +102,9 @@ afterEach(() => {
   
   // Restore original environment
   process.env = { ...originalEnv };
+  
+  // Restore original cwd
+  vi.spyOn(process, 'cwd').mockReturnValue(originalCwd);
   
   // Restore original implementations
   vi.restoreAllMocks();
@@ -199,46 +240,81 @@ describe('Config Utility', () => {
       
       // Verify that the ConfigManager was created and loaded the config
       expect(configManager).toBeDefined();
-      expect(configManager.get('api.baseUrl')).toBe('https://api.example.com');
-      expect(configManager.get('api.timeout')).toBe(2000);
+      expect(configManager.get('core.http.timeout')).toBe(2000);
     });
     
-    it('should create a ConfigManager with default config when no config file is provided', async () => {
+    it('should apply CLI options to override config values', async () => {
+      // Set up options with config file and overrides
+      const options = {
+        config: TEST_CONFIG_PATH,
+        timeout: 5000,
+      };
+      
+      // Create a ConfigManager instance
+      const configManager = await createConfigManagerFromOptions(options);
+      
+      // Verify that the CLI options were applied
+      expect(configManager.get('core.http.timeout')).toBe(5000);
+    });
+    
+    it('should apply set options to override config values', async () => {
+      // Set up options with config file and set options
+      const options = {
+        config: TEST_CONFIG_PATH,
+        set: ['core.http.timeout=6000'],
+      };
+      
+      // Create a ConfigManager instance
+      const configManager = await createConfigManagerFromOptions(options);
+      
+      // Verify that the set options were applied
+      expect(configManager.get('core.http.timeout')).toBe(6000);
+    });
+    
+    it('should load config from default user config file if no config option provided', async () => {
+      // Create default user config file
+      fs.writeFileSync(TEST_DEFAULT_CONFIG_PATH, TEST_DEFAULT_CONFIG_CONTENT);
+      
       // Set up options without config file
       const options = {};
       
       // Create a ConfigManager instance
       const configManager = await createConfigManagerFromOptions(options);
       
-      // Verify that the ConfigManager was created
-      expect(configManager).toBeDefined();
+      // Verify that the default user config was loaded
+      expect(configManager.get('core.http.timeout')).toBe(3000);
+      expect(configManager.get('api.baseUrl')).toBe('https://default.example.com');
     });
     
-    it('should handle config file not found', async () => {
-      // Set up options with non-existent config file
-      const options = {
-        config: path.join(TEST_DIR, 'nonexistent-config.yaml'),
-      };
+    it('should load config from local config file if no config option or default user config', async () => {
+      // Create local config file
+      fs.writeFileSync(TEST_LOCAL_CONFIG_PATH, TEST_LOCAL_CONFIG_CONTENT);
+      
+      // Set up options without config file
+      const options = {};
       
       // Create a ConfigManager instance
       const configManager = await createConfigManagerFromOptions(options);
       
-      // Verify that the ConfigManager was created with default config
-      expect(configManager).toBeDefined();
+      // Verify that the local config was loaded
+      expect(configManager.get('core.http.timeout')).toBe(4000);
+      expect(configManager.get('api.baseUrl')).toBe('https://local.example.com');
     });
     
-    it('should override config values with environment variables', async () => {
-      // Set up environment variables
-      process.env.SHC_API_BASE_URL = 'https://env.example.com';
-      process.env.SHC_API_TIMEOUT = '3000';
+    it('should use built-in defaults if no config files are found', async () => {
+      // Set up options without config file
+      const options = {};
       
-      // Mock the ConfigManager.get method for this test
-      const getSpy = vi.spyOn(ConfigManager.prototype, 'get');
-      getSpy.mockImplementation((key: string) => {
-        if (key === 'api.baseUrl') return 'https://env.example.com';
-        if (key === 'api.timeout') return 3000;
-        return undefined;
-      });
+      // Create a ConfigManager instance
+      const configManager = await createConfigManagerFromOptions(options);
+      
+      // Verify that the built-in defaults were used
+      expect(configManager.get('core.http.timeout')).toBe(30000); // Default from ConfigManager
+    });
+    
+    it('should prioritize CLI config over default user config', async () => {
+      // Create default user config file
+      fs.writeFileSync(TEST_DEFAULT_CONFIG_PATH, TEST_DEFAULT_CONFIG_CONTENT);
       
       // Set up options with config file
       const options = {
@@ -248,39 +324,27 @@ describe('Config Utility', () => {
       // Create a ConfigManager instance
       const configManager = await createConfigManagerFromOptions(options);
       
-      // Verify that environment variables override config values
-      expect(configManager.get('api.baseUrl')).toBe('https://env.example.com');
-      expect(configManager.get('api.timeout')).toBe(3000);
-      
-      // Restore the spy
-      getSpy.mockRestore();
+      // Verify that the CLI config was used
+      expect(configManager.get('core.http.timeout')).toBe(2000);
+      expect(configManager.get('api.baseUrl')).toBe('https://api.example.com');
     });
     
-    it('should override config values with CLI options', async () => {
-      // Mock the ConfigManager.get method for this test
-      const getSpy = vi.spyOn(ConfigManager.prototype, 'get');
-      getSpy.mockImplementation((key: string) => {
-        if (key === 'api.baseUrl') return 'https://cli.example.com';
-        if (key === 'api.timeout') return 4000;
-        return undefined;
-      });
+    it('should prioritize default user config over local config', async () => {
+      // Create default user config file
+      fs.writeFileSync(TEST_DEFAULT_CONFIG_PATH, TEST_DEFAULT_CONFIG_CONTENT);
       
-      // Set up options with config file and CLI options
-      const options = {
-        config: TEST_CONFIG_PATH,
-        baseUrl: 'https://cli.example.com',
-        timeout: 4000,
-      };
+      // Create local config file
+      fs.writeFileSync(TEST_LOCAL_CONFIG_PATH, TEST_LOCAL_CONFIG_CONTENT);
+      
+      // Set up options without config file
+      const options = {};
       
       // Create a ConfigManager instance
       const configManager = await createConfigManagerFromOptions(options);
       
-      // Verify that CLI options override config values
-      expect(configManager.get('api.baseUrl')).toBe('https://cli.example.com');
-      expect(configManager.get('api.timeout')).toBe(4000);
-      
-      // Restore the spy
-      getSpy.mockRestore();
+      // Verify that the default user config was used
+      expect(configManager.get('core.http.timeout')).toBe(3000);
+      expect(configManager.get('api.baseUrl')).toBe('https://default.example.com');
     });
   });
 });

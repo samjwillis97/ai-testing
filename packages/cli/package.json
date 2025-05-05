@@ -17,7 +17,8 @@
     "dev": "node --loader ts-node/esm --no-warnings src/index.ts",
     "typecheck": "tsc --noEmit",
     "prettier:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prettier": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""
+    "prettier": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "setup-config": "node scripts/setup-config.js"
   },
   "dependencies": {
     "@shc/core": "workspace:*",

@@ -194,10 +194,22 @@ The CLI uses the `@shc/core` package's `ConfigManager` for all configuration-rel
 
 ### Configuration File
 
-Configuration is loaded from:
+Configuration is loaded from the following locations in order:
 
-1. Default configuration file (`shc.config.yaml` or `shc.config.json` in the current directory)
-2. Custom configuration file specified with the `--config` option
+1. Custom configuration file specified with the `--config` option
+2. Default user configuration file (`~/.config/shc/config.yaml`)
+3. Local configuration file (`shc.config.yaml`, `shc.config.yml`, or `shc.config.json` in the current directory)
+4. Default built-in configuration
+
+You can set up the default configuration file with:
+
+```bash
+# Create the default configuration file
+pnpm run setup-config
+
+# Force overwrite an existing configuration
+pnpm run setup-config --force
+```
 
 Example configuration file (YAML):
 
