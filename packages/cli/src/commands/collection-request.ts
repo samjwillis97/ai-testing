@@ -4,7 +4,6 @@
 import { Command, Option } from 'commander';
 import ora from 'ora';
 import chalk from 'chalk';
-import * as path from 'path';
 import * as fs from 'fs/promises';
 import { SHCClient } from '@shc/core';
 import { RequestOptions, OutputOptions } from '../types.js';
@@ -35,6 +34,17 @@ export function addCollectionCommand(program: Command): void {
     .option('-u, --auth <auth>', 'Override authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-v, --verbose', 'Enable verbose output')
+    .option(
+      '--var-set <namespace>=<value>',
+      'Override variable set for this request (i.e. --var-set api=production)',
+      (value: string, previous: string[]) => {
+        // Allow multiple --var-set options
+        const values = previous || [];
+        values.push(value);
+        return values;
+      },
+      []
+    )
     .addOption(new Option('--no-color', 'Disable colors'))
     .action(
       async (collectionName: string, requestName: string, options: Record<string, unknown>) => {

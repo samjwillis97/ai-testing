@@ -108,6 +108,55 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
 }
 
 /**
+ * Parse variable set overrides from CLI options
+ * @param varSetOverrides - Array of variable set overrides in the format "namespace=value"
+ * @returns Object mapping namespaces to values
+ */
+export function parseVariableSetOverrides(
+  varSetOverrides: string[]
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  
+  for (const override of varSetOverrides) {
+    const match = override.match(/^([^=]+)=(.*)$/);
+    if (!match) {
+      console.error(`Invalid variable set override format: ${override}. Expected format: namespace=value`);
+      continue;
+    }
+    
+    const [, namespace, value] = match;
+    result[namespace.trim()] = value.trim();
+  }
+  
+  return result;
+}
+
+/**
+ * Apply variable set overrides to the ConfigManager
+ * @param configManager - The ConfigManager instance
+ * @param varSetOverrides - Object mapping namespaces to values
+ */
+export function applyVariableSetOverrides(
+  configManager: ConfigManager,
+  varSetOverrides: Record<string, string>
+): void {
+  // Get the current variable sets
+  const globalVariableSets = configManager.get('variable_sets.global') as Record<string, unknown> || {};
+  
+  // Apply each override
+  for (const [namespace, value] of Object.entries(varSetOverrides)) {
+    // Check if the variable set exists
+    if (globalVariableSets[namespace]) {
+      // Update the active value
+      configManager.set(`variable_sets.global.${namespace}.active_value`, value);
+      console.log(`Variable set override applied: ${namespace}=${value}`);
+    } else {
+      console.warn(`Variable set not found: ${namespace}`);
+    }
+  }
+}
+
+/**
  * Create a ConfigManager instance from CLI options.
  * This function creates a ConfigManager instance, loads configuration from a file if specified,
  * and applies CLI options to override config values.
@@ -134,7 +183,7 @@ export async function createConfigManagerFromOptions(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-  } 
+  }
   // If no config file specified, try default locations
   else {
     // Try ~/.config/shc/config.yaml first
@@ -158,7 +207,7 @@ export async function createConfigManagerFromOptions(
       const localConfigPaths = [
         path.join(process.cwd(), 'shc.config.yaml'),
         path.join(process.cwd(), 'shc.config.yml'),
-        path.join(process.cwd(), 'shc.config.json')
+        path.join(process.cwd(), 'shc.config.json'),
       ];
 
       for (const configPath of localConfigPaths) {
@@ -229,6 +278,12 @@ export async function createConfigManagerFromOptions(
         console.error(`Failed to set config value: ${setValue}`, error);
       }
     }
+  }
+
+  // Apply variable set overrides if specified
+  if (options.varSet && Array.isArray(options.varSet)) {
+    const varSetOverrides = parseVariableSetOverrides(options.varSet as string[]);
+    applyVariableSetOverrides(configManager, varSetOverrides);
   }
 
   return configManager;

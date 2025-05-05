@@ -40,6 +40,17 @@ export function addDirectCommand(program: Command): void {
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option(
+      '--var-set <namespace>=<value>',
+      'Override variable set for this request (i.e. --var-set api=production)',
+      (value: string, previous: string[]) => {
+        // Allow multiple --var-set options
+        const values = previous || [];
+        values.push(value);
+        return values;
+      },
+      []
+    )
     .addOption(new Option('--no-color', 'Disable colors'))
     .action(async (method: string, url: string, options: Record<string, unknown>) => {
       await executeDirectRequest(method as HttpMethod, url, options);
@@ -66,9 +77,20 @@ function addHttpMethodCommand(
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option(
+      '--var-set <namespace>=<value>',
+      'Override variable set for this request (i.e. --var-set api=production)',
+      (value: string, previous: string[]) => {
+        // Allow multiple --var-set options
+        const values = previous || [];
+        values.push(value);
+        return values;
+      },
+      []
+    )
     .addOption(new Option('--no-color', 'Disable colors'));
 
-  // Add data option for methods that can have a request body
+  // Add body option for methods that support it
   if (hasBody) {
     cmd.option('-d, --data <data>', 'Request body');
   }

@@ -74,7 +74,7 @@ _shc_completion() {
 
   # Complete command options
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color" -- "$cur"))
+    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color --var-set" -- "$cur"))
     return
   fi
 
@@ -110,6 +110,7 @@ _shc() {
     '--config[Specify config file]:config file:_files' \\
     '--env[Specify environment]:environment name:' \\
     '--no-color[Disable colors]' \\
+    '--var-set[Override variable set for this request]:namespace=value:' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -178,6 +179,7 @@ function _shc {
     '--config[Specify config file]:config file:_files' \\
     '--env[Specify environment]:environment name:' \\
     '--no-color[Disable colors]' \\
+    '--var-set[Override variable set for this request]:namespace=value:' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -249,6 +251,7 @@ complete -c shc -l silent -d "Disable all output"
 complete -c shc -l config -d "Specify config file" -r
 complete -c shc -l env -d "Specify environment" -r
 complete -c shc -l no-color -d "Disable colors"
+complete -c shc -l var-set -d "Override variable set for this request" -r
 
 # Collection command
 complete -c shc -n "__fish_seen_subcommand_from collection c" -a "(__shc_collections)" -d "Collection"
