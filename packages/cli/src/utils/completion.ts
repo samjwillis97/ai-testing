@@ -141,9 +141,6 @@ _shc() {
           else
             _arguments \\
               '--collection-dir[Specify collection directory]:directory:_files -/' \\
-              '--save[Save request to collection]' \\
-              '--export[Export collection to file]:file:_files' \\
-              '--import[Import collection from file]:file:_files' \\
               '-o[Output format]:format:(json yaml raw table)' \\
               '--output[Output format]:format:(json yaml raw table)' \\
               '-H[Add header]:header:' \\
@@ -223,9 +220,6 @@ function _shc {
           else
             _arguments \\
               '--collection-dir[Specify collection directory]:directory:_files -/' \\
-              '--save[Save request to collection]' \\
-              '--export[Export collection to file]:file:_files' \\
-              '--import[Import collection from file]:file:_files' \\
               '-o[Output format]:format:(json yaml raw table)' \\
               '--output[Output format]:format:(json yaml raw table)' \\
               '-H[Add header]:header:' \\
@@ -304,9 +298,6 @@ complete -c shc -n "__fish_seen_subcommand_from collection c && __fish_is_token_
 
 # Collection options
 complete -c shc -n "__fish_seen_subcommand_from collection c" -l collection-dir -d "Specify collection directory" -r
-complete -c shc -n "__fish_seen_subcommand_from collection c" -l save -d "Save request to collection"
-complete -c shc -n "__fish_seen_subcommand_from collection c" -l export -d "Export collection to file" -r
-complete -c shc -n "__fish_seen_subcommand_from collection c" -l import -d "Import collection from file" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s o -l output -d "Output format" -a "json yaml raw table"
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s H -l header -d "Add header" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s q -l query -d "Add query parameter" -r
