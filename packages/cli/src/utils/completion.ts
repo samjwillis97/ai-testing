@@ -57,9 +57,14 @@ _shc_completion() {
       COMPREPLY=($(compgen -W "$(shc --get-collections 2>/dev/null)" -- "$cur"))
       return
       ;;
+    completion)
+      # Complete shell types
+      COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))
+      return
+      ;;
     shc)
       if [[ "$cur" == c* ]]; then
-        COMPREPLY=($(compgen -W "collection" -- "$cur"))
+        COMPREPLY=($(compgen -W "collection completion" -- "$cur"))
         return
       fi
       ;;
@@ -74,12 +79,12 @@ _shc_completion() {
 
   # Complete command options
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color --var-set --set --output" -- "$cur"))
+    COMPREPLY=($(compgen -W "--help --version --verbose --silent --config --env --no-color --var-set --set --output --eval" -- "$cur"))
     return
   fi
 
   # Complete subcommands
-  COMPREPLY=($(compgen -W "collection c get post put patch delete head options direct" -- "$cur"))
+  COMPREPLY=($(compgen -W "collection c get post put patch delete head options direct completion" -- "$cur"))
   return
 }
 
@@ -108,6 +113,7 @@ _shc() {
     'head:Execute a HEAD request'
     'options:Execute an OPTIONS request'
     'direct:Execute an HTTP request with the specified method'
+    'completion:Generate shell completion script'
   )
 
   _arguments -C \\
@@ -123,6 +129,7 @@ _shc() {
     '--set[Set config value]:key=value:' \\
     '-o[Output format]:format:(json yaml raw table)' \\
     '--output[Output format]:format:(json yaml raw table)' \\
+    '--eval[Generate completion script suitable for eval]' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -155,6 +162,33 @@ _shc() {
               '--timeout[Request timeout]:timeout:' \\
               '--var-set[Override variable set for this request]:namespace=value:'
           fi
+          ;;
+        completion)
+          _arguments \\
+            '--eval[Generate completion script suitable for eval]'
+          ;;
+        get|post|put|patch|delete|head|options|direct)
+          _arguments \\
+            '-c[Config file path]:config file:_files' \\
+            '--config[Config file path]:config file:_files' \\
+            '-H[Add header]:header:' \\
+            '--header[Add header]:header:' \\
+            '-q[Add query parameter]:query:' \\
+            '--query[Add query parameter]:query:' \\
+            '-d[Request body]:data:' \\
+            '--data[Request body]:data:' \\
+            '-u[Authentication]:auth:' \\
+            '--auth[Authentication]:auth:' \\
+            '-t[Request timeout]:timeout:' \\
+            '--timeout[Request timeout]:timeout:' \\
+            '-o[Output format]:format:(json yaml raw table)' \\
+            '--output[Output format]:format:(json yaml raw table)' \\
+            '-v[Verbose output]' \\
+            '--verbose[Verbose output]' \\
+            '-s[Silent mode]' \\
+            '--silent[Silent mode]' \\
+            '--no-color[Disable colors]' \\
+            '--var-set[Override variable set for this request]:namespace=value:'
           ;;
       esac
       ;;
@@ -187,6 +221,7 @@ function _shc {
     'head:Execute a HEAD request'
     'options:Execute an OPTIONS request'
     'direct:Execute an HTTP request with the specified method'
+    'completion:Generate shell completion script'
   )
 
   _arguments -C \\
@@ -202,6 +237,7 @@ function _shc {
     '--set[Set config value]:key=value:' \\
     '-o[Output format]:format:(json yaml raw table)' \\
     '--output[Output format]:format:(json yaml raw table)' \\
+    '--eval[Generate completion script suitable for eval]' \\
     '1: :{_describe "command" commands}' \\
     '*::arg:->args'
 
@@ -235,6 +271,33 @@ function _shc {
               '--var-set[Override variable set for this request]:namespace=value:'
           fi
           ;;
+        completion)
+          _arguments \\
+            '--eval[Generate completion script suitable for eval]'
+          ;;
+        get|post|put|patch|delete|head|options|direct)
+          _arguments \\
+            '-c[Config file path]:config file:_files' \\
+            '--config[Config file path]:config file:_files' \\
+            '-H[Add header]:header:' \\
+            '--header[Add header]:header:' \\
+            '-q[Add query parameter]:query:' \\
+            '--query[Add query parameter]:query:' \\
+            '-d[Request body]:data:' \\
+            '--data[Request body]:data:' \\
+            '-u[Authentication]:auth:' \\
+            '--auth[Authentication]:auth:' \\
+            '-t[Request timeout]:timeout:' \\
+            '--timeout[Request timeout]:timeout:' \\
+            '-o[Output format]:format:(json yaml raw table)' \\
+            '--output[Output format]:format:(json yaml raw table)' \\
+            '-v[Verbose output]' \\
+            '--verbose[Verbose output]' \\
+            '-s[Silent mode]' \\
+            '--silent[Silent mode]' \\
+            '--no-color[Disable colors]' \\
+            '--var-set[Override variable set for this request]:namespace=value:'
+          ;;
       esac
       ;;
   esac
@@ -262,6 +325,7 @@ end
 complete -c shc -f
 complete -c shc -n "__fish_use_subcommand" -a "collection" -d "Execute a request from a collection"
 complete -c shc -n "__fish_use_subcommand" -a "c" -d "Execute a request from a collection"
+complete -c shc -n "__fish_use_subcommand" -a "completion" -d "Generate shell completion script"
 complete -c shc -n "__fish_use_subcommand" -a "get" -d "Execute a GET request"
 complete -c shc -n "__fish_use_subcommand" -a "post" -d "Execute a POST request"
 complete -c shc -n "__fish_use_subcommand" -a "put" -d "Execute a PUT request"
@@ -282,6 +346,7 @@ complete -c shc -l no-color -d "Disable colors"
 complete -c shc -l var-set -d "Override variable set for this request" -r
 complete -c shc -s V -l set -d "Set config value" -r
 complete -c shc -s o -l output -d "Output format" -a "json yaml raw table"
+complete -c shc -l eval -d "Generate completion script suitable for eval"
 
 # HTTP method commands options
 complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s H -l header -d "Add header" -r
@@ -290,7 +355,13 @@ complete -c shc -n "__fish_seen_subcommand_from post put patch direct" -s d -l d
 complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s u -l auth -d "Authentication" -r
 complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s t -l timeout -d "Request timeout" -r
 complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s o -l output -d "Output format" -a "json yaml raw table"
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s v -l verbose -d "Verbose output"
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -s s -l silent -d "Silent mode"
 complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -l var-set -d "Override variable set for this request" -r
+complete -c shc -n "__fish_seen_subcommand_from get post put patch delete head options direct" -l no-color -d "Disable colors"
+
+# Completion command options
+complete -c shc -n "__fish_seen_subcommand_from completion" -l eval -d "Generate completion script suitable for eval"
 
 # Collection command
 complete -c shc -n "__fish_seen_subcommand_from collection c" -a "(__shc_collections)" -d "Collection"
