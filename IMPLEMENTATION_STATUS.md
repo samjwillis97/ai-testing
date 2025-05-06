@@ -9,7 +9,10 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Implement missing CLI features according to specification (see tasks/implement-missing-cli-features.md)
 - [x] Refactor CLI package for testability with a makeProgram() function (see tasks/refactor-cli-for-testability.md)
 - [x] Improve CLI package test coverage to meet project thresholds (see tasks/improve-cli-test-coverage.md)
-- [ ] Implement variable set override per request functionality (see tasks/implement-variable-set-override-per-request.md)
+- [-] Implement variable set override per request functionality (see tasks/implement-variable-set-override-per-request.md)
+- [ ] Implement quiet mode for CLI to support piping JSON output to tools like jq (see tasks/implement-cli-quiet-mode.md)
+- [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
+- [ ] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
