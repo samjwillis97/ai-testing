@@ -2,17 +2,21 @@
  * Collection request command
  */
 import { Command, Option } from 'commander';
-import ora from 'ora';
 import chalk from 'chalk';
-import * as fs from 'fs/promises';
-import { SHCClient } from '@shc/core';
-import { RequestOptions, OutputOptions } from '../types.js';
-import { printResponse, printError } from '../utils/output.js';
+import { SHCClient, SHCEvent } from '@shc/core';
+import { Collection, Request } from '@shc/core';
 import {
-  getEffectiveOptions,
-  getCollectionDir,
-  createConfigManagerFromOptions,
-} from '../utils/config.js';
+  CollectionOptions,
+  OutputOptions,
+  HttpMethod,
+  RequestOptions,
+} from '../types.js';
+import { printResponse, printError } from '../utils/output.js';
+import { getEffectiveOptions, createConfigManagerFromOptions, getCollectionDir } from '../utils/config.js';
+import path from 'path';
+import fs from 'fs/promises';
+import { Logger, LogLevel } from '../utils/logger.js';
+import { Spinner } from '../utils/spinner.js';
 import { getRequest } from '../utils/collections.js';
 
 /**
@@ -35,7 +39,10 @@ export function addCollectionCommand(program: Command): void {
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-v, --verbose', 'Enable verbose output')
     .option('-s, --silent', 'Silent mode')
-    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
+    .option(
+      '--quiet',
+      'Quiet mode - output only the response data without any formatting or decorations'
+    )
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -52,52 +59,24 @@ export function addCollectionCommand(program: Command): void {
       async (collectionName: string, requestName: string, options: Record<string, unknown>) => {
         // Get effective options
         const effectiveOptions = await getEffectiveOptions(options);
-
-        // Get collection directory
-        const collectionDir = await getCollectionDir(effectiveOptions);
+        const logger = Logger.fromCommandOptions(effectiveOptions);
 
         // Prepare output options
         const outputOptions: OutputOptions = {
-          format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
+          format: (options.output as OutputOptions['format']) || 'json',
           color: options.color !== false,
-          verbose: Boolean(effectiveOptions.verbose),
-          silent: Boolean(effectiveOptions.silent),
-          quiet: Boolean(effectiveOptions.quiet),
+          verbose: options.verbose as boolean,
+          silent: options.silent as boolean,
+          quiet: options.quiet as boolean,
         };
-
-        // Store original console methods
-        const originalConsole = {
-          log: console.log,
-          info: console.info,
-          warn: console.warn,
-          error: console.error,
-          debug: console.debug,
-        };
-
-        // Create no-op functions for silent/quiet mode
-        const noopConsole = {
-          log: () => {},
-          info: () => {},
-          warn: () => {},
-          error: () => {},
-          debug: () => {},
-        };
-
-        // If silent or quiet mode is enabled, override all console methods
-        if (outputOptions.silent || outputOptions.quiet) {
-          console.log = noopConsole.log;
-          console.info = noopConsole.info;
-          console.warn = noopConsole.warn;
-          console.error = noopConsole.error;
-          console.debug = noopConsole.debug;
-        }
 
         // Create collection directory if it doesn't exist
         try {
+          const collectionDir = await getCollectionDir(effectiveOptions);
           await fs.mkdir(collectionDir, { recursive: true });
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-            console.error(
+            logger.error(
               chalk.red(
                 `Failed to create collection directory: ${error instanceof Error ? error.message : String(error)}`
               )
@@ -107,22 +86,23 @@ export function addCollectionCommand(program: Command): void {
         }
 
         try {
-          // Get request from collection
-          const spinner = effectiveOptions.silent || outputOptions.quiet
-            ? null
-            : ora(`Loading request '${requestName}' from collection '${collectionName}'`).start();
+          // Create spinner for loading the request
+          const spinner = Spinner.fromCommandOptions(`Loading request '${requestName}' from collection '${collectionName}'`, options);
 
           let requestOptions: RequestOptions;
           try {
+            // Start the spinner
+            spinner.start();
+
+            const collectionDir = await getCollectionDir(effectiveOptions);
             requestOptions = await getRequest(collectionDir, collectionName, requestName);
-            if (spinner) {
-              spinner.succeed(chalk.green(`Request loaded from collection`));
-            }
+
+            // Stop the spinner with success message
+            spinner.succeed(`Request '${requestName}' loaded successfully`);
           } catch (error) {
-            if (spinner) {
-              spinner.fail(chalk.red(`Failed to load request`));
-            }
-            throw error;
+            // Stop the spinner with error message
+            spinner.fail(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+            process.exit(1);
           }
 
           // Override request options with CLI options
@@ -182,80 +162,67 @@ export function addCollectionCommand(program: Command): void {
           // Create client configuration
           const configManager = await createConfigManagerFromOptions(effectiveOptions);
 
-          // Execute request
-          const requestSpinner = effectiveOptions.silent || outputOptions.quiet
-            ? null
-            : ora(
-                `Sending ${requestOptions.method.toUpperCase()} request to ${requestOptions.url || `${requestOptions.path}`}`
-              ).start();
+          // Create spinner for sending the request
+          const requestSpinner = Spinner.fromCommandOptions(
+            `Sending ${requestOptions.method.toUpperCase()} request to ${requestOptions.url || `${requestOptions.path}`}`,
+            options
+          );
 
           try {
+            // Start the spinner
+            requestSpinner.start();
+
             // Create client with ConfigManager and register event handlers before plugins are loaded
-            const eventHandlers = outputOptions.verbose
-              ? [
-                  {
-                    event: 'plugin:registered' as const,
-                    handler: (plugin: any) => {
-                      const typedPlugin = plugin as { name: string; version: string };
-                      console.log(
-                        chalk.blue(`Plugin registered: ${typedPlugin.name} v${typedPlugin.version}`)
-                      );
+            const eventHandlers: { event: SHCEvent; handler: (event: any) => void }[] = 
+              logger['options'].level === LogLevel.DEBUG
+                ? [
+                    {
+                      event: 'request',
+                      handler: (req: any) => {
+                        logger.debug('Request:', JSON.stringify(req, null, 2));
+                      },
                     },
-                  },
-                  {
-                    event: 'request' as const,
-                    handler: (req: any) => {
-                      const typedReq = req as { method: string; url: string };
-                      console.log(chalk.blue(`Request: ${typedReq.method} ${typedReq.url}`));
+                    {
+                      event: 'response',
+                      handler: (res: any) => {
+                        logger.debug('Response:', JSON.stringify(res, null, 2));
+                      },
                     },
-                  },
-                  {
-                    event: 'response' as const,
-                    handler: (res: any) => {
-                      const typedRes = res as { status: number; statusText: string };
-                      console.log(
-                        chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`)
-                      );
+                    {
+                      event: 'error',
+                      handler: (err: any) => {
+                        logger.error(
+                          chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
+                        );
+                      },
                     },
-                  },
-                  {
-                    event: 'error' as const,
-                    handler: (err: any) => {
-                      console.log(
-                        chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
-                      );
-                    },
-                  },
-                ]
-              : [];
+                  ]
+                : [];
 
             const client = SHCClient.create(configManager, { eventHandlers });
 
             const response = await client.request(requestOptions);
 
-            if (requestSpinner) {
-              requestSpinner.succeed(chalk.green('Response received'));
-            }
+            // Update spinner with success message
+            requestSpinner.succeed(chalk.green('Response received'));
 
             printResponse(response, outputOptions);
             process.exit(0);
           } catch (error) {
-            if (requestSpinner) {
-              requestSpinner.fail(chalk.red('Request failed'));
-            }
+            // Update spinner with error message
+            requestSpinner.fail(chalk.red('Request failed'));
 
-            printError(error, outputOptions);
+            logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+            if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+              logger.error(chalk.gray(error.stack));
+            }
             process.exit(1);
-          } finally {
-            // Restore original console methods
-            console.log = originalConsole.log;
-            console.info = originalConsole.info;
-            console.warn = originalConsole.warn;
-            console.error = originalConsole.error;
-            console.debug = originalConsole.debug;
           }
         } catch (error) {
-          printError(error, outputOptions);
+          logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+          if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+            logger.error(chalk.gray(error.stack));
+          }
           process.exit(1);
         }
       }

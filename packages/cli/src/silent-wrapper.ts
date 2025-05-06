@@ -4,6 +4,7 @@
  * This module provides a wrapper function to execute code in silent mode,
  * completely suppressing all console output.
  */
+import { configureGlobalLogger, LogLevel } from './utils/logger.js';
 
 /**
  * Execute a function in silent mode, suppressing all console output
@@ -29,7 +30,13 @@ export async function executeSilently<T>(fn: () => Promise<T>): Promise<T> {
     debug: () => {},
   };
 
-  // Override all console methods
+  // Configure the global logger to be silent
+  configureGlobalLogger({
+    level: LogLevel.SILENT,
+    quiet: true,
+  });
+
+  // Override all console methods for legacy code that might still use console
   console.log = noopConsole.log;
   console.info = noopConsole.info;
   console.warn = noopConsole.warn;
@@ -46,5 +53,12 @@ export async function executeSilently<T>(fn: () => Promise<T>): Promise<T> {
     console.warn = originalConsole.warn;
     console.error = originalConsole.error;
     console.debug = originalConsole.debug;
+
+    // Reset the logger configuration to default values
+    // Since we can't store the previous configuration, we'll use reasonable defaults
+    configureGlobalLogger({
+      level: LogLevel.INFO,
+      quiet: false,
+    });
   }
 }

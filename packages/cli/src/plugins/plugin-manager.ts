@@ -17,6 +17,7 @@ import {
   CLIPluginConfig,
   OutputFormatterPlugin,
 } from '../types/cli-plugin.types';
+import { globalLogger } from '../utils/logger.js';
 
 // We're exporting these types for documentation purposes
 // Prefixing with _ to indicate they're exported but not used in this file
@@ -54,7 +55,7 @@ export class CLIPluginManager {
    */
   log(message: string): void {
     if (!this.silentMode) {
-      console.log(message);
+      globalLogger.info(message);
     }
   }
 
@@ -65,7 +66,7 @@ export class CLIPluginManager {
    */
   logError(message: string, error?: unknown): void {
     if (!this.silentMode) {
-      console.error(message, error);
+      globalLogger.error(message, error);
     }
   }
 

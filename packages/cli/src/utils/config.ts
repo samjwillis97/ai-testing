@@ -6,6 +6,7 @@
 import path from 'path';
 import { ConfigManager } from '@shc/core';
 import { promises as fsPromises } from 'fs';
+import { Logger, globalLogger } from './logger.js';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
@@ -43,9 +44,10 @@ export async function getEffectiveOptions(
   if (configPath) {
     try {
       await configManager.loadFromFile(configPath);
-      // console.log(`Config loaded from: ${configPath}`);
+      // We're using globalLogger instead of creating a new Logger instance here
+      // to ensure all logging goes through the centralized system.
     } catch (error) {
-      console.error(
+      globalLogger.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
       // Initialize with default config if loading fails
@@ -118,7 +120,7 @@ export function parseVariableSetOverrides(varSetOverrides: string[]): Record<str
   for (const override of varSetOverrides) {
     const match = override.match(/^([^=]+)=(.*)$/);
     if (!match) {
-      console.error(
+      globalLogger.error(
         `Invalid variable set override format: ${override}. Expected format: namespace=value`
       );
       continue;
@@ -158,14 +160,14 @@ export function applyVariableSetOverrides(
             [value]: value,
           },
         });
-        console.log(`Request-specific variable set override applied: ${namespace}=${value}`);
+        globalLogger.info(`Request-specific variable set override applied: ${namespace}=${value}`);
       } else {
         // For global overrides, update the active value
         configManager.set(`variable_sets.global.${namespace}.active_value`, value);
-        console.log(`Variable set override applied: ${namespace}=${value}`);
+        globalLogger.info(`Variable set override applied: ${namespace}=${value}`);
       }
     } else {
-      console.warn(`Variable set not found: ${namespace}`);
+      globalLogger.warn(`Variable set not found: ${namespace}`);
     }
   }
 }
@@ -190,10 +192,11 @@ export async function createConfigManagerFromOptions(
   if (options.config) {
     try {
       await configManager.loadFromFile(options.config as string);
-      // console.log(`Config loaded from: ${options.config}`);
+      // We're using globalLogger instead of creating a new Logger instance here
+      // to ensure all logging goes through the centralized system.
       configLoaded = true;
     } catch (error) {
-      console.error(
+      globalLogger.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -208,7 +211,8 @@ export async function createConfigManagerFromOptions(
         const exists = await fileExists(defaultConfigPath);
         if (exists) {
           await configManager.loadFromFile(defaultConfigPath);
-          // console.log(`Config loaded from: ${defaultConfigPath}`);
+          // We're using globalLogger instead of creating a new Logger instance here
+          // to ensure all logging goes through the centralized system.
           configLoaded = true;
         }
       } catch (error) {
@@ -229,7 +233,8 @@ export async function createConfigManagerFromOptions(
           const exists = await fileExists(configPath);
           if (exists) {
             await configManager.loadFromFile(configPath);
-            // console.log(`Config loaded from: ${configPath}`);
+            // We're using globalLogger instead of creating a new Logger instance here
+            // to ensure all logging goes through the centralized system.
             configLoaded = true;
             break;
           }
@@ -256,7 +261,7 @@ export async function createConfigManagerFromOptions(
         // Parse key=value format
         const match = setValue.match(/^([^=]+)=(.*)$/);
         if (!match) {
-          console.error(`Invalid set format: ${setValue}. Expected format: key=value`);
+          globalLogger.error(`Invalid set format: ${setValue}. Expected format: key=value`);
           continue;
         }
 
@@ -287,9 +292,9 @@ export async function createConfigManagerFromOptions(
 
         // Set the config value
         configManager.set(key, value);
-        console.log(`Set config value: ${key}=${JSON.stringify(value)}`);
+        globalLogger.info(`Set config value: ${key}=${JSON.stringify(value)}`);
       } catch (error) {
-        console.error(`Failed to set config value: ${setValue}`, error);
+        globalLogger.error(`Failed to set config value: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }

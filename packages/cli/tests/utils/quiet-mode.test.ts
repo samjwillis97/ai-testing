@@ -24,7 +24,7 @@ describe('Quiet Mode', () => {
     process.stderr.write = stderrWriteMock;
     console.log = consoleLogMock;
     console.error = consoleErrorMock;
-    
+
     // Clear mock calls
     stdoutWriteMock.mockClear();
     stderrWriteMock.mockClear();
@@ -48,7 +48,7 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       const result = formatOutput(data, options);
@@ -62,7 +62,7 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       const result = formatOutput(data, options);
@@ -76,7 +76,7 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       const result = formatOutput(data, options);
@@ -90,30 +90,30 @@ describe('Quiet Mode', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { key: 'value' }
+        data: { key: 'value' },
       };
-      
+
       // Test with JSON format
       const jsonOptions: OutputOptions = {
         format: 'json',
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       const jsonResult = formatResponse(response, jsonOptions);
       expect(jsonResult).toBe(JSON.stringify(response.data, null, 2));
       expect(jsonResult).not.toContain('Status:');
       expect(jsonResult).not.toContain('Headers:');
-      
+
       // Test with YAML format
       const yamlOptions: OutputOptions = {
         format: 'yaml',
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       const yamlResult = formatResponse(response, yamlOptions);
@@ -129,48 +129,48 @@ describe('Quiet Mode', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { key: 'value' }
+        data: { key: 'value' },
       };
-      
+
       // Test with JSON format
       const jsonOptions: OutputOptions = {
         format: 'json',
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       printResponse(response, jsonOptions);
-      
+
       // Should write to stdout directly
       expect(stdoutWriteMock).toHaveBeenCalled();
       // Should not use console.log
       expect(consoleLogMock).not.toHaveBeenCalled();
-      
+
       // Should write JSON data
       const expectedJsonOutput = JSON.stringify(response.data, null, 2);
       expect(stdoutWriteMock).toHaveBeenCalledWith(expect.stringContaining(expectedJsonOutput));
-      
+
       // Clear mocks
       stdoutWriteMock.mockClear();
-      
+
       // Test with YAML format
       const yamlOptions: OutputOptions = {
         format: 'yaml',
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       printResponse(response, yamlOptions);
-      
+
       // Should write to stdout directly
       expect(stdoutWriteMock).toHaveBeenCalled();
       // Should not use console.log
       expect(consoleLogMock).not.toHaveBeenCalled();
-      
+
       // Should contain YAML formatted data
       expect(stdoutWriteMock).toHaveBeenCalledWith(expect.stringContaining('key: value'));
     });
@@ -184,16 +184,16 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       printError(error, options);
-      
+
       // Should write to stderr directly
       expect(stderrWriteMock).toHaveBeenCalled();
       // Should not use console.error
       expect(consoleErrorMock).not.toHaveBeenCalled();
-      
+
       // Should write JSON error
       const expectedOutput = JSON.stringify({ error: 'Test error' });
       expect(stderrWriteMock).toHaveBeenCalledWith(expect.stringContaining(expectedOutput));
@@ -206,16 +206,16 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       printError(error, options);
-      
+
       // Should write to stderr directly
       expect(stderrWriteMock).toHaveBeenCalled();
       // Should not use console.error
       expect(consoleErrorMock).not.toHaveBeenCalled();
-      
+
       // Should write YAML error
       expect(stderrWriteMock).toHaveBeenCalledWith(expect.stringContaining('error: Test error'));
     });
@@ -227,16 +227,16 @@ describe('Quiet Mode', () => {
         color: true,
         verbose: false,
         silent: false,
-        quiet: true
+        quiet: true,
       };
 
       printError(error, options);
-      
+
       // Should write to stderr directly
       expect(stderrWriteMock).toHaveBeenCalled();
       // Should not use console.error
       expect(consoleErrorMock).not.toHaveBeenCalled();
-      
+
       // Should write simple error message
       expect(stderrWriteMock).toHaveBeenCalledWith(expect.stringContaining('Error: Test error'));
     });

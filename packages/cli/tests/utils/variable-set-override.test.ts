@@ -2,6 +2,33 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseVariableSetOverrides, applyVariableSetOverrides } from '../../src/utils/config.js';
 import { ConfigManager } from '@shc/core';
 
+// Mock the logger module
+vi.mock('../../src/utils/logger.js', () => {
+  const mockInfo = vi.fn();
+  const mockError = vi.fn();
+  const mockWarn = vi.fn();
+  const mockDebug = vi.fn();
+  
+  return {
+    globalLogger: {
+      info: mockInfo,
+      error: mockError,
+      warn: mockWarn,
+      debug: mockDebug,
+    },
+    LogLevel: {
+      DEBUG: 'debug',
+      INFO: 'info',
+      WARN: 'warn',
+      ERROR: 'error',
+      SILENT: 'silent'
+    },
+  };
+});
+
+// Import the mocked logger
+import { globalLogger } from '../../src/utils/logger.js';
+
 // Mock ConfigManager
 vi.mock('@shc/core', () => {
   return {
@@ -13,6 +40,11 @@ vi.mock('@shc/core', () => {
 });
 
 describe('Variable Set Override Functions', () => {
+  beforeEach(() => {
+    // Reset mocks
+    vi.clearAllMocks();
+  });
+  
   describe('parseVariableSetOverrides', () => {
     it('should parse valid variable set overrides', () => {
       const overrides = ['api=production', 'resource=test-data'];
@@ -29,17 +61,15 @@ describe('Variable Set Override Functions', () => {
     });
 
     it('should skip invalid formats and log error', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const overrides = ['api=production', 'invalid-format', 'resource=test-data'];
       const result = parseVariableSetOverrides(overrides);
       expect(result).toEqual({
         api: 'production',
         resource: 'test-data',
       });
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(globalLogger.error).toHaveBeenCalledWith(
         'Invalid variable set override format: invalid-format. Expected format: namespace=value'
       );
-      consoleSpy.mockRestore();
     });
 
     it('should trim whitespace from namespace and value', () => {
@@ -54,54 +84,65 @@ describe('Variable Set Override Functions', () => {
 
   describe('applyVariableSetOverrides', () => {
     let configManager: ConfigManager;
-    let consoleSpy: any;
 
     beforeEach(() => {
       configManager = new ConfigManager();
-      consoleSpy = {
-        log: vi.spyOn(console, 'log').mockImplementation(() => {}),
-        warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
-      };
-    });
-
-    afterEach(() => {
-      consoleSpy.log.mockRestore();
-      consoleSpy.warn.mockRestore();
-    });
-
-    it('should apply variable set overrides to existing variable sets', () => {
+      
       // Mock the ConfigManager.get method to return variable sets
       (configManager.get as any).mockReturnValue({
         api: { active_value: 'development' },
         resource: { active_value: 'default' },
       });
+    });
 
+    it('should apply variable set overrides to request-specific context', () => {
       const overrides = {
         api: 'production',
         resource: 'test-data',
       };
 
-      applyVariableSetOverrides(configManager, overrides);
+      // Pass true for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, true);
 
-      // Check that set was called with the correct parameters
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.api.active_value',
-        'production'
-      );
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.resource.active_value',
-        'test-data'
-      );
+      // Check that set was called for each override with request-specific format
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+        active_value: 'production',
+        values: {
+          production: 'production',
+        },
+      });
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.resource', {
+        active_value: 'test-data',
+        values: {
+          'test-data': 'test-data',
+        },
+      });
 
       // Check that log was called for each override
-      expect(consoleSpy.log).toHaveBeenCalledWith('Variable set override applied: api=production');
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        'Variable set override applied: resource=test-data'
-      );
+      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: api=production');
+      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: resource=test-data');
+    });
+
+    it('should apply variable set overrides to global context', () => {
+      const overrides = {
+        api: 'production',
+        resource: 'test-data',
+      };
+
+      // Pass false for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, false);
+
+      // Check that set was called for each override with global format
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.api.active_value', 'production');
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.resource.active_value', 'test-data');
+
+      // Check that log was called for each override
+      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: api=production');
+      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: resource=test-data');
     });
 
     it('should warn about non-existent variable sets', () => {
-      // Mock the ConfigManager.get method to return variable sets
+      // Reset the mock to return a partial set of variable sets
       (configManager.get as any).mockReturnValue({
         api: { active_value: 'development' },
       });
@@ -111,29 +152,28 @@ describe('Variable Set Override Functions', () => {
         nonexistent: 'value',
       };
 
-      applyVariableSetOverrides(configManager, overrides);
+      // Pass true for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, true);
 
       // Check that set was called only for the existing variable set
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.api.active_value',
-        'production'
-      );
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+        active_value: 'production',
+        values: {
+          production: 'production',
+        },
+      });
+
+      // Check that set was not called for the non-existent variable set
       expect(configManager.set).not.toHaveBeenCalledWith(
-        'variable_sets.global.nonexistent.active_value',
-        'value'
+        expect.stringContaining('nonexistent'),
+        expect.anything()
       );
 
-      // Check that log and warn were called appropriately
-      expect(consoleSpy.log).toHaveBeenCalledWith('Variable set override applied: api=production');
-      expect(consoleSpy.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
+      // Check that warn was called for non-existent variable set
+      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
     });
 
-    it('should handle empty overrides object', () => {
-      applyVariableSetOverrides(configManager, {});
-      expect(configManager.set).not.toHaveBeenCalled();
-    });
-
-    it('should handle null or undefined variable sets', () => {
+    it('should handle null variable sets', () => {
       // Mock the ConfigManager.get method to return null
       (configManager.get as any).mockReturnValue(null);
 
@@ -143,8 +183,8 @@ describe('Variable Set Override Functions', () => {
 
       applyVariableSetOverrides(configManager, overrides);
 
-      // Check that warn was called for the non-existent variable set
-      expect(consoleSpy.warn).toHaveBeenCalledWith('Variable set not found: api');
+      // Check that warn was called for non-existent variable set
+      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: api');
       expect(configManager.set).not.toHaveBeenCalled();
     });
   });

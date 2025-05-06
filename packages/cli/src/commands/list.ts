@@ -1,11 +1,8 @@
-/**
- * List command for SHC CLI
- * Allows listing collections and other items
- */
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { getCollections, getRequests } from '../utils/collections.js';
 import { createConfigManagerFromOptions } from '../utils/config.js';
+import { Logger } from '../utils/logger.js';
 
 /**
  * Add list command to program
@@ -32,9 +29,10 @@ export function addListCommand(program: Command): void {
         );
 
         // Display collections
-        await listCollections(collectionDir);
+        await listCollections(collectionDir, options);
       } catch (error) {
-        console.error(
+        const logger = Logger.fromCommandOptions(options);
+        logger.error(
           chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
         );
         process.exit(1);
@@ -60,9 +58,10 @@ export function addListCommand(program: Command): void {
         );
 
         // Display requests
-        await listRequests(collectionDir, collection);
+        await listRequests(collectionDir, collection, options);
       } catch (error) {
-        console.error(
+        const logger = Logger.fromCommandOptions(options);
+        logger.error(
           chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
         );
         process.exit(1);
@@ -73,26 +72,27 @@ export function addListCommand(program: Command): void {
 /**
  * List collections
  */
-async function listCollections(collectionDir: string): Promise<void> {
-  console.log(chalk.gray(`Loading collections from ${collectionDir}...`));
+async function listCollections(collectionDir: string, options: Record<string, unknown>): Promise<void> {
+  const logger = Logger.fromCommandOptions(options);
+  logger.info(chalk.gray(`Loading collections from ${collectionDir}...`));
 
   try {
     const collections = await getCollections(collectionDir);
-    console.log(chalk.green('Collections loaded successfully'));
+    logger.info(chalk.green('Collections loaded successfully'));
 
     if (collections.length === 0) {
-      console.log(chalk.yellow('No collections found.'));
-      console.log(chalk.gray(`Collection directory: ${collectionDir}`));
+      logger.info(chalk.yellow('No collections found.'));
+      logger.info(chalk.gray(`Collection directory: ${collectionDir}`));
       return;
     }
 
-    console.log(chalk.bold('\nAvailable collections:'));
+    logger.info(chalk.bold('\nAvailable collections:'));
     collections.forEach((collection, index) => {
-      console.log(`${chalk.cyan(`${index + 1}.`)} ${collection}`);
+      logger.info(`${chalk.cyan(`${index + 1}.`)} ${collection}`);
     });
-    console.log(); // Empty line for spacing
+    logger.info(''); // Empty line for spacing
   } catch (error) {
-    console.error(
+    logger.error(
       chalk.red(
         `Failed to load collections: ${error instanceof Error ? error.message : String(error)}`
       )
@@ -104,26 +104,27 @@ async function listCollections(collectionDir: string): Promise<void> {
 /**
  * List requests in a collection
  */
-async function listRequests(collectionDir: string, collectionName: string): Promise<void> {
-  console.log(chalk.gray(`Loading requests for collection '${collectionName}'...`));
+async function listRequests(collectionDir: string, collectionName: string, options: Record<string, unknown>): Promise<void> {
+  const logger = Logger.fromCommandOptions(options);
+  logger.info(chalk.gray(`Loading requests for collection '${collectionName}'...`));
 
   try {
     const requests = await getRequests(collectionDir, collectionName);
-    console.log(chalk.green(`Requests for collection '${collectionName}' loaded successfully`));
+    logger.info(chalk.green(`Requests for collection '${collectionName}' loaded successfully`));
 
     if (requests.length === 0) {
-      console.log(chalk.yellow(`No requests found in collection '${collectionName}'.`));
+      logger.info(chalk.yellow(`No requests found in collection '${collectionName}'.`));
       return;
     }
 
-    console.log(chalk.bold(`\nRequests in collection '${collectionName}':`));
+    logger.info(chalk.bold(`\nRequests in collection '${collectionName}':`));
 
     // Calculate column widths for better formatting
     const idWidth = Math.max(...requests.map((r) => r.id?.length || 0), 2) + 2;
     const nameWidth = Math.max(...requests.map((r) => r.name?.length || 0), 4) + 2;
 
     // Print top of table
-    console.log(
+    logger.info(
       chalk.dim('┌─') +
         chalk.dim('─'.repeat(3)) +
         chalk.dim('─┬─') +
@@ -136,7 +137,7 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
     );
 
     // Print header
-    console.log(
+    logger.info(
       chalk.dim('│ ') +
         chalk.cyan(chalk.bold('#'.padEnd(3))) +
         chalk.dim(' │ ') +
@@ -149,7 +150,7 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
     );
 
     // Print separator
-    console.log(
+    logger.info(
       chalk.dim('├─') +
         chalk.dim('─'.repeat(3)) +
         chalk.dim('─┼─') +
@@ -177,7 +178,7 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
                   ? chalk.magenta
                   : chalk.white;
 
-      console.log(
+      logger.info(
         chalk.dim('│ ') +
           chalk.cyan(`${index + 1}`.padEnd(3)) +
           chalk.dim(' │ ') +
@@ -191,7 +192,7 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
     });
 
     // Print bottom border
-    console.log(
+    logger.info(
       chalk.dim('└─') +
         chalk.dim('─'.repeat(3)) +
         chalk.dim('─┴─') +
@@ -203,9 +204,9 @@ async function listRequests(collectionDir: string, collectionName: string): Prom
         chalk.dim('─┘')
     );
 
-    console.log(); // Empty line for spacing
+    logger.info(''); // Empty line for spacing
   } catch (error) {
-    console.error(
+    logger.error(
       chalk.red(
         `Failed to load requests: ${error instanceof Error ? error.message : String(error)}`
       )

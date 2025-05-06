@@ -2,14 +2,15 @@
  * Direct request command
  */
 import { Command, Option } from 'commander';
-import ora from 'ora';
 import chalk from 'chalk';
-import { SHCClient } from '@shc/core';
+import { SHCClient, SHCEvent } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
 import { printResponse, printError } from '../utils/output.js';
 import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
 import path from 'path';
 import fs from 'fs/promises';
+import { Logger, LogLevel } from '../utils/logger.js';
+import { Spinner } from '../utils/spinner.js';
 
 // We'll dynamically import the rate-limit plugin at runtime
 // instead of statically importing it to avoid TypeScript errors
@@ -40,7 +41,10 @@ export function addDirectCommand(program: Command): void {
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
-    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
+    .option(
+      '--quiet',
+      'Quiet mode - output only the response data without any formatting or decorations'
+    )
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -78,7 +82,10 @@ function addHttpMethodCommand(
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
-    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
+    .option(
+      '--quiet',
+      'Quiet mode - output only the response data without any formatting or decorations'
+    )
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -110,6 +117,9 @@ async function executeDirectRequest(
   url: string,
   options: Record<string, unknown>
 ): Promise<void> {
+  // Create logger from command options
+  const logger = Logger.fromCommandOptions(options);
+
   // Store original console methods
   const originalConsole = {
     log: console.log,
@@ -130,25 +140,15 @@ async function executeDirectRequest(
 
   // Get effective options
   const effectiveOptions = await getEffectiveOptions(options);
-  const isSilent = Boolean(effectiveOptions.silent);
 
   // Prepare output options
   const outputOptions: OutputOptions = {
-    format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
+    format: (options.output as OutputOptions['format']) || 'json',
     color: options.color !== false,
-    verbose: Boolean(effectiveOptions.verbose),
-    silent: isSilent,
-    quiet: Boolean(effectiveOptions.quiet),
+    verbose: options.verbose as boolean,
+    silent: options.silent as boolean,
+    quiet: options.quiet as boolean,
   };
-
-  // If silent or quiet mode is enabled, override all console methods
-  if (isSilent || outputOptions.quiet) {
-    console.log = noopConsole.log;
-    console.info = noopConsole.info;
-    console.warn = noopConsole.warn;
-    console.error = noopConsole.error;
-    console.debug = noopConsole.debug;
-  }
 
   try {
     // Prepare request options
@@ -209,164 +209,62 @@ async function executeDirectRequest(
       requestOptions.timeout = parseInt(options.timeout as string, 10);
     }
 
-    // Create client configuration
-    const configManager = await createConfigManagerFromOptions(effectiveOptions);
-    const clientConfig = configManager.get('', {});
-
     // Only create a spinner if not in silent or quiet mode
-    const spinner = isSilent || outputOptions.quiet ? null : ora(`Sending ${method} request to ${url}`).start();
+    const spinner = Spinner.fromCommandOptions(`Sending ${method} request to ${url}`, options);
 
     try {
-      // Create client with configuration
-      const client = SHCClient.create(clientConfig);
+      // Start the spinner
+      spinner.start();
 
-      // Dynamically import and register the rate-limit plugin
-      try {
-        const pluginPath = path.resolve(process.cwd(), 'plugins/rate-limit/dist/index.js');
+      // Create client configuration
+      const configManager = await createConfigManagerFromOptions(effectiveOptions);
 
-        // Check if the plugin file exists
-        try {
-          await fs.access(pluginPath);
-        } catch (error) {
-          // Only log if verbose and not silent
-          if (outputOptions.verbose && !isSilent) {
-            console.log(chalk.yellow(`Rate-limit plugin not found at ${pluginPath}`));
-          }
-          // Continue without the plugin
-        }
+      // Register event handlers for debugging
+      const eventHandlers: { event: SHCEvent; handler: (event: any) => void }[] =
+        logger['options'].level === LogLevel.DEBUG
+          ? [
+              {
+                event: 'request',
+                handler: (req: any) => {
+                  logger.debug('Request:', JSON.stringify(req, null, 2));
+                },
+              },
+              {
+                event: 'response',
+                handler: (res: any) => {
+                  logger.debug('Response:', JSON.stringify(res, null, 2));
+                },
+              },
+              {
+                event: 'error',
+                handler: (err: any) => {
+                  logger.error(
+                    chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
+                  );
+                },
+              },
+            ]
+          : [];
 
-        // Try to import the plugin
-        const rateLimitPluginModule = await import(pluginPath);
-        const RateLimitPlugin = rateLimitPluginModule.default;
+      const client = SHCClient.create(configManager, { eventHandlers });
 
-        if (RateLimitPlugin && typeof RateLimitPlugin === 'object') {
-          // Configure the plugin if possible
-          if (typeof RateLimitPlugin.configure === 'function') {
-            // Extract plugin configuration from options if available
-            let pluginConfig = null;
-
-            if (
-              effectiveOptions.plugins &&
-              typeof effectiveOptions.plugins === 'object' &&
-              'preprocessors' in effectiveOptions.plugins &&
-              Array.isArray(effectiveOptions.plugins.preprocessors)
-            ) {
-              pluginConfig = effectiveOptions.plugins.preprocessors.find(
-                (p: Record<string, unknown>) => {
-                  if ('path' in p && typeof p.path === 'string') {
-                    return p.path.includes('rate-limit');
-                  }
-                  if ('package' in p && typeof p.package === 'string') {
-                    return p.package.includes('rate-limit');
-                  }
-                  return false;
-                }
-              )?.config;
-            }
-
-            if (pluginConfig) {
-              await RateLimitPlugin.configure(pluginConfig);
-              // Only log if verbose and not silent
-              if (outputOptions.verbose && !isSilent) {
-                console.log(chalk.blue('Rate-limit plugin configured with custom settings'));
-              }
-            } else {
-              // Use default configuration if none provided
-              await RateLimitPlugin.configure({
-                rules: [
-                  {
-                    endpoint: '.*', // Match all endpoints
-                    limit: 10,
-                    window: 60,
-                    priority: 0,
-                  },
-                ],
-                queueBehavior: 'delay',
-              });
-              // Only log if verbose and not silent
-              if (outputOptions.verbose && !isSilent) {
-                console.log(chalk.blue('Rate-limit plugin configured with default settings'));
-              }
-            }
-          }
-
-          // Register the plugin with the client
-          client.use(RateLimitPlugin);
-          // Only log if verbose and not silent
-          if (outputOptions.verbose && !isSilent) {
-            console.log(
-              chalk.blue(`Plugin registered: ${RateLimitPlugin.name} v${RateLimitPlugin.version}`)
-            );
-          }
-        }
-      } catch (pluginError) {
-        // Only log if verbose and not silent
-        if (outputOptions.verbose && !isSilent) {
-          console.log(chalk.yellow(`Failed to load rate-limit plugin: ${String(pluginError)}`));
-        }
-        // Continue without the plugin
-      }
-
-      // Register event handlers for verbose output, but only if not silent
-      if (outputOptions.verbose && !isSilent) {
-        client.on('plugin:registered', (plugin) => {
-          const typedPlugin = plugin as { name: string; version: string };
-          console.log(chalk.blue(`Plugin registered: ${typedPlugin.name} v${typedPlugin.version}`));
-        });
-
-        client.on('request', (req) => {
-          const typedReq = req as { method: string; url: string };
-          console.log(chalk.blue(`Request: ${typedReq.method} ${typedReq.url}`));
-        });
-
-        client.on('response', (res) => {
-          const typedRes = res as { status: number; statusText: string };
-          console.log(chalk.green(`Response: ${typedRes.status} ${typedRes.statusText}`));
-        });
-
-        client.on('error', (err) => {
-          console.log(chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`));
-        });
-      }
-
+      // Execute request
       const response = await client.request(requestOptions);
 
-      if (spinner) {
-        spinner.succeed(chalk.green('Response received'));
-      }
+      // Update spinner with success message
+      spinner.succeed(chalk.green('Response received'));
 
-      // In silent mode with raw format, just output the raw data directly
-      if (isSilent && outputOptions.format === 'raw') {
-        const formatter = (data: unknown) => {
-          if (typeof data === 'string') {
-            return data;
-          }
-          if (Buffer.isBuffer(data)) {
-            return data.toString('utf-8');
-          }
-          if (typeof data === 'object' && data !== null) {
-            try {
-              return JSON.stringify(data, null, 2);
-            } catch (e) {
-              return String(data);
-            }
-          }
-          return String(data);
-        };
-
-        // Output directly to stdout without any decoration
-        process.stdout.write(formatter(response.data));
-      } else {
-        printResponse(response, outputOptions);
-      }
-
+      // Print response
+      printResponse(response, outputOptions);
       process.exit(0);
     } catch (error) {
-      if (spinner) {
-        spinner.fail(chalk.red('Request failed'));
-      }
+      // Update spinner with error message
+      spinner.fail(chalk.red('Request failed'));
 
-      printError(error, outputOptions);
+      logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+        logger.error(chalk.gray(error.stack));
+      }
       process.exit(1);
     }
   } finally {

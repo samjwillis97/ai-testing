@@ -21,30 +21,7 @@ interface ResponseData {
 /**
  * Format response data according to output options
  */
-export function formatOutput(data: unknown, options: OutputOptions): string {
-  // In silent mode, only return raw data for the raw format
-  if (options.silent) {
-    if (options.format === 'raw') {
-      return formatRawData(data);
-    }
-    // For other formats in silent mode, use the formatter but without any decorations
-    const formatters: Record<string, (data: unknown) => string> = {
-      json: formatJsonData,
-      yaml: formatYamlData,
-      table: formatTableData,
-      raw: formatRawData,
-    };
-
-    const formatter = formatters[options.format] || formatters.json;
-    return formatter(data);
-  }
-
-  // Check if there's a custom formatter plugin for this format
-  const customFormatter = cliPluginManager.getOutputFormatter(options.format);
-  if (customFormatter) {
-    return customFormatter(data);
-  }
-
+function formatOutput(data: unknown, options: OutputOptions): string {
   // Built-in formatters
   const formatters: Record<string, (data: unknown) => string> = {
     json: formatJsonData,
@@ -53,7 +30,14 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
     raw: formatRawData,
   };
 
-  const formatter = formatters[options.format] || formatters.json;
+  // In silent mode, only return raw data for the raw format
+  if (options.silent) {
+    return '';
+  }
+
+  // Check if there's a custom formatter plugin for this format
+  const customFormatter = cliPluginManager.getOutputFormatter(options.format);
+  const formatter = customFormatter ?? formatters[options.format] ?? formatters.json;
   return formatter(data);
 }
 
@@ -121,17 +105,6 @@ function formatTableData(data: unknown): string {
  * Format response for display
  */
 export function formatResponse(response: ResponseData, options: OutputOptions): string {
-  // In quiet mode, only return the formatted data without any decorations
-  if (options.quiet) {
-    // For quiet mode, just return the formatted data based on the requested format
-    return formatOutput(response.data, { ...options, silent: true });
-  }
-  
-  // In silent mode, only return the data without any decorations
-  if (options.silent) {
-    return formatOutput(response.data, options);
-  }
-
   // Check if there's a response visualizer plugin for this format
   const visualizer = cliPluginManager.getResponseVisualizer(options.format);
   if (visualizer) {
@@ -159,12 +132,6 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
     );
   }
 
-  // For non-raw formats, include a simple status line
-  if (options.format !== 'raw') {
-    const statusColor = response.status >= 400 ? chalk.red : chalk.green;
-    return `${chalk.bold('Status:')} ${statusColor(`${response.status} ${response.statusText}`)}\n\n${formattedData}`;
-  }
-
   // In non-verbose mode, just return the formatted data
   return formattedData;
 }
@@ -173,37 +140,6 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
  * Print response with appropriate formatting
  */
 export function printResponse(response: ResponseData, options: OutputOptions): void {
-  // In quiet mode, output only the formatted data without any decorations
-  if (options.quiet) {
-    const output = formatOutput(response.data, options);
-    if (output) {
-      process.stdout.write(output);
-      // Add a newline if the output doesn't end with one
-      if (!output.endsWith('\n')) {
-        process.stdout.write('\n');
-      }
-    }
-    return;
-  }
-  
-  if (options.silent) {
-    // In silent mode, only output the data without any console.log wrapper
-    if (options.format === 'raw') {
-      // For raw format in silent mode, output the raw data directly
-      const rawOutput = formatRawData(response.data);
-      if (rawOutput) {
-        process.stdout.write(rawOutput);
-      }
-    } else {
-      // For other formats in silent mode, use formatResponse
-      const output = formatResponse(response, options);
-      if (output) {
-        process.stdout.write(output);
-      }
-    }
-    return;
-  }
-
   const output = formatResponse(response, options);
   if (output) {
     console.log(output);
@@ -217,15 +153,16 @@ export function printError(error: Error | unknown, options: OutputOptions): void
   // In quiet mode, output minimal error message to stderr in the specified format
   if (options.quiet) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorOutput = options.format === 'json' 
-      ? JSON.stringify({ error: errorMessage }) 
-      : options.format === 'yaml'
-      ? `error: ${errorMessage}`
-      : `Error: ${errorMessage}`;
+    const errorOutput =
+      options.format === 'json'
+        ? JSON.stringify({ error: errorMessage })
+        : options.format === 'yaml'
+          ? `error: ${errorMessage}`
+          : `Error: ${errorMessage}`;
     process.stderr.write(`${errorOutput}\n`);
     return;
   }
-  
+
   if (options.silent) {
     // In silent mode, don't print errors to console
     // Instead, write a simple error message to stderr

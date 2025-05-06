@@ -15,6 +15,33 @@ import {
 // Mock axios
 vi.mock('axios');
 
+// Mock the logger module
+vi.mock('../../src/utils/logger.js', () => {
+  const mockInfo = vi.fn();
+  const mockError = vi.fn();
+  const mockWarn = vi.fn();
+  const mockDebug = vi.fn();
+  
+  return {
+    globalLogger: {
+      info: mockInfo,
+      error: mockError,
+      warn: mockWarn,
+      debug: mockDebug,
+    },
+    LogLevel: {
+      DEBUG: 'debug',
+      INFO: 'info',
+      WARN: 'warn',
+      ERROR: 'error',
+      SILENT: 'silent'
+    },
+  };
+});
+
+// Import the mocked logger
+import { globalLogger } from '../../src/utils/logger.js';
+
 // Mock the ConfigManager
 vi.mock('@shc/core', () => {
   return {
@@ -116,7 +143,7 @@ storage:
     try {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     } catch (error) {
-      console.error(`Failed to remove temp directory: ${error}`);
+      globalLogger.error(`Failed to remove temp directory: ${error}`);
     }
 
     // Restore original HOME
@@ -663,9 +690,6 @@ variable_sets:
     });
 
     it('should handle invalid variable set overrides', async () => {
-      // Mock console.error
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       // Mock process.env.HOME
       const originalHome = process.env.HOME;
       process.env.HOME = path.join(tempDir, 'home');
@@ -723,14 +747,13 @@ variable_sets:
           },
         });
 
-        // Verify that console.error was called for the invalid format
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        // Verify that globalLogger.error was called for the invalid format
+        expect(globalLogger.error).toHaveBeenCalledWith(
           'Invalid variable set override format: invalid-format. Expected format: namespace=value'
         );
       } finally {
-        // Restore process.env.HOME and console.error
+        // Restore process.env.HOME and globalLogger.error
         process.env.HOME = originalHome;
-        consoleErrorSpy.mockRestore();
       }
     });
   });
@@ -750,15 +773,13 @@ variable_sets:
     });
 
     it('should handle invalid format', () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const overrides = parseVariableSetOverrides(['api=production', 'invalid-format']);
       expect(overrides).toEqual({
         api: 'production',
       });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(globalLogger.error).toHaveBeenCalledWith(
         'Invalid variable set override format: invalid-format. Expected format: namespace=value'
       );
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -776,7 +797,7 @@ variable_sets:
       // Mock the ConfigManager.get method to return variable sets
       (configManager.get as any).mockReturnValue({
         api: { active_value: 'development' },
-        resource: { active_value: 'default' },
+        resource: { active_value: 'data' },
       });
 
       const overrides = {
@@ -793,12 +814,38 @@ variable_sets:
           production: 'production',
         },
       });
+
       expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.resource', {
         active_value: 'test',
         values: {
           test: 'test',
         },
       });
+
+      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: api=production');
+      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: resource=test');
+    });
+
+    it('should apply global variable set overrides', () => {
+      // Mock the ConfigManager.get method to return variable sets
+      (configManager.get as any).mockReturnValue({
+        api: { active_value: 'development' },
+        resource: { active_value: 'data' },
+      });
+
+      const overrides = {
+        api: 'production',
+        resource: 'test',
+      };
+
+      // Pass false for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, false);
+
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.api.active_value', 'production');
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.resource.active_value', 'test');
+
+      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: api=production');
+      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: resource=test');
     });
 
     it('should warn about non-existent variable sets', () => {
@@ -806,8 +853,6 @@ variable_sets:
       (configManager.get as any).mockReturnValue({
         api: { active_value: 'development' },
       });
-
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const overrides = {
         api: 'production',
@@ -823,16 +868,12 @@ variable_sets:
           production: 'production',
         },
       });
-      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: nonexistent');
-
-      consoleWarnSpy.mockRestore();
+      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
     });
 
     it('should handle null or undefined variable sets', () => {
       // Mock the ConfigManager.get method to return null
       (configManager.get as any).mockReturnValue(null);
-
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const overrides = {
         api: 'production',
@@ -843,10 +884,8 @@ variable_sets:
       applyVariableSetOverrides(configManager, overrides, true);
 
       // With null variable sets, each override should trigger a warning
-      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: api');
-      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: resource');
-
-      consoleWarnSpy.mockRestore();
+      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: api');
+      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: resource');
     });
   });
 });

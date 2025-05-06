@@ -5,6 +5,7 @@
 import { createConfigManagerFromOptions } from '../utils/config.js';
 import { cliPluginManager } from './plugin-manager.js';
 import { SHCConfig } from '@shc/core';
+import { Logger, globalLogger } from '../utils/logger.js';
 
 /**
  * Initialize the CLI plugin system
@@ -12,22 +13,9 @@ import { SHCConfig } from '@shc/core';
  */
 export async function initializePlugins(options: Record<string, unknown>): Promise<void> {
   const silent = Boolean(options.silent);
-
-  // Store original console methods
-  const originalConsoleLog = console.log;
-  const originalConsoleError = console.error;
-  const originalConsoleWarn = console.warn;
-  const originalConsoleInfo = console.info;
+  const logger = Logger.fromCommandOptions(options);
 
   try {
-    // If silent mode is enabled, override all console methods
-    if (silent) {
-      console.log = () => {};
-      console.error = () => {};
-      console.warn = () => {};
-      console.info = () => {};
-    }
-
     // Set silent mode in plugin manager
     cliPluginManager.setSilentMode(silent);
 
@@ -58,14 +46,8 @@ export async function initializePlugins(options: Record<string, unknown>): Promi
   } catch (error) {
     // Error handling is suppressed in silent mode
     if (!silent) {
-      console.error('Failed to initialize CLI plugins:', error);
+      logger.error('Failed to initialize CLI plugins:', error);
     }
-  } finally {
-    // Always restore console methods
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    console.warn = originalConsoleWarn;
-    console.info = originalConsoleInfo;
   }
 }
 

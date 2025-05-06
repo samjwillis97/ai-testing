@@ -8,6 +8,7 @@ import {
   getRequestsForCompletion,
 } from '../utils/completion.js';
 import { cliPluginManager } from '../plugins/index.js';
+import { Logger } from '../utils/logger.js';
 
 /**
  * Add completion command to program
@@ -19,9 +20,11 @@ export function addCompletionCommand(program: Command): void {
     .argument('<shell>', 'Shell type (bash, zsh, fish)')
     .option('--eval', 'Generate completion script suitable for eval')
     .action((shell: string, options) => {
+      const logger = Logger.fromCommandOptions(options);
+
       if (!['bash', 'zsh', 'fish'].includes(shell)) {
-        console.error(`Unsupported shell: ${shell}`);
-        console.error('Supported shells: bash, zsh, fish');
+        logger.error(`Unsupported shell: ${shell}`);
+        logger.info('Supported shells: bash, zsh, fish');
         process.exit(1);
       }
 
@@ -32,9 +35,9 @@ export function addCompletionCommand(program: Command): void {
         }
 
         const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
-        console.log(script);
+        logger.info(script);
       } catch (error) {
-        console.error(
+        logger.error(
           `Failed to generate completion script: ${error instanceof Error ? error.message : String(error)}`
         );
         process.exit(1);
@@ -48,13 +51,15 @@ export function addCompletionCommand(program: Command): void {
     .argument('<line>', 'Current command line')
     .argument('<point>', 'Cursor position')
     .action((shell: string, line: string, pointStr: string) => {
+      const logger = Logger.fromCommandOptions({});
+
       try {
         const point = parseInt(pointStr, 10);
         const completionHandler = cliPluginManager.getShellCompletion(shell);
 
         if (completionHandler) {
           const completions = completionHandler(line, point);
-          console.log(completions.join('\n'));
+          logger.info(completions.join('\n'));
         } else {
           // Fall back to basic completions
           if (
@@ -62,7 +67,7 @@ export function addCompletionCommand(program: Command): void {
             !line.includes('collections') &&
             !line.includes('requests')
           ) {
-            console.log('collections\nrequests');
+            logger.info('collections\nrequests');
           }
         }
       } catch (error) {
@@ -73,9 +78,11 @@ export function addCompletionCommand(program: Command): void {
 
   // Hidden commands for tab completion
   program.command('--get-collections', { hidden: true }).action(async (options) => {
+    const logger = Logger.fromCommandOptions(options);
+
     try {
       const collections = await getCollectionsForCompletion(options);
-      console.log(collections.join('\n'));
+      logger.info(collections.join('\n'));
     } catch (error) {
       process.exit(1);
     }
@@ -85,9 +92,11 @@ export function addCompletionCommand(program: Command): void {
     .command('--get-requests', { hidden: true })
     .argument('<collection>', 'Collection name')
     .action(async (collection, options) => {
+      const logger = Logger.fromCommandOptions(options);
+
       try {
         const requests = await getRequestsForCompletion(collection, options);
-        console.log(requests.join('\n'));
+        logger.info(requests.join('\n'));
       } catch (error) {
         process.exit(1);
       }
