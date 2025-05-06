@@ -48,12 +48,27 @@ export const coreSchema = z.object({
 });
 
 /**
+ * Schema for file reference for variable sets
+ */
+export const fileReferenceSchema = z.object({
+  file: z.string(),
+  glob: z.string().optional(),
+});
+
+/**
+ * Schema for variable values that can be either inline or from a file
+ */
+export const variableValuesSchema = z.union([z.record(z.string(), z.any()), fileReferenceSchema]);
+
+/**
  * Schema for variable sets
  */
-export const variableSetsSchema = z.object({
-  global: z.record(z.string(), z.any()).default({}),
-  collection_defaults: z.record(z.string(), z.any()).default({}),
-});
+export const variableSetsSchema = z
+  .object({
+    global: variableValuesSchema.default({}),
+    collection_defaults: variableValuesSchema.default({}),
+  })
+  .catchall(variableValuesSchema); // Allow additional named variable sets
 
 /**
  * Schema for plugin configuration

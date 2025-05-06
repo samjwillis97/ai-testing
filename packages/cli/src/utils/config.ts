@@ -112,22 +112,22 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
  * @param varSetOverrides - Array of variable set overrides in the format "namespace=value"
  * @returns Object mapping namespaces to values
  */
-export function parseVariableSetOverrides(
-  varSetOverrides: string[]
-): Record<string, string> {
+export function parseVariableSetOverrides(varSetOverrides: string[]): Record<string, string> {
   const result: Record<string, string> = {};
-  
+
   for (const override of varSetOverrides) {
     const match = override.match(/^([^=]+)=(.*)$/);
     if (!match) {
-      console.error(`Invalid variable set override format: ${override}. Expected format: namespace=value`);
+      console.error(
+        `Invalid variable set override format: ${override}. Expected format: namespace=value`
+      );
       continue;
     }
-    
+
     const [, namespace, value] = match;
     result[namespace.trim()] = value.trim();
   }
-  
+
   return result;
 }
 
@@ -141,8 +141,9 @@ export function applyVariableSetOverrides(
   varSetOverrides: Record<string, string>
 ): void {
   // Get the current variable sets
-  const globalVariableSets = configManager.get('variable_sets.global') as Record<string, unknown> || {};
-  
+  const globalVariableSets =
+    (configManager.get('variable_sets.global') as Record<string, unknown>) || {};
+
   // Apply each override
   for (const [namespace, value] of Object.entries(varSetOverrides)) {
     // Check if the variable set exists

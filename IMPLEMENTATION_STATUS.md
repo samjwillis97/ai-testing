@@ -12,7 +12,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [-] Implement variable set override per request functionality (see tasks/implement-variable-set-override-per-request.md)
 - [ ] Implement quiet mode for CLI to support piping JSON output to tools like jq (see tasks/implement-cli-quiet-mode.md)
 - [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
-- [ ] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
+- [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)

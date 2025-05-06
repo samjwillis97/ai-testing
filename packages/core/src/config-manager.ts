@@ -12,7 +12,8 @@ import {
   safeValidateConfig, 
   validateConfig as validateConfigSchema, 
   validatePartialConfig, 
-  SHCConfigSchema 
+  SHCConfigSchema,
+  fileReferenceSchema 
 } from './schemas/config.schema';
 import { z } from 'zod';
 
@@ -107,6 +108,11 @@ export class ConfigManagerImpl implements IConfigManager {
       if (parsedConfig.storage?.collections?.path && !path.isAbsolute(parsedConfig.storage.collections.path)) {
         const configDir = path.dirname(this.configFilePath);
         parsedConfig.storage.collections.path = path.resolve(configDir, parsedConfig.storage.collections.path);
+      }
+
+      // Process variable sets with file references
+      if (parsedConfig.variable_sets) {
+        await this.processExternalVariableSets(parsedConfig.variable_sets);
       }
 
       this.config = this.mergeConfigs(this.config, parsedConfig);
@@ -445,6 +451,181 @@ export class ConfigManagerImpl implements IConfigManager {
     }
     
     return merged;
+  }
+  
+  /**
+   * Process variable sets with file references
+   * @param variableSets The variable sets object from the config
+   */
+  private async processExternalVariableSets(variableSets: Record<string, unknown>): Promise<void> {
+    // Process global variable set
+    if (variableSets.global && typeof variableSets.global === 'object') {
+      try {
+        const processed = await this.processVariableSetReference(variableSets.global);
+        variableSets.global = processed;
+      } catch (error) {
+        console.error(`Error processing global variable set: ${error instanceof Error ? error.message : error}`);
+        throw error;
+      }
+    }
+    
+    // Process collection_defaults variable set
+    if (variableSets.collection_defaults && typeof variableSets.collection_defaults === 'object') {
+      try {
+        const processed = await this.processVariableSetReference(variableSets.collection_defaults);
+        variableSets.collection_defaults = processed;
+      } catch (error) {
+        console.error(`Error processing collection_defaults variable set: ${error instanceof Error ? error.message : error}`);
+        throw error;
+      }
+    }
+    
+    // Process named variable sets (any key other than global and collection_defaults)
+    for (const [key, value] of Object.entries(variableSets)) {
+      if (key !== 'global' && key !== 'collection_defaults' && value && typeof value === 'object') {
+        try {
+          const processed = await this.processVariableSetReference(value);
+          variableSets[key] = processed;
+        } catch (error) {
+          console.error(`Error processing variable set '${key}': ${error instanceof Error ? error.message : error}`);
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * Process a variable set reference, which can be either an inline object or a file reference
+   * @param variableSet The variable set object or file reference
+   * @returns The processed variable set
+   */
+  private async processVariableSetReference(variableSet: unknown): Promise<unknown> {
+    // Check if it's a file reference
+    try {
+      if (variableSet && typeof variableSet === 'object') {
+        // Check if it has a 'file' or 'glob' property
+        const obj = variableSet as Record<string, unknown>;
+        
+        if ('glob' in obj && typeof obj.glob === 'string') {
+          return await this.loadVariableSetFromGlob(obj.glob);
+        } else if ('file' in obj && typeof obj.file === 'string') {
+          return await this.loadVariableSetFromFile(obj.file);
+        }
+      }
+      
+      // Use Zod schema for validation
+      const result = fileReferenceSchema.safeParse(variableSet);
+      if (result.success) {
+        const fileRef = result.data;
+        
+        if (fileRef.glob) {
+          return await this.loadVariableSetFromGlob(fileRef.glob);
+        } else if (fileRef.file) {
+          return await this.loadVariableSetFromFile(fileRef.file);
+        }
+      }
+    } catch (error) {
+      // If it's not a valid file reference, assume it's an inline variable set
+      console.error(`Error processing variable set reference: ${error instanceof Error ? error.message : error}`);
+      throw error;
+    }
+    
+    // Return the original variable set if it's not a file reference
+    return variableSet;
+  }
+
+  /**
+   * Load a variable set from a file
+   * @param filePath The path to the file
+   * @returns The loaded variable set
+   */
+  private async loadVariableSetFromFile(filePath: string): Promise<Record<string, unknown>> {
+    try {
+      const resolvedPath = this.resolveConfigPath(filePath);
+      const fileExt = path.extname(resolvedPath).toLowerCase();
+      
+      // Check if file exists
+      try {
+        await fs.access(resolvedPath);
+      } catch (error) {
+        throw new Error(`File not found: ${resolvedPath}`);
+      }
+      
+      const fileContent = await fs.readFile(resolvedPath, 'utf8');
+      
+      let result: Record<string, unknown>;
+      if (fileExt === '.yaml' || fileExt === '.yml') {
+        result = yaml.load(fileContent) as Record<string, unknown>;
+      } else if (fileExt === '.json') {
+        result = JSON.parse(fileContent);
+      } else {
+        throw new Error(`Unsupported file type: ${fileExt}`);
+      }
+      
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to load variable set from ${filePath}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Load variable sets from files matching a glob pattern
+   * @param globPattern The glob pattern to match files
+   * @returns The merged variable sets from all matching files
+   */
+  private async loadVariableSetFromGlob(globPattern: string): Promise<Record<string, unknown>> {
+    try {
+      // For simplicity, we'll just handle basic patterns like "*.yaml" or "*.json"
+      const resolvedDir = path.dirname(this.resolveConfigPath(globPattern));
+      const pattern = path.basename(globPattern);
+      
+      // Get all files in the directory
+      const files = await fs.readdir(resolvedDir);
+      
+      // Filter files based on the pattern
+      const matchingFiles = files.filter(file => {
+        // Simple pattern matching for *.ext
+        if (pattern.startsWith('*')) {
+          const ext = pattern.substring(1); // Get the extension part
+          return file.endsWith(ext);
+        }
+        return file === pattern;
+      }).map(file => path.join(resolvedDir, file));
+      
+      if (matchingFiles.length === 0) {
+        throw new Error(`No files found matching glob pattern: ${globPattern}`);
+      }
+      
+      const result: Record<string, unknown> = {};
+      
+      // Process each file and merge the results
+      for (const file of matchingFiles) {
+        try {
+          const fileContent = await fs.readFile(file, 'utf8');
+          const fileExt = path.extname(file).toLowerCase();
+          
+          let fileVariables: Record<string, unknown>;
+          if (fileExt === '.yaml' || fileExt === '.yml') {
+            fileVariables = yaml.load(fileContent) as Record<string, unknown>;
+          } else if (fileExt === '.json') {
+            fileVariables = JSON.parse(fileContent);
+          } else {
+            console.warn(`Skipping unsupported file type: ${fileExt}`);
+            continue;
+          }
+          
+          // Deep merge the variables
+          merge(result, fileVariables);
+        } catch (error) {
+          console.warn(`Error loading variable set from ${file}: ${error instanceof Error ? error.message : error}`);
+          // Continue with other files even if one fails
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to load variable sets from glob ${globPattern}: ${error instanceof Error ? error.message : error}`);
+    }
   }
   
   // Helper method to create default core config

@@ -84,12 +84,20 @@ describe('Variable Set Override Functions', () => {
       applyVariableSetOverrides(configManager, overrides);
 
       // Check that set was called with the correct parameters
-      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.api.active_value', 'production');
-      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.resource.active_value', 'test-data');
-      
+      expect(configManager.set).toHaveBeenCalledWith(
+        'variable_sets.global.api.active_value',
+        'production'
+      );
+      expect(configManager.set).toHaveBeenCalledWith(
+        'variable_sets.global.resource.active_value',
+        'test-data'
+      );
+
       // Check that log was called for each override
       expect(consoleSpy.log).toHaveBeenCalledWith('Variable set override applied: api=production');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Variable set override applied: resource=test-data');
+      expect(consoleSpy.log).toHaveBeenCalledWith(
+        'Variable set override applied: resource=test-data'
+      );
     });
 
     it('should warn about non-existent variable sets', () => {
@@ -106,9 +114,15 @@ describe('Variable Set Override Functions', () => {
       applyVariableSetOverrides(configManager, overrides);
 
       // Check that set was called only for the existing variable set
-      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.api.active_value', 'production');
-      expect(configManager.set).not.toHaveBeenCalledWith('variable_sets.global.nonexistent.active_value', 'value');
-      
+      expect(configManager.set).toHaveBeenCalledWith(
+        'variable_sets.global.api.active_value',
+        'production'
+      );
+      expect(configManager.set).not.toHaveBeenCalledWith(
+        'variable_sets.global.nonexistent.active_value',
+        'value'
+      );
+
       // Check that log and warn were called appropriately
       expect(consoleSpy.log).toHaveBeenCalledWith('Variable set override applied: api=production');
       expect(consoleSpy.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');

@@ -376,7 +376,6 @@ complete -c shc -n "__fish_seen_subcommand_from collection c" -s d -l data -d "R
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s u -l auth -d "Authentication" -r
 complete -c shc -n "__fish_seen_subcommand_from collection c" -s t -l timeout -d "Request timeout" -r
 `;
-
 }
 
 /**

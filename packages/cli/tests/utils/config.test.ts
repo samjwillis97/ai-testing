@@ -9,7 +9,7 @@ import {
   getCollectionDir,
   getEffectiveOptions,
   parseVariableSetOverrides,
-  configManagerFactory
+  configManagerFactory,
 } from '../../src/utils/config';
 
 // Mock axios
@@ -40,7 +40,7 @@ describe('Config Utility', () => {
     tempDir = path.join(os.tmpdir(), `shc-cli-test-${Date.now()}`);
     configDir = path.join(tempDir, 'config');
     homeDir = path.join(tempDir, 'home');
-    
+
     // Create temp directory
     if (!fs.existsSync(tempDir)) {
       await fs.promises.mkdir(tempDir);
@@ -118,10 +118,10 @@ storage:
     } catch (error) {
       console.error(`Failed to remove temp directory: ${error}`);
     }
-    
+
     // Restore original HOME
     delete process.env.HOME;
-    
+
     // Clear all mocks
     vi.clearAllMocks();
   });
@@ -158,7 +158,7 @@ storage:
     it('should use environment variables when CLI options are not provided', async () => {
       // Create a backup of the original environment variables
       const originalEnv = { ...process.env };
-      
+
       try {
         // Mock environment variables
         process.env.SHC_CONFIG = configPath;
@@ -237,9 +237,10 @@ storage:
       };
 
       // Mock the createConfigManagerFromOptions function
-      const spy = vi.spyOn(await import('../../src/utils/config'), 'createConfigManagerFromOptions')
+      const spy = vi
+        .spyOn(await import('../../src/utils/config'), 'createConfigManagerFromOptions')
         .mockResolvedValue(mockConfigManager as unknown as ConfigManager);
-      
+
       try {
         // Get collection directory
         const collectionDir = await getCollectionDir(options);
@@ -281,9 +282,10 @@ core:
       };
 
       // Mock the createConfigManagerFromOptions function
-      const spy = vi.spyOn(await import('../../src/utils/config'), 'createConfigManagerFromOptions')
+      const spy = vi
+        .spyOn(await import('../../src/utils/config'), 'createConfigManagerFromOptions')
         .mockResolvedValue(mockConfigManager as unknown as ConfigManager);
-      
+
       try {
         // Get collection directory
         const collectionDir = await getCollectionDir(testOptions);
@@ -335,11 +337,11 @@ variable_sets:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 5000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 5000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Create a ConfigManager instance
@@ -360,11 +362,11 @@ variable_sets:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 5000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 5000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Create a ConfigManager instance
@@ -384,11 +386,11 @@ variable_sets:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 6000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 6000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Create a ConfigManager instance
@@ -414,11 +416,11 @@ core:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 4000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 4000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Call with no config option
@@ -450,11 +452,11 @@ core:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 3000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 3000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Call with no config option
@@ -479,11 +481,11 @@ core:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 30000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 30000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Call with no config option
@@ -509,11 +511,11 @@ core:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 5000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 5000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Create test config file
@@ -568,11 +570,11 @@ core:
       // Create a mock ConfigManager
       const mockConfigManager = {
         loadFromFile: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn((path) => path === 'core.http.timeout' ? 4000 : undefined),
+        get: vi.fn((path) => (path === 'core.http.timeout' ? 4000 : undefined)),
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Call with no config option
@@ -595,7 +597,7 @@ core:
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Mock the ConfigManager.get method to return variable sets
@@ -633,7 +635,7 @@ variable_sets:
         const configManager = await createConfigManagerFromOptions(
           {
             config: testConfigPath,
-            varSet: ['api=production', 'resource=test']
+            varSet: ['api=production', 'resource=test'],
           },
           mockConfigManagerFactory
         );
@@ -656,7 +658,7 @@ variable_sets:
     it('should handle invalid variable set overrides', async () => {
       // Mock console.error
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       // Mock process.env.HOME
       const originalHome = process.env.HOME;
       process.env.HOME = path.join(tempDir, 'home');
@@ -668,7 +670,7 @@ variable_sets:
         set: vi.fn(),
         getCollectionPath: vi.fn().mockReturnValue('/mock/collections'),
       } as unknown as ConfigManager;
-      
+
       const mockConfigManagerFactory = () => mockConfigManager;
 
       // Mock the ConfigManager.get method to return variable sets
@@ -701,7 +703,7 @@ variable_sets:
         const configManager = await createConfigManagerFromOptions(
           {
             config: testConfigPath,
-            varSet: ['api=production', 'invalid-format', 'nonexistent=value']
+            varSet: ['api=production', 'invalid-format', 'nonexistent=value'],
           },
           mockConfigManagerFactory
         );
@@ -711,7 +713,7 @@ variable_sets:
           'variable_sets.global.api.active_value',
           'production'
         );
-        
+
         // Verify that console.error was called for the invalid format
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           'Invalid variable set override format: invalid-format. Expected format: namespace=value'
@@ -804,9 +806,7 @@ variable_sets:
         'variable_sets.global.api.active_value',
         'production'
       );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Variable set not found: nonexistent'
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: nonexistent');
 
       consoleWarnSpy.mockRestore();
     });
@@ -825,12 +825,8 @@ variable_sets:
       applyVariableSetOverrides(configManager, overrides);
 
       // With null variable sets, each override should trigger a warning
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Variable set not found: api'
-      );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Variable set not found: resource'
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: api');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: resource');
 
       consoleWarnSpy.mockRestore();
     });

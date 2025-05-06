@@ -1,0 +1,71 @@
+# SHC Configuration File with External Variable Sets
+version: "1.0.0"
+name: "SHC Demo with External Variable Sets"
+description: "Example configuration demonstrating external variable sets feature"
+
+# Core settings for the SHC client
+core:
+  # HTTP client configuration
+  http:
+    timeout: 30000             # Default request timeout in ms
+    max_redirects: 5           # Maximum number of redirects to follow
+    retry:
+      attempts: 3              # Number of retry attempts
+      backoff: "exponential"   # Retry backoff strategy
+    proxy:
+      no_proxy: ["localhost", "127.0.0.1"]
+    tls:
+      verify: true
+  
+  # Logging configuration
+  logging:
+    level: "info"             # debug, info, warn, error
+    format: "json"            # json, text
+    output: "console"         # console, file
+
+# Variable sets configuration with external file references
+variable_sets:
+  # Global variable sets loaded from external file
+  global:
+    file: "./variable-sets/api-environments.yaml"
+  
+  # Collection defaults loaded from external file
+  collection_defaults:
+    file: "./variable-sets/user-defaults.yaml"
+  
+  # Named variable set loaded from external file
+  auth_config:
+    file: "./variable-sets/auth-config.yaml"
+  
+  # Example of using glob pattern to load multiple files
+  all_configs:
+    glob: "./variable-sets/*.yaml"
+  
+  # Example of inline variable set (for backward compatibility)
+  inline_example:
+    custom:
+      description: "Custom inline variable set"
+      default_value: "default"
+      active_value: "default"
+      values:
+        default:
+          setting1: "value1"
+          setting2: "value2"
+
+# Plugin configuration
+plugins:
+  # Authentication plugins
+  auth: []
+  
+  # Request preprocessor plugins
+  preprocessors: []
+
+  # Response transformer plugins
+  transformers: []
+
+# Storage configuration
+storage:
+  # Collection storage
+  collections:
+    type: "file"
+    path: "./collections"

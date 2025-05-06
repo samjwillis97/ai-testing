@@ -1,0 +1,17 @@
+user:
+  description: "Default user configurations"
+  default_value: "default"
+  active_value: "default"
+  values:
+    default:
+      id: 1
+      name: "John Doe"
+      email: "john.doe@example.com"
+      role: "user"
+      permissions: ["read", "write"]
+    admin:
+      id: 2
+      name: "Admin User"
+      email: "admin@example.com"
+      role: "admin"
+      permissions: ["read", "write", "admin"]
