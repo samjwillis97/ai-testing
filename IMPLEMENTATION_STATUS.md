@@ -13,6 +13,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Implement quiet mode for CLI to support piping JSON output to tools like jq (see tasks/implement-cli-quiet-mode.md)
 - [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
 - [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
+- [ ] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
@@ -153,6 +154,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Plugin configuration in CLI config
   - [x] Plugin lifecycle management
   - [x] Integration with core package plugins
+  - [ ] Disable example plugins in production builds
 - [-] Integration features
   - [x] Pipe support (stdin/stdout)
   - [-] Shell completion
