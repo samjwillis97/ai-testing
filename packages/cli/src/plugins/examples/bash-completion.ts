@@ -7,7 +7,7 @@ import { CLIPlugin, CLIPluginType, CLIPluginContext } from '../../types/cli-plug
 /**
  * Generate completions for bash shell
  */
-function generateBashCompletions(line: string, point: number): string[] {
+function generateBashCompletions(line: string): string[] {
   // This is a simplified example. In a real plugin, this would be more sophisticated.
   const words = line.split(' ');
   const currentWord = words[words.length - 1];

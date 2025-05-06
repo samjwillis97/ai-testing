@@ -16,7 +16,16 @@ import {
   ResponseVisualizer,
   CLIPluginConfig,
   OutputFormatterPlugin,
-} from '../types/cli-plugin.types.js';
+} from '../types/cli-plugin.types';
+
+// We're exporting these types for documentation purposes
+// Prefixing with _ to indicate they're exported but not used in this file
+export type {
+  CLIPlugin,
+  CLIPluginType as _CLIPluginType,
+  CLIPluginConfig as _CLIPluginConfig,
+  OutputFormatterPlugin as _OutputFormatterPlugin,
+};
 
 /**
  * CLI Plugin Manager
@@ -165,12 +174,12 @@ export class CLIPluginManager {
 
       // Check if package is already installed
       try {
-        return require(packageName);
+        return await import(packageName);
       } catch (e) {
         // Package not installed, install it
         this.log(`Installing CLI plugin: ${fullPackageName}`);
         execSync(`pnpm add ${fullPackageName} --no-save`, { stdio: 'inherit' });
-        return require(packageName);
+        return await import(packageName);
       }
     } catch (error) {
       throw new Error(`Failed to load npm plugin ${packageName}: ${error}`);
@@ -215,7 +224,7 @@ export class CLIPluginManager {
       }
 
       // Load plugin
-      const plugin = require(mainFilePath);
+      const plugin = await import(mainFilePath);
       return plugin.default || plugin;
     } catch (error) {
       throw new Error(`Failed to load path plugin ${pluginPath}: ${error}`);

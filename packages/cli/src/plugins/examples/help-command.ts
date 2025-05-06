@@ -7,10 +7,7 @@ import { CLIPlugin, CLIPluginType, CLIPluginContext } from '../../types/cli-plug
 /**
  * Execute the help-more command
  */
-async function executeHelpMoreCommand(
-  args: string[],
-  options: Record<string, unknown>
-): Promise<void> {
+async function executeHelpMoreCommand(): Promise<void> {
   console.log('SHC CLI - Extended Help');
   console.log('======================');
   console.log('');

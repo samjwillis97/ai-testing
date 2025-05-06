@@ -3,45 +3,40 @@ import { parseVariableSetOverrides, applyVariableSetOverrides } from '../../util
 import { ConfigManager } from '@shc/core';
 
 // Mock ConfigManager
-vi.mock('@shc/core', () => {
-  return {
-    ConfigManager: {
-      // Use a factory function that returns an object with the required methods
-      create: vi.fn().mockImplementation(() => ({
-        get: vi.fn((path, defaultValue) => {
-          if (path === 'variable_sets.global') {
-            return {
-              api: {
-                active_value: 'development',
-                values: {
-                  development: 'https://dev-api.example.com',
-                  staging: 'https://staging-api.example.com',
-                  production: 'https://api.example.com',
-                },
-              },
-              env: {
-                active_value: 'test',
-                values: {
-                  test: 'test-environment',
-                  prod: 'production-environment',
-                },
-              },
-            };
-          }
-          return defaultValue;
-        }),
-        set: vi.fn(),
-      })),
-    },
-  };
-});
+vi.mock('@shc/core', () => ({
+  ConfigManager: vi.fn().mockImplementation(() => ({
+    get: vi.fn((path, defaultValue) => {
+      if (path === 'variable_sets.global') {
+        return {
+          api: {
+            active_value: 'development',
+            values: {
+              development: 'https://dev-api.example.com',
+              staging: 'https://staging-api.example.com',
+              production: 'https://api.example.com',
+            },
+          },
+          env: {
+            active_value: 'test',
+            values: {
+              test: 'test-environment',
+              prod: 'production-environment',
+            },
+          },
+        };
+      }
+      return defaultValue;
+    }),
+    set: vi.fn(),
+  })),
+}));
 
 describe('Variable Set Override Functionality', () => {
   let configManager: ConfigManager;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    configManager = ConfigManager.create();
+    configManager = new ConfigManager();
   });
 
   describe('parseVariableSetOverrides', () => {
