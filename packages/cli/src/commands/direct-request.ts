@@ -40,6 +40,7 @@ export function addDirectCommand(program: Command): void {
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -77,6 +78,7 @@ function addHttpMethodCommand(
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -130,8 +132,17 @@ async function executeDirectRequest(
   const effectiveOptions = await getEffectiveOptions(options);
   const isSilent = Boolean(effectiveOptions.silent);
 
-  // If silent mode is enabled, override all console methods
-  if (isSilent) {
+  // Prepare output options
+  const outputOptions: OutputOptions = {
+    format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
+    color: options.color !== false,
+    verbose: Boolean(effectiveOptions.verbose),
+    silent: isSilent,
+    quiet: Boolean(effectiveOptions.quiet),
+  };
+
+  // If silent or quiet mode is enabled, override all console methods
+  if (isSilent || outputOptions.quiet) {
     console.log = noopConsole.log;
     console.info = noopConsole.info;
     console.warn = noopConsole.warn;
@@ -140,14 +151,6 @@ async function executeDirectRequest(
   }
 
   try {
-    // Prepare output options
-    const outputOptions: OutputOptions = {
-      format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
-      color: options.color !== false,
-      verbose: Boolean(effectiveOptions.verbose),
-      silent: isSilent,
-    };
-
     // Prepare request options
     const requestOptions: RequestOptions = {
       method,
@@ -210,8 +213,8 @@ async function executeDirectRequest(
     const configManager = await createConfigManagerFromOptions(effectiveOptions);
     const clientConfig = configManager.get('', {});
 
-    // Only create a spinner if not in silent mode
-    const spinner = isSilent ? null : ora(`Sending ${method} request to ${url}`).start();
+    // Only create a spinner if not in silent or quiet mode
+    const spinner = isSilent || outputOptions.quiet ? null : ora(`Sending ${method} request to ${url}`).start();
 
     try {
       // Create client with configuration

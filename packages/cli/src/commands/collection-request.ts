@@ -34,6 +34,8 @@ export function addCollectionCommand(program: Command): void {
     .option('-u, --auth <auth>', 'Override authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-v, --verbose', 'Enable verbose output')
+    .option('-s, --silent', 'Silent mode')
+    .option('--quiet', 'Quiet mode - output only the response data without any formatting or decorations')
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',
@@ -54,6 +56,42 @@ export function addCollectionCommand(program: Command): void {
         // Get collection directory
         const collectionDir = await getCollectionDir(effectiveOptions);
 
+        // Prepare output options
+        const outputOptions: OutputOptions = {
+          format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
+          color: options.color !== false,
+          verbose: Boolean(effectiveOptions.verbose),
+          silent: Boolean(effectiveOptions.silent),
+          quiet: Boolean(effectiveOptions.quiet),
+        };
+
+        // Store original console methods
+        const originalConsole = {
+          log: console.log,
+          info: console.info,
+          warn: console.warn,
+          error: console.error,
+          debug: console.debug,
+        };
+
+        // Create no-op functions for silent/quiet mode
+        const noopConsole = {
+          log: () => {},
+          info: () => {},
+          warn: () => {},
+          error: () => {},
+          debug: () => {},
+        };
+
+        // If silent or quiet mode is enabled, override all console methods
+        if (outputOptions.silent || outputOptions.quiet) {
+          console.log = noopConsole.log;
+          console.info = noopConsole.info;
+          console.warn = noopConsole.warn;
+          console.error = noopConsole.error;
+          console.debug = noopConsole.debug;
+        }
+
         // Create collection directory if it doesn't exist
         try {
           await fs.mkdir(collectionDir, { recursive: true });
@@ -68,17 +106,9 @@ export function addCollectionCommand(program: Command): void {
           }
         }
 
-        // Prepare output options
-        const outputOptions: OutputOptions = {
-          format: (options.output as 'json' | 'yaml' | 'raw' | 'table') || 'json',
-          color: options.color !== false,
-          verbose: Boolean(effectiveOptions.verbose),
-          silent: Boolean(effectiveOptions.silent),
-        };
-
         try {
           // Get request from collection
-          const spinner = effectiveOptions.silent
+          const spinner = effectiveOptions.silent || outputOptions.quiet
             ? null
             : ora(`Loading request '${requestName}' from collection '${collectionName}'`).start();
 
@@ -153,7 +183,7 @@ export function addCollectionCommand(program: Command): void {
           const configManager = await createConfigManagerFromOptions(effectiveOptions);
 
           // Execute request
-          const requestSpinner = effectiveOptions.silent
+          const requestSpinner = effectiveOptions.silent || outputOptions.quiet
             ? null
             : ora(
                 `Sending ${requestOptions.method.toUpperCase()} request to ${requestOptions.url || `${requestOptions.path}`}`
@@ -216,6 +246,13 @@ export function addCollectionCommand(program: Command): void {
 
             printError(error, outputOptions);
             process.exit(1);
+          } finally {
+            // Restore original console methods
+            console.log = originalConsole.log;
+            console.info = originalConsole.info;
+            console.warn = originalConsole.warn;
+            console.error = originalConsole.error;
+            console.debug = originalConsole.debug;
           }
         } catch (error) {
           printError(error, outputOptions);

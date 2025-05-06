@@ -114,6 +114,7 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
     )
     .option('-v, --verbose', 'Verbose output')
     .option('-s, --silent', 'Silent mode')
+    .option('-q, --quiet', 'Quiet mode - output only the response data without any formatting or decorations')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('--no-color', 'Disable colors');
 

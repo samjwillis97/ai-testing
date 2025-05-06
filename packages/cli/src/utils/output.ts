@@ -121,6 +121,12 @@ function formatTableData(data: unknown): string {
  * Format response for display
  */
 export function formatResponse(response: ResponseData, options: OutputOptions): string {
+  // In quiet mode, only return the formatted data without any decorations
+  if (options.quiet) {
+    // For quiet mode, just return the formatted data based on the requested format
+    return formatOutput(response.data, { ...options, silent: true });
+  }
+  
   // In silent mode, only return the data without any decorations
   if (options.silent) {
     return formatOutput(response.data, options);
@@ -167,6 +173,19 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
  * Print response with appropriate formatting
  */
 export function printResponse(response: ResponseData, options: OutputOptions): void {
+  // In quiet mode, output only the formatted data without any decorations
+  if (options.quiet) {
+    const output = formatOutput(response.data, options);
+    if (output) {
+      process.stdout.write(output);
+      // Add a newline if the output doesn't end with one
+      if (!output.endsWith('\n')) {
+        process.stdout.write('\n');
+      }
+    }
+    return;
+  }
+  
   if (options.silent) {
     // In silent mode, only output the data without any console.log wrapper
     if (options.format === 'raw') {
@@ -195,6 +214,18 @@ export function printResponse(response: ResponseData, options: OutputOptions): v
  * Print error with appropriate formatting
  */
 export function printError(error: Error | unknown, options: OutputOptions): void {
+  // In quiet mode, output minimal error message to stderr in the specified format
+  if (options.quiet) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorOutput = options.format === 'json' 
+      ? JSON.stringify({ error: errorMessage }) 
+      : options.format === 'yaml'
+      ? `error: ${errorMessage}`
+      : `Error: ${errorMessage}`;
+    process.stderr.write(`${errorOutput}\n`);
+    return;
+  }
+  
   if (options.silent) {
     // In silent mode, don't print errors to console
     // Instead, write a simple error message to stderr

@@ -55,12 +55,14 @@ export interface OutputOptions {
   color: boolean;
   verbose: boolean;
   silent: boolean;
+  quiet: boolean;
 }
 
 // Global options
 export interface GlobalOptions {
   verbose?: boolean;
   silent?: boolean;
+  quiet?: boolean;
   color?: boolean;
   config?: string;
   env?: string;
