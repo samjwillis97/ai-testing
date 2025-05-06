@@ -67,6 +67,7 @@ export const variableSetsSchema = z
   .object({
     global: variableValuesSchema.default({}),
     collection_defaults: variableValuesSchema.default({}),
+    request_overrides: variableValuesSchema.default({}), // Add request-specific overrides
   })
   .catchall(variableValuesSchema); // Allow additional named variable sets
 

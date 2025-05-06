@@ -641,13 +641,20 @@ variable_sets:
         );
 
         // Verify that the variable set overrides were applied
+        expect(mockConfigManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+          active_value: 'production',
+          values: {
+            production: 'production',
+          },
+        });
         expect(mockConfigManager.set).toHaveBeenCalledWith(
-          'variable_sets.global.api.active_value',
-          'production'
-        );
-        expect(mockConfigManager.set).toHaveBeenCalledWith(
-          'variable_sets.global.resource.active_value',
-          'test'
+          'variable_sets.request_overrides.resource',
+          {
+            active_value: 'test',
+            values: {
+              test: 'test',
+            },
+          }
         );
       } finally {
         // Restore process.env.HOME
@@ -709,10 +716,12 @@ variable_sets:
         );
 
         // Verify that the valid variable set override was applied
-        expect(mockConfigManager.set).toHaveBeenCalledWith(
-          'variable_sets.global.api.active_value',
-          'production'
-        );
+        expect(mockConfigManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+          active_value: 'production',
+          values: {
+            production: 'production',
+          },
+        });
 
         // Verify that console.error was called for the invalid format
         expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -775,16 +784,21 @@ variable_sets:
         resource: 'test',
       };
 
-      applyVariableSetOverrides(configManager, overrides);
+      // Pass true for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, true);
 
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.api.active_value',
-        'production'
-      );
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.resource.active_value',
-        'test'
-      );
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+        active_value: 'production',
+        values: {
+          production: 'production',
+        },
+      });
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.resource', {
+        active_value: 'test',
+        values: {
+          test: 'test',
+        },
+      });
     });
 
     it('should warn about non-existent variable sets', () => {
@@ -800,12 +814,15 @@ variable_sets:
         nonexistent: 'value',
       };
 
-      applyVariableSetOverrides(configManager, overrides);
+      // Pass true for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, true);
 
-      expect(configManager.set).toHaveBeenCalledWith(
-        'variable_sets.global.api.active_value',
-        'production'
-      );
+      expect(configManager.set).toHaveBeenCalledWith('variable_sets.request_overrides.api', {
+        active_value: 'production',
+        values: {
+          production: 'production',
+        },
+      });
       expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: nonexistent');
 
       consoleWarnSpy.mockRestore();
@@ -822,7 +839,8 @@ variable_sets:
         resource: 'test',
       };
 
-      applyVariableSetOverrides(configManager, overrides);
+      // Pass true for requestSpecific parameter
+      applyVariableSetOverrides(configManager, overrides, true);
 
       // With null variable sets, each override should trigger a warning
       expect(consoleWarnSpy).toHaveBeenCalledWith('Variable set not found: api');

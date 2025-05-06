@@ -59,6 +59,7 @@ export interface SHCConfig {
   variable_sets?: {
     global?: Record<string, unknown>;
     collection_defaults?: Record<string, unknown>;
+    request_overrides?: Record<string, unknown>;
   };
   plugins?: {
     auth?: AuthProviderPlugin[];

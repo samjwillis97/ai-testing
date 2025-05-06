@@ -58,7 +58,8 @@ export class ConfigManagerImpl implements IConfigManager {
       },
       variable_sets: {
         global: initialConfig?.variable_sets?.global || {},
-        collection_defaults: initialConfig?.variable_sets?.collection_defaults || {}
+        collection_defaults: initialConfig?.variable_sets?.collection_defaults || {},
+        request_overrides: initialConfig?.variable_sets?.request_overrides || {}
       },
       plugins: {
         auth: initialConfig?.plugins?.auth || [],
@@ -246,6 +247,37 @@ export class ConfigManagerImpl implements IConfigManager {
       ...context
     };
     
+    // Add custom template function to handle variable set resolution with proper precedence
+    this.templateEngine.registerFunction('var', {
+      name: 'get',
+      description: 'Get a variable value from variable sets with proper precedence',
+      parameters: [
+        {
+          name: 'namespace',
+          type: 'string',
+          description: 'The variable set namespace',
+          required: true
+        },
+        {
+          name: 'key',
+          type: 'string',
+          description: 'The variable key (optional)',
+          required: false
+        }
+      ],
+      execute: async (namespace: unknown, key?: unknown) => {
+        if (typeof namespace !== 'string') {
+          throw new Error('Namespace must be a string');
+        }
+        
+        if (key !== undefined && typeof key !== 'string') {
+          throw new Error('Key must be a string');
+        }
+        
+        return this.getVariableValue(namespace, key as string | undefined);
+      }
+    });
+    
     return this.templateEngine.resolve(template, resolveContext);
   }
 
@@ -411,6 +443,79 @@ export class ConfigManagerImpl implements IConfigManager {
 
   getTemplateFunction(path: string): TemplateFunction | undefined {
     return this.templateEngine.getFunction(path);
+  }
+
+  /**
+   * Get a variable value from variable sets with proper precedence
+   * Precedence order:
+   * 1. Request-specific overrides (highest)
+   * 2. Collection-level overrides
+   * 3. Global variable sets (lowest)
+   * 
+   * @param namespace The variable set namespace
+   * @param key The variable key
+   * @returns The variable value or undefined if not found
+   */
+  getVariableValue(namespace: string, key?: string): unknown {
+    // Check request-specific overrides first (highest precedence)
+    const requestOverrides = this.get<Record<string, unknown>>('variable_sets.request_overrides', {});
+    if (namespace in requestOverrides) {
+      const varSet = requestOverrides[namespace] as Record<string, unknown>;
+      
+      // If key is not provided, return the active value for the variable set
+      if (!key && 'active_value' in varSet) {
+        return varSet.active_value;
+      }
+      
+      // If key is provided, return the specific value
+      if (key && 'values' in varSet && typeof varSet.values === 'object' && varSet.values) {
+        const values = varSet.values as Record<string, unknown>;
+        if (key in values) {
+          return values[key];
+        }
+      }
+    }
+    
+    // Check collection-level overrides next
+    const collectionDefaults = this.get<Record<string, unknown>>('variable_sets.collection_defaults', {});
+    if (namespace in collectionDefaults) {
+      const varSet = collectionDefaults[namespace] as Record<string, unknown>;
+      
+      // If key is not provided, return the active value for the variable set
+      if (!key && 'active_value' in varSet) {
+        return varSet.active_value;
+      }
+      
+      // If key is provided, return the specific value
+      if (key && 'values' in varSet && typeof varSet.values === 'object' && varSet.values) {
+        const values = varSet.values as Record<string, unknown>;
+        if (key in values) {
+          return values[key];
+        }
+      }
+    }
+    
+    // Check global variable sets last (lowest precedence)
+    const globalVarSets = this.get<Record<string, unknown>>('variable_sets.global', {});
+    if (namespace in globalVarSets) {
+      const varSet = globalVarSets[namespace] as Record<string, unknown>;
+      
+      // If key is not provided, return the active value for the variable set
+      if (!key && 'active_value' in varSet) {
+        return varSet.active_value;
+      }
+      
+      // If key is provided, return the specific value
+      if (key && 'values' in varSet && typeof varSet.values === 'object' && varSet.values) {
+        const values = varSet.values as Record<string, unknown>;
+        if (key in values) {
+          return values[key];
+        }
+      }
+    }
+    
+    // Variable not found in any variable set
+    return undefined;
   }
 
   private mergeConfigs(base: SHCConfig, update?: Partial<SHCConfig>): SHCConfig {

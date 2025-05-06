@@ -135,10 +135,12 @@ export function parseVariableSetOverrides(varSetOverrides: string[]): Record<str
  * Apply variable set overrides to the ConfigManager
  * @param configManager - The ConfigManager instance
  * @param varSetOverrides - Object mapping namespaces to values
+ * @param requestSpecific - Whether these overrides are for a specific request (highest precedence)
  */
 export function applyVariableSetOverrides(
   configManager: ConfigManager,
-  varSetOverrides: Record<string, string>
+  varSetOverrides: Record<string, string>,
+  requestSpecific = false
 ): void {
   // Get the current variable sets
   const globalVariableSets =
@@ -148,9 +150,20 @@ export function applyVariableSetOverrides(
   for (const [namespace, value] of Object.entries(varSetOverrides)) {
     // Check if the variable set exists
     if (globalVariableSets[namespace]) {
-      // Update the active value
-      configManager.set(`variable_sets.global.${namespace}.active_value`, value);
-      console.log(`Variable set override applied: ${namespace}=${value}`);
+      if (requestSpecific) {
+        // For request-specific overrides, we'll use a special path to ensure highest precedence
+        configManager.set(`variable_sets.request_overrides.${namespace}`, {
+          active_value: value,
+          values: {
+            [value]: value,
+          },
+        });
+        console.log(`Request-specific variable set override applied: ${namespace}=${value}`);
+      } else {
+        // For global overrides, update the active value
+        configManager.set(`variable_sets.global.${namespace}.active_value`, value);
+        console.log(`Variable set override applied: ${namespace}=${value}`);
+      }
     } else {
       console.warn(`Variable set not found: ${namespace}`);
     }
@@ -284,7 +297,8 @@ export async function createConfigManagerFromOptions(
   // Apply variable set overrides if specified
   if (options.varSet && Array.isArray(options.varSet)) {
     const varSetOverrides = parseVariableSetOverrides(options.varSet as string[]);
-    applyVariableSetOverrides(configManager, varSetOverrides);
+    // For CLI options, we always treat var-set overrides as request-specific (highest precedence)
+    applyVariableSetOverrides(configManager, varSetOverrides, true);
   }
 
   return configManager;
