@@ -43,7 +43,7 @@ export async function getEffectiveOptions(
   if (configPath) {
     try {
       await configManager.loadFromFile(configPath);
-      console.log(`Config loaded from: ${configPath}`);
+      // console.log(`Config loaded from: ${configPath}`);
     } catch (error) {
       console.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
@@ -177,7 +177,7 @@ export async function createConfigManagerFromOptions(
   if (options.config) {
     try {
       await configManager.loadFromFile(options.config as string);
-      console.log(`Config loaded from: ${options.config}`);
+      // console.log(`Config loaded from: ${options.config}`);
       configLoaded = true;
     } catch (error) {
       console.error(
@@ -195,7 +195,7 @@ export async function createConfigManagerFromOptions(
         const exists = await fileExists(defaultConfigPath);
         if (exists) {
           await configManager.loadFromFile(defaultConfigPath);
-          console.log(`Config loaded from: ${defaultConfigPath}`);
+          // console.log(`Config loaded from: ${defaultConfigPath}`);
           configLoaded = true;
         }
       } catch (error) {
@@ -216,7 +216,7 @@ export async function createConfigManagerFromOptions(
           const exists = await fileExists(configPath);
           if (exists) {
             await configManager.loadFromFile(configPath);
-            console.log(`Config loaded from: ${configPath}`);
+            // console.log(`Config loaded from: ${configPath}`);
             configLoaded = true;
             break;
           }
