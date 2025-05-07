@@ -4,6 +4,23 @@
 import { getCollections, getRequests } from './collections.js';
 import { getCollectionDir } from './config.js';
 import { cliPluginManager } from '../plugins/index.js';
+import { Command } from 'commander';
+import { introspectProgram } from './command-introspection.js';
+import {
+  generateBashCompletionScript as generateDynamicBashCompletionScript,
+  generateZshCompletionScript as generateDynamicZshCompletionScript,
+  generateFishCompletionScript as generateDynamicFishCompletionScript,
+} from './completion-generators.js';
+
+// Store the program instance for introspection
+let programInstance: Command | null = null;
+
+/**
+ * Set the program instance for introspection
+ */
+export function setProgramForCompletion(program: Command): void {
+  programInstance = program;
+}
 
 /**
  * Generate completion script for the specified shell
@@ -28,7 +45,23 @@ export function generateCompletionScript(shell: 'bash' | 'zsh' | 'fish'): string
   // Check if we should generate an eval-compatible script
   const isEvalMode = process.env.SHC_COMPLETION_EVAL_MODE === 'true';
 
-  // Fall back to built-in completion scripts
+  // If we have a program instance, use dynamic completion generation
+  if (programInstance) {
+    const commands = introspectProgram(programInstance);
+
+    switch (shell) {
+      case 'bash':
+        return generateDynamicBashCompletionScript(commands);
+      case 'zsh':
+        return generateDynamicZshCompletionScript(commands, isEvalMode);
+      case 'fish':
+        return generateDynamicFishCompletionScript(commands);
+      default:
+        throw new Error(`Unsupported shell: ${shell}`);
+    }
+  }
+
+  // Fall back to built-in static completion scripts if no program instance is available
   switch (shell) {
     case 'bash':
       return generateBashCompletionScript();

@@ -6,6 +6,7 @@ import {
   generateCompletionScript,
   getCollectionsForCompletion,
   getRequestsForCompletion,
+  setProgramForCompletion,
 } from '../utils/completion.js';
 import { cliPluginManager } from '../plugins/index.js';
 import { Logger } from '../utils/logger.js';
@@ -14,6 +15,9 @@ import { Logger } from '../utils/logger.js';
  * Add completion command to program
  */
 export function addCompletionCommand(program: Command): void {
+  // Set the program instance for introspection
+  setProgramForCompletion(program);
+
   program
     .command('completion')
     .description('Generate shell completion script')
@@ -32,14 +36,22 @@ export function addCompletionCommand(program: Command): void {
         // Set environment variable for eval mode if needed
         if (options.eval) {
           process.env.SHC_COMPLETION_EVAL_MODE = 'true';
+          
+          // In eval mode, we want to output directly to stdout without any logger formatting
+          const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
+          // Use process.stdout.write to avoid any additional newlines or formatting
+          process.stdout.write(script);
+        } else {
+          const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
+          logger.info(script);
         }
-
-        const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
-        logger.info(script);
       } catch (error) {
-        logger.error(
-          `Failed to generate completion script: ${error instanceof Error ? error.message : String(error)}`
-        );
+        if (!options.eval) {
+          // Only show error messages when not in eval mode
+          logger.error(
+            `Failed to generate completion script: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
         process.exit(1);
       }
     });

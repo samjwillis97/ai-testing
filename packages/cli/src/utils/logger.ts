@@ -130,16 +130,14 @@ export class Logger {
    */
   private initializeLogger(): void {
     // Determine the effective log level
-    let effectiveLevel = this.options.verbose
-      ? LogLevel.DEBUG
-      : LogLevel.INFO;
+    let effectiveLevel = this.options.verbose ? LogLevel.DEBUG : LogLevel.INFO;
     if (this.options.quiet) {
       effectiveLevel = LogLevel.ERROR;
     }
 
     // Convert to Pino level
     const pinoLevel = toPinoLevel(effectiveLevel);
-    
+
     // Force the log level to 'error' when in quiet mode to ensure all INFO logs are suppressed
     const finalPinoLevel = this.options.quiet ? 'error' : pinoLevel;
 
