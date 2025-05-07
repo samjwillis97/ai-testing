@@ -103,6 +103,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^3.1.2
         version: 3.1.2(vitest@3.1.2(@types/node@20.17.32))
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -1123,6 +1126,11 @@ packages:
 
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
+
+  cross-env@7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3329,14 +3337,6 @@ snapshots:
       chai: 5.2.0
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.1.2(vite@6.3.4(@types/node@20.17.32))':
-    dependencies:
-      '@vitest/spy': 3.1.2
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 6.3.4(@types/node@20.17.32)
-
   '@vitest/mocker@3.1.2(vite@6.3.4(@types/node@22.15.14))':
     dependencies:
       '@vitest/spy': 3.1.2
@@ -3655,6 +3655,10 @@ snapshots:
   console-control-strings@1.1.0: {}
 
   create-require@1.1.1: {}
+
+  cross-env@7.0.3:
+    dependencies:
+      cross-spawn: 7.0.6
 
   cross-spawn@7.0.6:
     dependencies:
@@ -5303,7 +5307,7 @@ snapshots:
   vitest@3.1.2(@types/node@20.17.32):
     dependencies:
       '@vitest/expect': 3.1.2
-      '@vitest/mocker': 3.1.2(vite@6.3.4(@types/node@20.17.32))
+      '@vitest/mocker': 3.1.2(vite@6.3.4(@types/node@22.15.14))
       '@vitest/pretty-format': 3.1.2
       '@vitest/runner': 3.1.2
       '@vitest/snapshot': 3.1.2

@@ -5,11 +5,18 @@ import { executeQuietly } from './quiet-wrapper.js';
 
 async function main() {
   try {
+    // Set default NODE_ENV if not already set
+    process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+    
     // Configure the global logger with default settings
     configureGlobalLogger({
       level: LogLevel.INFO,
       quiet: false,
     });
+    
+    // Log the environment mode
+    const isProduction = process.env.NODE_ENV === 'production';
+    globalLogger.debug(`Running in ${isProduction ? 'production' : 'development'} mode`);
 
     // Create the program
     const program = await makeProgram({

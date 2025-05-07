@@ -74,12 +74,20 @@ export class CLIPluginManager {
    * Load plugins from configuration
    */
   async loadPlugins(config: SHCConfig): Promise<void> {
-    // Load built-in example plugins for development and testing
-    try {
-      const { loadExamplePlugins } = await import('./examples/index.js');
-      loadExamplePlugins(this);
-    } catch (error) {
-      this.logError('Failed to load example plugins:', error);
+    // Load built-in example plugins only in development and testing environments
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Skip loading example plugins in production
+    if (!isProduction) {
+      try {
+        const { loadExamplePlugins } = await import('./examples/index.js');
+        loadExamplePlugins(this);
+        this.log('Example plugins loaded (development/testing only)');
+      } catch (error) {
+        this.logError('Failed to load example plugins:', error);
+      }
+    } else {
+      this.log('Example plugins disabled in production mode');
     }
 
     // Safely check if cli plugins exist in the config

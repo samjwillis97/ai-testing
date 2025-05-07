@@ -155,7 +155,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Plugin configuration in CLI config
   - [x] Plugin lifecycle management
   - [x] Integration with core package plugins
-  - [ ] Disable example plugins in production builds
+  - [x] Disable example plugins in production builds
 - [-] Integration features
   - [x] Pipe support (stdin/stdout)
   - [-] Shell completion
