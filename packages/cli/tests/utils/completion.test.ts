@@ -76,6 +76,47 @@ import * as collectionsUtils from '../../src/utils/collections';
 import * as configUtils from '../../src/utils/config';
 import { cliPluginManager } from '../../src/plugins/index';
 
+// Import the Command class for testing dynamic completion generation
+import { Command } from 'commander';
+
+// Import the command introspection utilities
+import { introspectProgram } from '../../src/utils/command-introspection';
+
+// Import the completion generators
+import * as completionGenerators from '../../src/utils/completion-generators';
+
+// Mock the completion generators
+vi.mock('../../src/utils/completion-generators', () => ({
+  generateBashCompletionScript: vi.fn().mockReturnValue('# Dynamic Bash completion'),
+  generateZshCompletionScript: vi.fn().mockReturnValue('# Dynamic Zsh completion'),
+  generateFishCompletionScript: vi.fn().mockReturnValue('# Dynamic Fish completion'),
+}));
+
+// Mock the command introspection module
+vi.mock('../../src/utils/command-introspection', () => ({
+  introspectProgram: vi.fn().mockReturnValue([
+    {
+      name: 'test-command',
+      description: 'Test command',
+      aliases: ['tc'],
+      options: [
+        {
+          flags: '-t, --test',
+          description: 'Test option',
+          required: false,
+          optional: true,
+          variadic: false,
+          isArray: false,
+          takesValue: false,
+        },
+      ],
+      arguments: [],
+      subcommands: [],
+      isHidden: false,
+    },
+  ]),
+}));
+
 describe('Completion Utility', () => {
   beforeEach(() => {
     // Reset mocks
@@ -83,21 +124,21 @@ describe('Completion Utility', () => {
   });
 
   describe('generateCompletionScript', () => {
-    it('should generate bash completion script', () => {
+    it('should generate bash completion script when no program instance is available', () => {
       const script = completionUtils.generateCompletionScript('bash');
       expect(script).toContain('#!/usr/bin/env bash');
       expect(script).toContain('_shc_completion()');
       expect(script).toContain('complete -F _shc_completion shc');
     });
 
-    it('should generate zsh completion script', () => {
+    it('should generate zsh completion script when no program instance is available', () => {
       const script = completionUtils.generateCompletionScript('zsh');
       expect(script).toContain('#compdef shc');
       expect(script).toContain('_shc()');
       expect(script).toContain('_arguments');
     });
 
-    it('should generate fish completion script', () => {
+    it('should generate fish completion script when no program instance is available', () => {
       const script = completionUtils.generateCompletionScript('fish');
       expect(script).toContain('function __shc_collections');
       expect(script).toContain('function __shc_requests');
@@ -113,6 +154,30 @@ describe('Completion Utility', () => {
       expect(() => completionUtils.generateCompletionScript('powershell' as any)).toThrow(
         'Unsupported shell: powershell'
       );
+    });
+
+    it('should use dynamic completion generation when program instance is available', () => {
+      // Create a test program
+      const program = new Command();
+      program.command('test').description('Test command').option('-t, --test', 'Test option');
+
+      // Set the program instance for introspection
+      completionUtils.setProgramForCompletion(program);
+
+      // Generate bash completion script
+      completionUtils.generateCompletionScript('bash');
+      expect(introspectProgram).toHaveBeenCalledWith(program);
+      expect(completionGenerators.generateBashCompletionScript).toHaveBeenCalled();
+
+      // Generate zsh completion script
+      completionUtils.generateCompletionScript('zsh');
+      expect(introspectProgram).toHaveBeenCalledWith(program);
+      expect(completionGenerators.generateZshCompletionScript).toHaveBeenCalled();
+
+      // Generate fish completion script
+      completionUtils.generateCompletionScript('fish');
+      expect(introspectProgram).toHaveBeenCalledWith(program);
+      expect(completionGenerators.generateFishCompletionScript).toHaveBeenCalled();
     });
   });
 

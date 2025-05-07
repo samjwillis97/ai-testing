@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  Logger,
-  LogLevel,
-  createTestLogger,
-} from '../../src/utils/logger';
+import { Logger, LogLevel, createTestLogger } from '../../src/utils/logger';
 import { Writable } from 'stream';
 
 describe('Logger', () => {
@@ -112,17 +108,17 @@ describe('Logger', () => {
 
   describe('Singleton logger', () => {
     let originalInstance: Logger;
-    
+
     beforeEach(() => {
       // Store the original instance
       originalInstance = Logger.getInstance();
     });
-    
+
     afterEach(() => {
       // Reset the singleton instance
       (Logger as any).instance = null;
     });
-    
+
     it('should return the same instance when getInstance is called multiple times', () => {
       const instance1 = Logger.getInstance();
       const instance2 = Logger.getInstance();
