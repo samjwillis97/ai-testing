@@ -25,18 +25,24 @@ _shc() {
 
   case $state in
     cmds)
-      _describe "command" commandDescriptions
+      _describe "command" commands
       ;;
     args)
-      case $line[1] in
-        {{COMMAND_CASES}}
-        *)
-          _files
-          ;;
-      esac
+      local cmd="$words[1]"
+      local cmdspec="_shc_${cmd//-/_}"
+      
+      # Check if we have a handler function for this command
+      if (( $+functions[$cmdspec] )); then
+        $cmdspec
+      else
+        _files
+      fi
       ;;
   esac
 }
+
+# Command handler functions
+{{COMMAND_HANDLERS}}
 
 {{EVAL_MODE}}
 

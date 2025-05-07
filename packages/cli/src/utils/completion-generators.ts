@@ -148,6 +148,84 @@ export function generateZshCompletionScript(commands: CommandInfo[], isEvalMode 
       // Generate handler function for this command
       let handlerFunction = `# Handler for ${cmd.name} command
 _shc_${cmd.name.replace(/-/g, '_')}() {`;
+      
+      // Dynamic handling for commands with special completion needs
+      if (cmd.name === 'list' || cmd.name === 'collection') {
+        // Determine the appropriate dynamic completion based on command
+        let dynamicCompletionCode = '';
+        
+        if (cmd.name === 'list') {
+          // For list command
+          dynamicCompletionCode = `
+  # Handle subcommands
+  if [[ $CURRENT -eq 2 ]]; then
+    local -a subcmds
+    subcmds=(
+      "collections:List all collections"
+      "requests:List all requests in a collection"
+    )
+    _describe "list subcommand" subcmds
+  elif [[ $CURRENT -eq 3 && $words[2] == "requests" ]]; then
+    # Complete collection names for 'list requests'
+    local -a collections
+    collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
+    _describe 'collections' collections
+  else
+    # Complete options based on current subcommand
+    case $words[2] in
+      collections)
+        _arguments \
+          '--collection-dir[Collection directory]:directory:_files -/' \
+          '--config[Config file path]:config file:_files'
+        ;;
+      requests)
+        _arguments \
+          '--collection-dir[Collection directory]:directory:_files -/' \
+          '--config[Config file path]:config file:_files'
+        ;;
+    esac
+  fi`;
+        } else if (cmd.name === 'collection') {
+          // For collection command
+          dynamicCompletionCode = `
+  # Handle collection completion
+  if [[ $CURRENT -eq 2 ]]; then
+    # Complete collection names
+    local -a collections
+    collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
+    _describe 'collections' collections
+  elif [[ $CURRENT -eq 3 ]]; then
+    # Complete request names for the specified collection
+    local -a requests
+    requests=(\${(f)"$(shc --get-requests $words[2] 2>/dev/null)"})
+    _describe 'requests' requests
+  else
+    # Complete options
+    _arguments \
+      '--collection-dir[Collection directory]:directory:_files -/' \
+      '--config[Config file path]:config file:_files' \
+      '--output[Output format]:format:(json yaml raw table)' \
+      '--header[Add or override header]:header:' \
+      '--query[Add or override query parameter]:query:' \
+      '--data[Override request body]:data:' \
+      '--auth[Override authentication]:auth:' \
+      '--timeout[Request timeout]:timeout:' \
+      '--verbose[Enable verbose output]' \
+      '--quiet[Quiet mode]' \
+      '--var-set[Override variable set]:namespace=value:' \
+      '--no-color[Disable colors]'
+  fi`;
+        }
+        
+        // Create the handler function with dynamic completion
+        handlerFunction = `# Handler for ${cmd.name} command
+_shc_${cmd.name.replace(/-/g, '_')}() {
+  ${options ? `_arguments -C ${options}` : ''}
+  ${dynamicCompletionCode}
+}`;
+        
+        return handlerFunction;
+      }
 
       // Handle subcommands if any
       if (cmd.subcommands.length > 0) {
@@ -164,13 +242,10 @@ _shc_${cmd.name.replace(/-/g, '_')}() {`;
 
   _arguments -C \
     ${options ? options + ' \\' : ''}
-    "1: :->subcmds" \
+    "1: :{_describe \"${cmd.name} subcommand\" subcmds}" \
     "*::subcmd:->subcmd-options"
 
   case $state in
-    subcmds)
-      _describe "${cmd.name} subcommand" subcmds
-      ;;
     subcmd-options)
       local subcmd="$words[1]"
       case $subcmd in`;

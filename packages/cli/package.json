@@ -9,8 +9,9 @@
     "shc": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "build:prod": "cross-env NODE_ENV=production tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && pnpm run copy-templates",
+    "build:prod": "cross-env NODE_ENV=production tsc --project tsconfig.json && pnpm run copy-templates",
+    "copy-templates": "mkdir -p dist/templates && cp -r src/templates/* dist/templates/",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
