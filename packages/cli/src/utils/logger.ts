@@ -59,14 +59,30 @@ export interface LoggerOptions {
  * Maintains separation from the output formatter which handles command results
  */
 export class Logger {
-  private logger: pino.Logger;
+  private logger!: pino.Logger; // Using the definite assignment assertion
   private options: LoggerOptions;
+  private static instance: Logger | null = null;
+
+  /**
+   * Get the singleton logger instance
+   * @param options Configuration options for the logger
+   * @returns The singleton logger instance
+   */
+  public static getInstance(options?: LoggerOptions): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger(options);
+    } else if (options) {
+      // Reconfigure the existing instance if options are provided
+      Logger.instance.configure(options);
+    }
+    return Logger.instance;
+  }
 
   /**
    * Create a new logger instance
    * @param options Configuration options for the logger
    */
-  constructor(options: LoggerOptions = {}) {
+  private constructor(options: LoggerOptions = {}) {
     this.options = {
       level: options.level || LogLevel.INFO,
       quiet: options.quiet || false,
@@ -76,6 +92,28 @@ export class Logger {
       verbose: options.verbose || false,
     };
 
+    this.initializeLogger();
+  }
+
+  /**
+   * Reconfigure the logger with new options
+   * @param options New configuration options
+   */
+  public configure(options: LoggerOptions): void {
+    // Update options
+    this.options = {
+      ...this.options,
+      ...options,
+    };
+
+    // Reinitialize the logger with new options
+    this.initializeLogger();
+  }
+
+  /**
+   * Initialize the Pino logger with current options
+   */
+  private initializeLogger(): void {
     // Determine the effective log level
     let effectiveLevel = this.options.verbose
       ? LogLevel.DEBUG
@@ -172,8 +210,9 @@ export class Logger {
    * @returns A new logger instance with the additional context
    */
   child(bindings: Record<string, unknown>): Logger {
-    // Create a new logger with the same options
-    const childLogger = new Logger(this.options);
+    // For child loggers, we create a new instance directly without using the singleton
+    // This is intentional as child loggers should not replace the global instance
+    const childLogger = Logger.createTestInstance(this.options);
 
     // Use Object.defineProperty to set the private property
     Object.defineProperty(childLogger, 'logger', {
@@ -188,7 +227,7 @@ export class Logger {
   /**
    * Create a logger from command options
    * @param options Command options
-   * @returns A new logger instance configured with the command options
+   * @returns A logger instance configured with the command options
    */
   static fromCommandOptions(options: Record<string, unknown>): Logger {
     // Determine the appropriate log level based on command options
@@ -200,24 +239,37 @@ export class Logger {
       level = LogLevel.ERROR;
     }
 
-    return new Logger({
+    // Use the singleton pattern
+    return Logger.getInstance({
       level,
       color: options.color !== false,
       verbose: Boolean(options.verbose),
       quiet: Boolean(options.quiet),
     });
   }
+  
+  /**
+   * Create a test instance of the logger
+   * This bypasses the singleton pattern for testing purposes
+   * @param options Logger options for the test instance
+   * @returns A new logger instance for testing
+   */
+  static createTestInstance(options: LoggerOptions): Logger {
+    // For testing, we create a new instance directly
+    return new Logger(options);
+  }
 }
 
 // Create a global logger instance with default settings
-export const globalLogger = new Logger();
+export const globalLogger = Logger.getInstance();
 
 /**
- * Reconfigure the global logger with new options
- * @param options New options for the global logger
+ * Configure the global logger with new options
+ * @param options New configuration options
  */
 export function configureGlobalLogger(options: LoggerOptions): void {
-  Object.assign(globalLogger, new Logger(options));
+  // Use the getInstance method which will reconfigure the existing instance
+  Logger.getInstance(options);
 }
 
 /**
@@ -239,7 +291,8 @@ export function createTestLogger(): {
     },
   });
 
-  const logger = new Logger({
+  // Use a special accessor method for testing purposes
+  const logger = Logger.createTestInstance({
     output: testStream as unknown as NodeJS.WriteStream,
     errorOutput: testStream as unknown as NodeJS.WriteStream,
     color: false,
