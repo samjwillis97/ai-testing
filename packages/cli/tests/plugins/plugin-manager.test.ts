@@ -116,13 +116,13 @@ describe('CLI Plugin Manager', () => {
       // Directly mock the plugin manager's log method for this test
       const originalLog = pluginManager.log;
       pluginManager.log = vi.fn();
-      
+
       // Call log method
       pluginManager.log('Test message');
 
       // Verify that the log method was called
       expect(pluginManager.log).toHaveBeenCalledWith('Test message');
-      
+
       // Restore the original method after the test
       pluginManager.log = originalLog;
     });

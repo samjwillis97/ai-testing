@@ -246,10 +246,10 @@ describe('Plugin Initialization', () => {
   it('should handle errors during plugin initialization', async () => {
     // Create a test error
     const testError = new Error('Test error');
-    
+
     // Create a direct mock for the error method
     const errorSpy = vi.fn();
-    
+
     // Override the Logger.getInstance to return our mock
     const originalGetInstance = Logger.getInstance;
     Logger.getInstance = vi.fn().mockReturnValue({
@@ -260,19 +260,16 @@ describe('Plugin Initialization', () => {
       isQuietMode: vi.fn().mockReturnValue(false),
       configure: vi.fn(),
     });
-    
+
     // Make loadPlugins throw an error
     loadPluginsSpy.mockRejectedValueOnce(testError);
 
     try {
       // Initialize plugins
       await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
-  
+
       // Verify that the error was logged using the logger
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to initialize CLI plugins:',
-        testError
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to initialize CLI plugins:', testError);
     } finally {
       // Restore the original getInstance method
       Logger.getInstance = originalGetInstance;
@@ -293,7 +290,7 @@ describe('Plugin Initialization', () => {
   it('should suppress errors in quiet mode', async () => {
     // Create a test error
     const testError = new Error('Test error');
-    
+
     // Make loadPlugins throw an error
     loadPluginsSpy.mockRejectedValueOnce(testError);
 
@@ -321,10 +318,10 @@ describe('Plugin Initialization', () => {
   it('should handle config manager creation errors', async () => {
     // Create a test error
     const configError = new Error('Config error');
-    
+
     // Create a direct mock for the error method
     const errorSpy = vi.fn();
-    
+
     // Override the Logger.getInstance to return our mock
     const originalGetInstance = Logger.getInstance;
     Logger.getInstance = vi.fn().mockReturnValue({
@@ -335,19 +332,16 @@ describe('Plugin Initialization', () => {
       isQuietMode: vi.fn().mockReturnValue(false),
       configure: vi.fn(),
     });
-    
+
     // Mock createConfigManagerFromOptions to throw an error
     (createConfigManagerFromOptions as any).mockRejectedValueOnce(configError);
 
     try {
       // Initialize plugins
       await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
-  
+
       // Verify that the error was logged
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to initialize CLI plugins:',
-        configError
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to initialize CLI plugins:', configError);
     } finally {
       // Restore the original getInstance method
       Logger.getInstance = originalGetInstance;
