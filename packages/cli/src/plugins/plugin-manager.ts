@@ -17,7 +17,7 @@ import {
   CLIPluginConfig,
   OutputFormatterPlugin,
 } from '../types/cli-plugin.types';
-import { globalLogger } from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
 // We're exporting these types for documentation purposes
 // Prefixing with _ to indicate they're exported but not used in this file
@@ -54,9 +54,9 @@ export class CLIPluginManager {
    * @param message Message to log
    */
   log(message: string): void {
-    if (!globalLogger.isQuietMode()) {
-      globalLogger.info(message);
-    }
+    // Directly use the logger's info method - it will respect the current log level
+    // This ensures consistent behavior with the log level-based approach
+    Logger.getInstance().info(message);
   }
 
   /**
@@ -66,7 +66,7 @@ export class CLIPluginManager {
    */
   logError(message: string, error?: unknown): void {
     // Always log errors regardless of quiet mode
-    globalLogger.error(message, error);
+    Logger.getInstance().error(message, error);
   }
 
   /**
@@ -81,12 +81,9 @@ export class CLIPluginManager {
       try {
         const { loadExamplePlugins } = await import('./examples/index.js');
         loadExamplePlugins(this);
-        this.log('Example plugins loaded (development/testing only)');
       } catch (error) {
         this.logError('Failed to load example plugins:', error);
       }
-    } else {
-      this.log('Example plugins disabled in production mode');
     }
 
     // Safely check if cli plugins exist in the config
@@ -284,7 +281,7 @@ export class CLIPluginManager {
       registerCommand: this.registerCommand.bind(this),
       registerShellCompletion: this.registerShellCompletion.bind(this),
       registerResponseVisualizer: this.registerResponseVisualizer.bind(this),
-      quiet: globalLogger.isQuietMode(),
+      quiet: Logger.getInstance().isQuietMode(),
     };
 
     // Register plugin
@@ -384,7 +381,7 @@ export class CLIPluginManager {
    * Check if quiet mode is enabled
    */
   get quiet(): boolean {
-    return globalLogger.isQuietMode();
+    return Logger.getInstance().isQuietMode();
   }
 }
 

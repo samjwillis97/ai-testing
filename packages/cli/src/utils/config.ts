@@ -6,7 +6,7 @@
 import path from 'path';
 import { ConfigManager } from '@shc/core';
 import { promises as fsPromises } from 'fs';
-import { globalLogger } from './logger.js';
+import { Logger } from './logger.js';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
@@ -47,7 +47,7 @@ export async function getEffectiveOptions(
       // We're using globalLogger instead of creating a new Logger instance here
       // to ensure all logging goes through the centralized system.
     } catch (error) {
-      globalLogger.error(
+      Logger.getInstance().error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
       // Initialize with default config if loading fails
@@ -120,7 +120,7 @@ export function parseVariableSetOverrides(varSetOverrides: string[]): Record<str
   for (const override of varSetOverrides) {
     const match = override.match(/^([^=]+)=(.*)$/);
     if (!match) {
-      globalLogger.error(
+      Logger.getInstance().error(
         `Invalid variable set override format: ${override}. Expected format: namespace=value`
       );
       continue;
@@ -148,6 +148,8 @@ export function applyVariableSetOverrides(
   const globalVariableSets =
     (configManager.get('variable_sets.global') as Record<string, unknown>) || {};
 
+  const logger = Logger.getInstance();
+
   // Apply each override
   for (const [namespace, value] of Object.entries(varSetOverrides)) {
     // Check if the variable set exists
@@ -160,14 +162,14 @@ export function applyVariableSetOverrides(
             [value]: value,
           },
         });
-        globalLogger.info(`Request-specific variable set override applied: ${namespace}=${value}`);
+        logger.info(`Request-specific variable set override applied: ${namespace}=${value}`);
       } else {
         // For global overrides, update the active value
         configManager.set(`variable_sets.global.${namespace}.active_value`, value);
-        globalLogger.info(`Variable set override applied: ${namespace}=${value}`);
+        logger.info(`Variable set override applied: ${namespace}=${value}`);
       }
     } else {
-      globalLogger.warn(`Variable set not found: ${namespace}`);
+      logger.warn(`Variable set not found: ${namespace}`);
     }
   }
 }
@@ -187,6 +189,7 @@ export async function createConfigManagerFromOptions(
 ): Promise<ConfigManager> {
   const configManager = createConfigManager();
   let configLoaded = false;
+  const logger = Logger.getInstance();
 
   // Load config file if specified via CLI options
   if (options.config) {
@@ -196,7 +199,7 @@ export async function createConfigManagerFromOptions(
       // to ensure all logging goes through the centralized system.
       configLoaded = true;
     } catch (error) {
-      globalLogger.error(
+      logger.error(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -261,7 +264,7 @@ export async function createConfigManagerFromOptions(
         // Parse key=value format
         const match = setValue.match(/^([^=]+)=(.*)$/);
         if (!match) {
-          globalLogger.error(`Invalid set format: ${setValue}. Expected format: key=value`);
+          logger.error(`Invalid set format: ${setValue}. Expected format: key=value`);
           continue;
         }
 
@@ -292,9 +295,9 @@ export async function createConfigManagerFromOptions(
 
         // Set the config value
         configManager.set(key, value);
-        globalLogger.info(`Set config value: ${key}=${JSON.stringify(value)}`);
+        logger.info(`Set config value: ${key}=${JSON.stringify(value)}`);
       } catch (error) {
-        globalLogger.error(
+        logger.error(
           `Failed to set config value: ${error instanceof Error ? error.message : String(error)}`
         );
       }

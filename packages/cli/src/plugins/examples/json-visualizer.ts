@@ -39,7 +39,7 @@ const jsonVisualizerPlugin: CLIPlugin = {
   description: 'Provides enhanced visualization for JSON responses',
   register: (context: CLIPluginContext) => {
     // Register the JSON visualizer
-    context.registerResponseVisualizer('json', visualizeJson);
+    context.registerResponseVisualizer('json-custom', visualizeJson);
   },
 };
 

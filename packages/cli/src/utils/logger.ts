@@ -39,8 +39,6 @@ function toPinoLevel(level: LogLevel): PinoLevel {
  * Configuration options for the logger
  */
 export interface LoggerOptions {
-  /** Log level to use */
-  level?: LogLevel;
   /** Whether to enable quiet mode (only errors to stderr) */
   quiet?: boolean;
   /** Whether to use colors in output */
@@ -51,6 +49,8 @@ export interface LoggerOptions {
   errorOutput?: NodeJS.WriteStream;
   /** Whether to enable verbose mode */
   verbose?: boolean;
+  /** Log level */
+  level?: LogLevel;
 }
 
 /**
@@ -64,27 +64,12 @@ export class Logger {
   private static instance: Logger | null = null;
 
   /**
-   * Get the singleton logger instance
+   * Private constructor to enforce singleton pattern
    * @param options Configuration options for the logger
-   * @returns The singleton logger instance
+   * @param isTestInstance Whether this is a test instance (bypasses singleton)
    */
-  public static getInstance(options?: LoggerOptions): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger(options);
-    } else if (options) {
-      // Reconfigure the existing instance if options are provided
-      Logger.instance.configure(options);
-    }
-    return Logger.instance;
-  }
-
-  /**
-   * Create a new logger instance
-   * @param options Configuration options for the logger
-   */
-  private constructor(options: LoggerOptions = {}) {
+  private constructor(options: LoggerOptions = {}, isTestInstance = false) {
     this.options = {
-      level: options.level || LogLevel.INFO,
       quiet: options.quiet || false,
       color: options.color !== false, // Default to true
       output: options.output || process.stdout,
@@ -93,6 +78,36 @@ export class Logger {
     };
 
     this.initializeLogger();
+
+    // Store as singleton if this is not a test instance
+    if (!isTestInstance && !Logger.instance) {
+      Logger.instance = this;
+    }
+  }
+
+  /**
+   * Get the singleton logger instance
+   * @param options Configuration options for the logger
+   * @returns The singleton logger instance
+   */
+  public static getInstance(options?: LoggerOptions): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger(options || {});
+    } else if (options) {
+      // Reconfigure the existing instance if options are provided
+      Logger.instance.configure(options);
+    }
+    return Logger.instance;
+  }
+
+  /**
+   * Create a test instance of the logger
+   * This bypasses the singleton pattern for testing purposes
+   * @param options Logger options for the test instance
+   * @returns A new logger instance for testing
+   */
+  public static createTestInstance(options: LoggerOptions = {}): Logger {
+    return new Logger(options, true);
   }
 
   /**
@@ -117,17 +132,20 @@ export class Logger {
     // Determine the effective log level
     let effectiveLevel = this.options.verbose
       ? LogLevel.DEBUG
-      : this.options.level || LogLevel.INFO;
+      : LogLevel.INFO;
     if (this.options.quiet) {
       effectiveLevel = LogLevel.ERROR;
     }
 
     // Convert to Pino level
     const pinoLevel = toPinoLevel(effectiveLevel);
+    
+    // Force the log level to 'error' when in quiet mode to ensure all INFO logs are suppressed
+    const finalPinoLevel = this.options.quiet ? 'error' : pinoLevel;
 
     // Configure Pino logger
     const pinoOptions: pino.LoggerOptions = {
-      level: pinoLevel,
+      level: finalPinoLevel,
     };
 
     // Configure pretty printing if color is enabled
@@ -150,7 +168,7 @@ export class Logger {
       // Regular logs go to stdout (with null check)
       if (this.options.output) {
         streams.push({
-          level: pinoLevel,
+          level: finalPinoLevel,
           stream: this.options.output,
         });
       }
@@ -178,11 +196,15 @@ export class Logger {
   }
 
   /**
-   * Log an info message
+   * Log an informational message
    * @param message Message to log
    * @param args Additional arguments to log
    */
-  info(message: string, ...args: unknown[]): void {
+  public info(message: string, ...args: unknown[]): void {
+    // Skip INFO logs in quiet mode - direct check to ensure consistency
+    if (this.options.quiet === true) {
+      return;
+    }
     this.logger.info(message, ...args);
   }
 
@@ -249,27 +271,21 @@ export class Logger {
 
     // Use the singleton pattern
     return Logger.getInstance({
-      level,
       color: options.color !== false,
       verbose: Boolean(options.verbose),
       quiet: Boolean(options.quiet),
     });
   }
 
-  /**
-   * Create a test instance of the logger
-   * This bypasses the singleton pattern for testing purposes
-   * @param options Logger options for the test instance
-   * @returns A new logger instance for testing
-   */
-  static createTestInstance(options: LoggerOptions): Logger {
-    // For testing, we create a new instance directly
-    return new Logger(options);
+  get level(): pino.LevelWithSilentOrString {
+    return this.logger.level;
   }
+
+  // The createTestInstance method is now defined at the class level above
 }
 
 // Create a global logger instance with default settings
-export const globalLogger = Logger.getInstance();
+// export const globalLogger = Logger.getInstance();
 
 /**
  * Configure the global logger with new options

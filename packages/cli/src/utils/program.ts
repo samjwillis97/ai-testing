@@ -131,8 +131,8 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
       await initializePlugins(cmdOptions);
     } catch (error) {
       // Use the global logger for error messages
-      const { globalLogger } = await import('./logger.js');
-      globalLogger.error('Error initializing plugins:', error);
+      const { Logger } = await import('./logger.js');
+      Logger.getInstance().error('Error initializing plugins:', error);
     }
   }
 
@@ -146,32 +146,6 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
   if (options.initPlugins !== false) {
     await registerCustomCommands(program);
   }
-
-  // Add a hook to update logger and plugin options when they change
-  program.hook('preAction', async (thisCommand) => {
-    // Get options
-    const cmdOptions = thisCommand.opts();
-
-    // Import logger dynamically to avoid circular dependencies
-    const { configureGlobalLogger, LogLevel } = await import('./logger.js');
-
-    // Update global logger configuration based on command options
-    configureGlobalLogger({
-      level: cmdOptions.verbose
-        ? LogLevel.DEBUG
-        : cmdOptions.quiet
-          ? LogLevel.ERROR
-          : LogLevel.INFO,
-      quiet: Boolean(cmdOptions.quiet),
-      verbose: Boolean(cmdOptions.verbose),
-      color: cmdOptions.color !== false,
-    });
-
-    // Update plugin manager with quiet mode
-    if (cmdOptions.quiet !== undefined) {
-      cliPluginManager.setQuietMode(Boolean(cmdOptions.quiet));
-    }
-  });
 
   // Restore original console methods if they were mocked
   if (options.mockConsole) {

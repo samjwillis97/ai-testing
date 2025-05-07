@@ -211,7 +211,7 @@ async function executeDirectRequest(
 
       // Register event handlers for debugging
       const eventHandlers: { event: SHCEvent; handler: (event: unknown) => void }[] =
-        logger['options'].level === LogLevel.DEBUG
+        logger.level === 'debug'
           ? [
               {
                 event: 'request',
@@ -252,7 +252,7 @@ async function executeDirectRequest(
       spinner.fail(chalk.red('Request failed'));
 
       logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-      if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+      if (error instanceof Error && error.stack) {
         logger.error(chalk.gray(error.stack));
       }
       process.exit(1);

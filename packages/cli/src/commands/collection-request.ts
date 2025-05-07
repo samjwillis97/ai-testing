@@ -174,7 +174,7 @@ export function addCollectionCommand(program: Command): void {
 
             // Create client with ConfigManager and register event handlers before plugins are loaded
             const eventHandlers: { event: SHCEvent; handler: (event: unknown) => void }[] =
-              logger['options'].level === LogLevel.DEBUG
+              logger.level === 'debug'
                 ? [
                     {
                       event: 'request',
@@ -217,8 +217,7 @@ export function addCollectionCommand(program: Command): void {
             );
             if (
               error instanceof Error &&
-              error.stack &&
-              logger['options'].level === LogLevel.DEBUG
+              error.stack
             ) {
               logger.error(chalk.gray(error.stack));
             }
@@ -228,7 +227,7 @@ export function addCollectionCommand(program: Command): void {
           logger.error(
             chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
           );
-          if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+          if (error instanceof Error && error.stack) {
             logger.error(chalk.gray(error.stack));
           }
           process.exit(1);

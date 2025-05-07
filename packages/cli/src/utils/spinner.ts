@@ -25,9 +25,7 @@ export interface SpinnerOptions extends OraOptions {
 export class Spinner {
   private spinner: Ora | null = null;
   private spinnerText: string;
-  private options: SpinnerOptions;
   private logger: Logger;
-  private logLevel: LogLevel;
 
   /**
    * Create a new spinner
@@ -36,9 +34,7 @@ export class Spinner {
    */
   constructor(text: string, options: SpinnerOptions = {}) {
     this.spinnerText = text;
-    this.options = options;
     this.logger = options.logger || Logger.getInstance();
-    this.logLevel = options.logLevel || LogLevel.INFO;
 
     // Only create the spinner if enabled
     if (options.enabled !== false) {

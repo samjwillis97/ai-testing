@@ -13,7 +13,9 @@ import { Logger } from '../utils/logger.js';
  */
 export async function initializePlugins(options: Record<string, unknown>): Promise<void> {
   const quiet = Boolean(options.quiet);
-  const logger = Logger.fromCommandOptions(options);
+  // Use the global logger instead of creating a new one
+  // This ensures we maintain the quiet mode setting
+  const logger = Logger.getInstance();
 
   try {
     // Set quiet mode in plugin manager
