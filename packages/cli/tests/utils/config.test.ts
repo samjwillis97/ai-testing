@@ -22,25 +22,37 @@ vi.mock('../../src/utils/logger.js', () => {
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
 
-  return {
-    globalLogger: {
+  const mockLogger = {
+    info: mockInfo,
+    error: mockError,
+    warn: mockWarn,
+    debug: mockDebug,
+    configure: vi.fn(),
+    child: vi.fn().mockReturnValue({
       info: mockInfo,
       error: mockError,
       warn: mockWarn,
       debug: mockDebug,
+    }),
+  };
+
+  return {
+    Logger: {
+      getInstance: vi.fn().mockReturnValue(mockLogger),
+      createTestInstance: vi.fn().mockReturnValue(mockLogger),
+      fromCommandOptions: vi.fn().mockReturnValue(mockLogger),
     },
     LogLevel: {
       DEBUG: 'debug',
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent',
     },
   };
 });
 
 // Import the mocked logger
-import { globalLogger } from '../../src/utils/logger.js';
+import { Logger } from '../../src/utils/logger.js';
 
 // Mock the ConfigManager
 vi.mock('@shc/core', () => {
@@ -143,7 +155,7 @@ storage:
     try {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     } catch (error) {
-      globalLogger.error(`Failed to remove temp directory: ${error}`);
+      Logger.getInstance().error(`Failed to remove temp directory: ${error}`);
     }
 
     // Restore original HOME
@@ -747,12 +759,12 @@ variable_sets:
           },
         });
 
-        // Verify that globalLogger.error was called for the invalid format
-        expect(globalLogger.error).toHaveBeenCalledWith(
+        // Verify that Logger.getInstance().error was called for the invalid format
+        expect(Logger.getInstance().error).toHaveBeenCalledWith(
           'Invalid variable set override format: invalid-format. Expected format: namespace=value'
         );
       } finally {
-        // Restore process.env.HOME and globalLogger.error
+        // Restore process.env.HOME and Logger.getInstance().error
         process.env.HOME = originalHome;
       }
     });
@@ -777,7 +789,7 @@ variable_sets:
       expect(overrides).toEqual({
         api: 'production',
       });
-      expect(globalLogger.error).toHaveBeenCalledWith(
+      expect(Logger.getInstance().error).toHaveBeenCalledWith(
         'Invalid variable set override format: invalid-format. Expected format: namespace=value'
       );
     });
@@ -822,10 +834,10 @@ variable_sets:
         },
       });
 
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Request-specific variable set override applied: api=production'
       );
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Request-specific variable set override applied: resource=test'
       );
     });
@@ -854,10 +866,10 @@ variable_sets:
         'test'
       );
 
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Variable set override applied: api=production'
       );
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Variable set override applied: resource=test'
       );
     });
@@ -882,7 +894,7 @@ variable_sets:
           production: 'production',
         },
       });
-      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
+      expect(Logger.getInstance().warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
     });
 
     it('should handle null or undefined variable sets', () => {
@@ -898,8 +910,8 @@ variable_sets:
       applyVariableSetOverrides(configManager, overrides, true);
 
       // With null variable sets, each override should trigger a warning
-      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: api');
-      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: resource');
+      expect(Logger.getInstance().warn).toHaveBeenCalledWith('Variable set not found: api');
+      expect(Logger.getInstance().warn).toHaveBeenCalledWith('Variable set not found: resource');
     });
   });
 });

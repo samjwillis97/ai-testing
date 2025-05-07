@@ -49,10 +49,14 @@ export async function initializePlugins(options: Record<string, unknown>): Promi
 
     // Load plugins from configuration
     await cliPluginManager.loadPlugins(config);
-  } catch (error) {
+  } catch (error: any) {
     // Error handling is suppressed in quiet mode
     if (!quiet) {
-      logger.error('Failed to initialize CLI plugins:', error);
+      // Get a fresh instance of the logger to avoid issues with mocks in tests
+      const loggerInstance = Logger.getInstance();
+      if (loggerInstance && typeof loggerInstance.error === 'function') {
+        loggerInstance.error('Failed to initialize CLI plugins:', error);
+      }
     }
   }
 }

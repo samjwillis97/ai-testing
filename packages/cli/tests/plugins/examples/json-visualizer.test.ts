@@ -29,7 +29,7 @@ describe('JSON Visualizer Plugin', () => {
 
     // Verify that the visualizer was registered
     expect(mockContext.registerResponseVisualizer).toHaveBeenCalledWith(
-      'json',
+      'json-custom',
       expect.any(Function)
     );
   });

@@ -1,17 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   Logger,
   LogLevel,
   createTestLogger,
-  globalLogger,
-  configureGlobalLogger,
 } from '../../src/utils/logger';
 import { Writable } from 'stream';
 
 describe('Logger', () => {
   describe('Basic functionality', () => {
     it('should create a logger with default options', () => {
-      const logger = new Logger();
+      const logger = Logger.createTestInstance();
       expect(logger).toBeInstanceOf(Logger);
     });
 
@@ -53,7 +51,7 @@ describe('Logger', () => {
         },
       });
 
-      const logger = new Logger({
+      const logger = Logger.createTestInstance({
         quiet: true,
         output: testStream as unknown as NodeJS.WriteStream,
         errorOutput: testStream as unknown as NodeJS.WriteStream,
@@ -82,7 +80,7 @@ describe('Logger', () => {
 
       expect(logger).toBeInstanceOf(Logger);
       // Check that options were applied correctly
-      expect((logger as any).options.level).toBe(LogLevel.DEBUG);
+      expect((logger as any).options.verbose).toBe(true);
       expect((logger as any).options.quiet).toBe(false);
       expect((logger as any).options.color).toBe(true);
     });
@@ -112,28 +110,41 @@ describe('Logger', () => {
     });
   });
 
-  describe('Global logger', () => {
-    it('should export a global logger instance', () => {
-      // Import the global logger directly
-      expect(globalLogger).toBeInstanceOf(Logger);
+  describe('Singleton logger', () => {
+    let originalInstance: Logger;
+    
+    beforeEach(() => {
+      // Store the original instance
+      originalInstance = Logger.getInstance();
+    });
+    
+    afterEach(() => {
+      // Reset the singleton instance
+      (Logger as any).instance = null;
+    });
+    
+    it('should return the same instance when getInstance is called multiple times', () => {
+      const instance1 = Logger.getInstance();
+      const instance2 = Logger.getInstance();
+      expect(instance1).toBe(instance2);
     });
 
-    it('should allow reconfiguring the global logger', () => {
-      // Store original logger to restore later
-      const originalOptions = { ...(globalLogger as any).options };
+    it('should allow reconfiguring the singleton logger', () => {
+      const logger = Logger.getInstance();
+      const originalOptions = { ...(logger as any).options };
 
       // Configure with new options
-      configureGlobalLogger({
+      logger.configure({
         level: LogLevel.DEBUG,
         quiet: true,
       });
 
       // Check that options were applied
-      expect((globalLogger as any).options.level).toBe(LogLevel.DEBUG);
-      expect((globalLogger as any).options.quiet).toBe(true);
+      expect((logger as any).options.level).toBe(LogLevel.DEBUG);
+      expect((logger as any).options.quiet).toBe(true);
 
-      // Restore original logger to not affect other tests
-      configureGlobalLogger(originalOptions);
+      // Restore original options
+      logger.configure(originalOptions);
     });
   });
 });

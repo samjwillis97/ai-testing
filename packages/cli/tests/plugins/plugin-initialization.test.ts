@@ -10,25 +10,55 @@ import * as childProcess from 'child_process';
 
 // Mock the logger module
 vi.mock('../../src/utils/logger.js', () => {
+  // Create mock functions that can be accessed in tests
   const mockInfo = vi.fn();
   const mockError = vi.fn();
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
+  const mockIsQuietMode = vi.fn().mockReturnValue(false);
+  const mockConfigure = vi.fn();
 
-  return {
-    globalLogger: {
+  const mockLogger = {
+    info: mockInfo,
+    error: mockError,
+    warn: mockWarn,
+    debug: mockDebug,
+    isQuietMode: mockIsQuietMode,
+    configure: mockConfigure,
+    child: vi.fn().mockReturnValue({
       info: mockInfo,
       error: mockError,
       warn: mockWarn,
       debug: mockDebug,
-    },
+    }),
+  };
+
+  // Reset all mocks before each test
+  beforeEach(() => {
+    mockInfo.mockClear();
+    mockError.mockClear();
+    mockWarn.mockClear();
+    mockDebug.mockClear();
+    mockIsQuietMode.mockClear();
+    mockConfigure.mockClear();
+    mockIsQuietMode.mockReturnValue(false);
+  });
+
+  // Create a global reference to access these mocks in tests
+  global.__loggerMocks = {
+    info: mockInfo,
+    error: mockError,
+    warn: mockWarn,
+    debug: mockDebug,
+    isQuietMode: mockIsQuietMode,
+    configure: mockConfigure,
+  };
+
+  return {
     Logger: {
-      fromCommandOptions: vi.fn(() => ({
-        info: mockInfo,
-        error: mockError,
-        warn: mockWarn,
-        debug: mockDebug,
-      })),
+      getInstance: vi.fn().mockReturnValue(mockLogger),
+      createTestInstance: vi.fn().mockReturnValue(mockLogger),
+      fromCommandOptions: vi.fn().mockReturnValue(mockLogger),
     },
     LogLevel: {
       DEBUG: 'debug',
@@ -114,7 +144,7 @@ vi.mock('axios');
 // Import modules after mocking
 import { initializePlugins } from '../../src/plugins/index';
 import { cliPluginManager } from '../../src/plugins/plugin-manager';
-import { globalLogger } from '../../src/utils/logger.js';
+import { Logger } from '../../src/utils/logger.js';
 import { createConfigManagerFromOptions } from '../../src/utils/config.js';
 
 // Create a temporary directory for test config files
@@ -214,17 +244,39 @@ describe('Plugin Initialization', () => {
   });
 
   it('should handle errors during plugin initialization', async () => {
+    // Create a test error
+    const testError = new Error('Test error');
+    
+    // Create a direct mock for the error method
+    const errorSpy = vi.fn();
+    
+    // Override the Logger.getInstance to return our mock
+    const originalGetInstance = Logger.getInstance;
+    Logger.getInstance = vi.fn().mockReturnValue({
+      error: errorSpy,
+      info: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      isQuietMode: vi.fn().mockReturnValue(false),
+      configure: vi.fn(),
+    });
+    
     // Make loadPlugins throw an error
-    loadPluginsSpy.mockRejectedValueOnce(new Error('Test error'));
+    loadPluginsSpy.mockRejectedValueOnce(testError);
 
-    // Initialize plugins
-    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
-
-    // Verify that the error was logged using the logger
-    expect(globalLogger.error).toHaveBeenCalledWith(
-      'Failed to initialize CLI plugins:',
-      expect.any(Error)
-    );
+    try {
+      // Initialize plugins
+      await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
+  
+      // Verify that the error was logged using the logger
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Failed to initialize CLI plugins:',
+        testError
+      );
+    } finally {
+      // Restore the original getInstance method
+      Logger.getInstance = originalGetInstance;
+    }
   });
 
   it('should handle missing plugin configuration', async () => {
@@ -239,14 +291,18 @@ describe('Plugin Initialization', () => {
   });
 
   it('should suppress errors in quiet mode', async () => {
+    // Create a test error
+    const testError = new Error('Test error');
+    
     // Make loadPlugins throw an error
-    loadPluginsSpy.mockRejectedValueOnce(new Error('Test error'));
+    loadPluginsSpy.mockRejectedValueOnce(testError);
 
     // Initialize plugins with quiet mode
     await initializePlugins({ quiet: true, config: TEST_CONFIG_PATH });
 
     // Verify that the error was not logged
-    expect(globalLogger.error).not.toHaveBeenCalled();
+    // Access the mock directly from the global reference
+    expect((global as any).__loggerMocks.error).not.toHaveBeenCalled();
   });
 
   it('should pass the config file path to plugins', async () => {
@@ -263,16 +319,38 @@ describe('Plugin Initialization', () => {
   });
 
   it('should handle config manager creation errors', async () => {
+    // Create a test error
+    const configError = new Error('Config error');
+    
+    // Create a direct mock for the error method
+    const errorSpy = vi.fn();
+    
+    // Override the Logger.getInstance to return our mock
+    const originalGetInstance = Logger.getInstance;
+    Logger.getInstance = vi.fn().mockReturnValue({
+      error: errorSpy,
+      info: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      isQuietMode: vi.fn().mockReturnValue(false),
+      configure: vi.fn(),
+    });
+    
     // Mock createConfigManagerFromOptions to throw an error
-    (createConfigManagerFromOptions as any).mockRejectedValueOnce(new Error('Config error'));
+    (createConfigManagerFromOptions as any).mockRejectedValueOnce(configError);
 
-    // Initialize plugins
-    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
-
-    // Verify that the error was logged
-    expect(globalLogger.error).toHaveBeenCalledWith(
-      'Failed to initialize CLI plugins:',
-      expect.any(Error)
-    );
+    try {
+      // Initialize plugins
+      await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
+  
+      // Verify that the error was logged
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Failed to initialize CLI plugins:',
+        configError
+      );
+    } finally {
+      // Restore the original getInstance method
+      Logger.getInstance = originalGetInstance;
+    }
   });
 });

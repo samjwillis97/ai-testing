@@ -284,18 +284,6 @@ export class Logger {
   // The createTestInstance method is now defined at the class level above
 }
 
-// Create a global logger instance with default settings
-// export const globalLogger = Logger.getInstance();
-
-/**
- * Configure the global logger with new options
- * @param options New configuration options
- */
-export function configureGlobalLogger(options: LoggerOptions): void {
-  // Use the getInstance method which will reconfigure the existing instance
-  Logger.getInstance(options);
-}
-
 /**
  * Create a test logger that captures output for testing
  * @returns A logger and the captured output

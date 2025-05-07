@@ -9,25 +9,37 @@ vi.mock('../../src/utils/logger.js', () => {
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
 
-  return {
-    globalLogger: {
+  const mockLogger = {
+    info: mockInfo,
+    error: mockError,
+    warn: mockWarn,
+    debug: mockDebug,
+    configure: vi.fn(),
+    child: vi.fn().mockReturnValue({
       info: mockInfo,
       error: mockError,
       warn: mockWarn,
       debug: mockDebug,
+    }),
+  };
+
+  return {
+    Logger: {
+      getInstance: vi.fn().mockReturnValue(mockLogger),
+      createTestInstance: vi.fn().mockReturnValue(mockLogger),
+      fromCommandOptions: vi.fn().mockReturnValue(mockLogger),
     },
     LogLevel: {
       DEBUG: 'debug',
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent',
     },
   };
 });
 
 // Import the mocked logger
-import { globalLogger } from '../../src/utils/logger.js';
+import { Logger } from '../../src/utils/logger.js';
 
 // Mock ConfigManager
 vi.mock('@shc/core', () => {
@@ -67,7 +79,7 @@ describe('Variable Set Override Functions', () => {
         api: 'production',
         resource: 'test-data',
       });
-      expect(globalLogger.error).toHaveBeenCalledWith(
+      expect(Logger.getInstance().error).toHaveBeenCalledWith(
         'Invalid variable set override format: invalid-format. Expected format: namespace=value'
       );
     });
@@ -119,10 +131,10 @@ describe('Variable Set Override Functions', () => {
       });
 
       // Check that log was called for each override
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Request-specific variable set override applied: api=production'
       );
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Request-specific variable set override applied: resource=test-data'
       );
     });
@@ -147,10 +159,10 @@ describe('Variable Set Override Functions', () => {
       );
 
       // Check that log was called for each override
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Variable set override applied: api=production'
       );
-      expect(globalLogger.info).toHaveBeenCalledWith(
+      expect(Logger.getInstance().info).toHaveBeenCalledWith(
         'Variable set override applied: resource=test-data'
       );
     });
@@ -184,7 +196,7 @@ describe('Variable Set Override Functions', () => {
       );
 
       // Check that warn was called for non-existent variable set
-      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
+      expect(Logger.getInstance().warn).toHaveBeenCalledWith('Variable set not found: nonexistent');
     });
 
     it('should handle null variable sets', () => {
@@ -198,7 +210,7 @@ describe('Variable Set Override Functions', () => {
       applyVariableSetOverrides(configManager, overrides);
 
       // Check that warn was called for non-existent variable set
-      expect(globalLogger.warn).toHaveBeenCalledWith('Variable set not found: api');
+      expect(Logger.getInstance().warn).toHaveBeenCalledWith('Variable set not found: api');
       expect(configManager.set).not.toHaveBeenCalled();
     });
   });

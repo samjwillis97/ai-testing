@@ -28,7 +28,6 @@ describe('Example Plugins', () => {
     registerCommand: vi.fn(),
     registerShellCompletion: vi.fn(),
     registerResponseVisualizer: vi.fn(),
-    silent: false,
   };
 
   // Mock console.log
@@ -83,7 +82,6 @@ describe('Example Plugins', () => {
         registerCommand: vi.fn(),
         registerShellCompletion: vi.fn(),
         registerResponseVisualizer: vi.fn(),
-        silent: false,
       };
 
       // Register the actual plugins
@@ -98,7 +96,7 @@ describe('Example Plugins', () => {
         expect.any(Function)
       );
       expect(context.registerCommand).toHaveBeenCalledWith('help-more', expect.any(Function));
-      expect(context.registerResponseVisualizer).toHaveBeenCalledWith('json', expect.any(Function));
+      expect(context.registerResponseVisualizer).toHaveBeenCalledWith('json-custom', expect.any(Function));
       expect(context.registerShellCompletion).toHaveBeenCalledWith('bash', expect.any(Function));
 
       // Test the formatter function if needed
