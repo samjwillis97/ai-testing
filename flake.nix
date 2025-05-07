@@ -37,7 +37,7 @@
           pnpmDeps = pnpm.fetchDeps {
             inherit (finalAttrs) pname version src pnpmWorkspaces;
             # sourceRoot = "${src}/packages/cli";
-            hash = "sha256-5+PTF+OmV3GL3MDTMBbzqr4iQ+HRzPC75BArE+TobLc=";
+            hash = "sha256-ELCKzqt8O84qyaPBXb4YuV2V263NN+JeJ8xUrPLcC2I=";
           };
 
           buildPhase = ''
