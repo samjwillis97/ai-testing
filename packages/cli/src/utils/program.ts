@@ -130,7 +130,9 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
       // Initialize plugins with the current options
       await initializePlugins(cmdOptions);
     } catch (error) {
-      console.error('Error initializing plugins:', error);
+      // Use the global logger for error messages
+      const { globalLogger } = await import('./logger.js');
+      globalLogger.error('Error initializing plugins:', error);
     }
   }
 

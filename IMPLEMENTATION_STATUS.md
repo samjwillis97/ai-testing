@@ -13,7 +13,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Implement quiet mode for CLI to support piping JSON output to tools like jq (see tasks/implement-cli-quiet-mode.md)
 - [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
 - [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
-- [ ] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
+- [x] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
 - [x] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
 
 ## Monorepo & Architecture
