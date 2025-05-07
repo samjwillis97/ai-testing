@@ -4,7 +4,7 @@
  * This module provides a wrapper function to execute code in quiet mode,
  * suppressing most console output except for errors.
  */
-import { configureGlobalLogger, LogLevel } from './utils/logger.js';
+import { configureGlobalLogger, LogLevel, globalLogger } from './utils/logger.js';
 
 /**
  * Execute a function in quiet mode, suppressing most console output
@@ -28,6 +28,8 @@ export async function executeQuietly<T>(fn: () => Promise<T>): Promise<T> {
     debug: () => {},
   };
 
+  // No need to store logger configuration as we don't restore it
+
   try {
     // Set console methods to no-op for quiet mode
     // Note: We keep console.error to ensure critical errors are still displayed
@@ -37,10 +39,13 @@ export async function executeQuietly<T>(fn: () => Promise<T>): Promise<T> {
     console.debug = noopConsole.debug;
 
     // Configure the global logger to ERROR level with quiet mode
-    configureGlobalLogger({
-      level: LogLevel.ERROR,
-      quiet: true,
-    });
+    // Only do this if it's not already in quiet mode
+    if (!globalLogger.isQuietMode()) {
+      configureGlobalLogger({
+        level: LogLevel.ERROR,
+        quiet: true,
+      });
+    }
 
     // Execute the function
     return await fn();

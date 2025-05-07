@@ -37,7 +37,7 @@ export class Spinner {
   constructor(text: string, options: SpinnerOptions = {}) {
     this.spinnerText = text;
     this.options = options;
-    this.logger = options.logger || new Logger();
+    this.logger = options.logger || Logger.getInstance();
     this.logLevel = options.logLevel || LogLevel.INFO;
 
     // Only create the spinner if enabled
@@ -160,8 +160,9 @@ export class Spinner {
   static fromCommandOptions(text: string, options: Record<string, unknown>): Spinner {
     const logger = Logger.fromCommandOptions(options);
 
-    // Enable spinner only if not in quiet mode (log level is not ERROR)
-    const enabled = logger['options'].level !== LogLevel.ERROR;
+    // Enable spinner only if not in quiet mode
+    // We determine this based on the quiet flag in options
+    const enabled = !options.quiet;
 
     return new Spinner(text, {
       enabled,

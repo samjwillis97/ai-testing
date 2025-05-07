@@ -210,7 +210,7 @@ describe('Program Creation Utility', () => {
 
     // Get the plugins module
     const pluginsModule = await import('../../src/plugins/index.js');
-    
+
     // Mock plugin manager
     const mockPluginManager = {
       loadPlugins: vi.fn(),

@@ -37,7 +37,6 @@ export class CLIPluginManager {
   private shellCompletions: Map<string, CompletionHandler> = new Map();
   private responseVisualizers: Map<string, ResponseVisualizer> = new Map();
   private loadedPlugins: Map<string, CLIPlugin> = new Map();
-  private quietMode = false;
 
   constructor() {}
 
@@ -46,28 +45,28 @@ export class CLIPluginManager {
    * @param quiet Whether to minimize log messages
    */
   setQuietMode(quiet: boolean): void {
-    this.quietMode = quiet;
+    // This method is kept for backward compatibility
+    // The actual quiet mode is now managed by the global logger
   }
 
   /**
-   * Log a message if not in silent mode
+   * Log a message if not in quiet mode
    * @param message Message to log
    */
   log(message: string): void {
-    if (!this.quietMode) {
+    if (!globalLogger.isQuietMode()) {
       globalLogger.info(message);
     }
   }
 
   /**
-   * Log an error if not in silent mode
+   * Log an error message
    * @param message Error message
    * @param error Error object
    */
   logError(message: string, error?: unknown): void {
-    if (!this.quietMode) {
-      globalLogger.error(message, error);
-    }
+    // Always log errors regardless of quiet mode
+    globalLogger.error(message, error);
   }
 
   /**
@@ -76,7 +75,7 @@ export class CLIPluginManager {
   async loadPlugins(config: SHCConfig): Promise<void> {
     // Load built-in example plugins only in development and testing environments
     const isProduction = process.env.NODE_ENV === 'production';
-    
+
     // Skip loading example plugins in production
     if (!isProduction) {
       try {
@@ -285,7 +284,7 @@ export class CLIPluginManager {
       registerCommand: this.registerCommand.bind(this),
       registerShellCompletion: this.registerShellCompletion.bind(this),
       registerResponseVisualizer: this.registerResponseVisualizer.bind(this),
-      quiet: this.quietMode,
+      quiet: globalLogger.isQuietMode(),
     };
 
     // Register plugin
@@ -385,7 +384,7 @@ export class CLIPluginManager {
    * Check if quiet mode is enabled
    */
   get quiet(): boolean {
-    return this.quietMode;
+    return globalLogger.isQuietMode();
   }
 }
 

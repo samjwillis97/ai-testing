@@ -229,6 +229,14 @@ export class Logger {
    * @param options Command options
    * @returns A logger instance configured with the command options
    */
+  /**
+   * Check if the logger is in quiet mode
+   * @returns True if the logger is in quiet mode, false otherwise
+   */
+  isQuietMode(): boolean {
+    return this.options.quiet === true;
+  }
+
   static fromCommandOptions(options: Record<string, unknown>): Logger {
     // Determine the appropriate log level based on command options
     let level = LogLevel.INFO;
@@ -247,7 +255,7 @@ export class Logger {
       quiet: Boolean(options.quiet),
     });
   }
-  
+
   /**
    * Create a test instance of the logger
    * This bypasses the singleton pattern for testing purposes

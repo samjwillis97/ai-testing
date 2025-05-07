@@ -147,10 +147,25 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
     await registerCustomCommands(program);
   }
 
-  // Add a hook to update plugin options when they change
+  // Add a hook to update logger and plugin options when they change
   program.hook('preAction', async (thisCommand) => {
     // Get options
     const cmdOptions = thisCommand.opts();
+
+    // Import logger dynamically to avoid circular dependencies
+    const { configureGlobalLogger, LogLevel } = await import('./logger.js');
+
+    // Update global logger configuration based on command options
+    configureGlobalLogger({
+      level: cmdOptions.verbose
+        ? LogLevel.DEBUG
+        : cmdOptions.quiet
+          ? LogLevel.ERROR
+          : LogLevel.INFO,
+      quiet: Boolean(cmdOptions.quiet),
+      verbose: Boolean(cmdOptions.verbose),
+      color: cmdOptions.color !== false,
+    });
 
     // Update plugin manager with quiet mode
     if (cmdOptions.quiet !== undefined) {
