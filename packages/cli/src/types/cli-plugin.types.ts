@@ -22,7 +22,7 @@ export interface CLIPluginContext {
   registerCommand: (name: string, handler: CommandHandler) => void;
   registerShellCompletion: (shell: string, handler: CompletionHandler) => void;
   registerResponseVisualizer: (name: string, visualizer: ResponseVisualizer) => void;
-  silent: boolean; // Whether silent mode is enabled
+  quiet: boolean; // Whether quiet mode is enabled
 }
 
 /**

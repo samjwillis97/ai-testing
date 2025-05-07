@@ -35,9 +35,8 @@ export function addCollectionCommand(program: Command): void {
     .option('-u, --auth <auth>', 'Override authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-v, --verbose', 'Enable verbose output')
-    .option('-s, --silent', 'Silent mode')
     .option(
-      '--quiet',
+      '-q, --quiet',
       'Quiet mode - output only the response data without any formatting or decorations'
     )
     .option(
@@ -63,7 +62,6 @@ export function addCollectionCommand(program: Command): void {
           format: (options.output as OutputOptions['format']) || 'json',
           color: options.color !== false,
           verbose: options.verbose as boolean,
-          silent: options.silent as boolean,
           quiet: options.quiet as boolean,
         };
 

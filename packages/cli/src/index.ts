@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { makeProgram } from './utils/program.js';
-import { executeSilently } from './silent-wrapper.js';
 import { globalLogger, configureGlobalLogger, LogLevel } from './utils/logger.js';
+import { executeQuietly } from './quiet-wrapper.js';
 
 async function main() {
   try {
@@ -20,30 +20,21 @@ async function main() {
     if (process.argv.length <= 2) {
       program.help();
     } else {
-      // Check for silent mode flag in command line arguments
-      const isSilent = process.argv.includes('-s') || process.argv.includes('--silent');
-      const isQuiet = process.argv.includes('--quiet');
+      // Check for quiet mode flag in command line arguments
+      const isQuiet = process.argv.includes('-q') || process.argv.includes('--quiet');
 
       // Update logger configuration based on command line flags
-      if (isSilent) {
+      if (isQuiet) {
         configureGlobalLogger({
-          level: LogLevel.SILENT,
+          level: LogLevel.ERROR,
           quiet: true,
         });
-      } else if (isQuiet) {
-        configureGlobalLogger({
-          level: LogLevel.INFO,
-          quiet: true,
-        });
-      }
-
-      // If silent mode is enabled, execute the CLI in silent mode
-      if (isSilent) {
-        executeSilently(async () => {
+        
+        // Execute in quiet mode
+        executeQuietly(async () => {
           await program.parseAsync(process.argv);
         }).catch((error) => {
-          // Log critical errors even in silent mode
-          globalLogger.error('Critical error:', error);
+          globalLogger.error('Error:', error);
           process.exit(1);
         });
       } else {

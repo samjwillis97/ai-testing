@@ -38,7 +38,7 @@ export function addDirectCommand(program: Command): void {
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
-    .option('-s, --silent', 'Silent mode')
+
     .option(
       '--quiet',
       'Quiet mode - output only the response data without any formatting or decorations'
@@ -79,7 +79,7 @@ function addHttpMethodCommand(
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('-v, --verbose', 'Verbose output')
-    .option('-s, --silent', 'Silent mode')
+
     .option(
       '--quiet',
       'Quiet mode - output only the response data without any formatting or decorations'
@@ -127,14 +127,7 @@ async function executeDirectRequest(
     debug: console.debug,
   };
 
-  // Create no-op functions for silent mode (not currently used but kept for future reference)
-  // const noopConsole = {
-  //   log: () => {},
-  //   info: () => {},
-  //   warn: () => {},
-  //   error: () => {},
-  //   debug: () => {},
-  // };
+  // Console methods are preserved for reference
 
   // Get effective options
   const effectiveOptions = await getEffectiveOptions(options);
@@ -144,7 +137,6 @@ async function executeDirectRequest(
     format: (options.output as OutputOptions['format']) || 'json',
     color: options.color !== false,
     verbose: options.verbose as boolean,
-    silent: options.silent as boolean,
     quiet: options.quiet as boolean,
   };
 
@@ -207,7 +199,7 @@ async function executeDirectRequest(
       requestOptions.timeout = parseInt(options.timeout as string, 10);
     }
 
-    // Only create a spinner if not in silent or quiet mode
+    // Only create a spinner if not in quiet mode
     const spinner = Spinner.fromCommandOptions(`Sending ${method} request to ${url}`, options);
 
     try {

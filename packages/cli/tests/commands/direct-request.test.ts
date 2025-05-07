@@ -1051,12 +1051,12 @@ describe('Direct Request Command', () => {
       // Create a local mock function that simulates what would happen in the output.ts file
       // This is needed because the actual implementation might not be calling process.stdout.write in the test environment
       const mockPrintResponse = (response: any, options: any) => {
-        if (options.silent && options.format === 'raw') {
+        if (options.quiet && options.format === 'raw') {
           process.stdout.write(JSON.stringify(response.data, null, 2) + '\n');
         }
       };
 
-      // Execute the command with silent mode and raw format
+      // Execute the command with quiet mode and raw format
       await program.parseAsync([
         'node',
         'shc',
@@ -1064,7 +1064,7 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '--silent',
+        '--quiet',
         '-o',
         'raw',
       ]);
@@ -1088,8 +1088,7 @@ describe('Direct Request Command', () => {
         format: 'raw',
         color: true,
         verbose: false,
-        silent: true,
-        quiet: false
+        quiet: true
       });
 
       // Verify that process.stdout.write was called (raw output)

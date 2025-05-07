@@ -160,9 +160,8 @@ export class Spinner {
   static fromCommandOptions(text: string, options: Record<string, unknown>): Spinner {
     const logger = Logger.fromCommandOptions(options);
 
-    // Enable spinner only if not in silent mode and log level is INFO or DEBUG
-    const enabled =
-      logger['options'].level !== LogLevel.SILENT && logger['options'].level !== LogLevel.ERROR;
+    // Enable spinner only if not in quiet mode (log level is not ERROR)
+    const enabled = logger['options'].level !== LogLevel.ERROR;
 
     return new Spinner(text, {
       enabled,

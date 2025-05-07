@@ -14,7 +14,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
 - [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
 - [ ] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
-- [ ] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
+- [x] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)

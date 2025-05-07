@@ -1,7 +1,7 @@
 /**
  * Tests for output formatting utilities
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { formatOutput, formatResponse, printResponse, printError } from '../../src/utils/output.js';
 import { OutputOptions } from '../../src/types.js';
 
@@ -40,13 +40,13 @@ describe('Output Formatting', () => {
   });
 
   describe('formatOutput', () => {
-    it('should return formatted data when silent is true', () => {
+    it('should return formatted data when quiet is true', () => {
       const options: OutputOptions = {
         quiet: false,
         format: 'json' as OutputOptions['format'],
         color: true,
         verbose: false,
-        silent: true,
+        
       };
       const result = formatOutput({ test: 'data' }, options);
       expect(result).toBe(JSON.stringify({ test: 'data' }, null, 2));
@@ -54,11 +54,10 @@ describe('Output Formatting', () => {
 
     it('should format JSON output', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'json',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const data = { test: 'data', nested: { value: 123 } };
       const result = formatOutput(data, options);
@@ -67,11 +66,10 @@ describe('Output Formatting', () => {
 
     it('should format YAML output', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'yaml',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const data = { test: 'data', nested: { value: 123 } };
       const result = formatOutput(data, options);
@@ -82,11 +80,10 @@ describe('Output Formatting', () => {
 
     it('should format raw output for strings', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'raw',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const result = formatOutput('test string', options);
       expect(result).toBe('test string');
@@ -94,11 +91,10 @@ describe('Output Formatting', () => {
 
     it('should format raw output for objects', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'raw',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const data = { test: 'data' };
       const result = formatOutput(data, options);
@@ -107,11 +103,10 @@ describe('Output Formatting', () => {
 
     it('should format table output for arrays of objects', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'table',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const data = [
         { id: 1, name: 'Test 1' },
@@ -128,11 +123,10 @@ describe('Output Formatting', () => {
 
     it('should handle non-array data for table format', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'table',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const data = { test: 'data' };
       const result = formatOutput(data, options);
@@ -148,13 +142,12 @@ describe('Output Formatting', () => {
       data: { result: 'success' },
     };
 
-    it('should return formatted data when silent is true', () => {
+    it('should return formatted data when quiet is true', () => {
       const options: OutputOptions = {
-        quiet: false,
+        quiet: true,
         format: 'json' as OutputOptions['format'],
         color: true,
-        verbose: false,
-        silent: true,
+        verbose: false
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toBe(JSON.stringify({ result: 'success' }, null, 2));
@@ -162,11 +155,10 @@ describe('Output Formatting', () => {
 
     it('should format response with status for non-raw formats', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'json',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toContain('Status:');
@@ -180,7 +172,7 @@ describe('Output Formatting', () => {
         format: 'json',
         color: true,
         verbose: true,
-        silent: false,
+        quiet: false,
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toContain('Status:');
@@ -194,11 +186,10 @@ describe('Output Formatting', () => {
 
     it('should format raw output without status', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'raw',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toBe(JSON.stringify({ result: 'success' }, null, 2));
@@ -210,7 +201,7 @@ describe('Output Formatting', () => {
         format: 'raw',
         color: true,
         verbose: true,
-        silent: false,
+        quiet: false,
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toContain('Status:');
@@ -231,13 +222,12 @@ describe('Output Formatting', () => {
       data: { test: 'data' },
     };
 
-    it('should not print when silent is true', () => {
+    it('should not print when quiet is true', () => {
       const options: OutputOptions = {
-        quiet: false,
+        quiet: true,
         format: 'json',
         color: true,
         verbose: false,
-        silent: true,
       };
       printResponse(mockResponse, options);
       expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -245,23 +235,21 @@ describe('Output Formatting', () => {
 
     it('should print formatted response', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'json',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       printResponse(mockResponse, options);
       expect(consoleLogSpy).toHaveBeenCalled();
     });
 
-    it('should only output raw data with no status when using raw format and silent mode', () => {
+    it('should only output raw data with no status when using raw format and quiet mode', () => {
       const options: OutputOptions = {
-        quiet: false,
+        quiet: true,
         format: 'raw',
         color: true,
         verbose: false,
-        silent: true,
       };
       printResponse(mockResponse, options);
       expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -270,26 +258,24 @@ describe('Output Formatting', () => {
   });
 
   describe('printError', () => {
-    it('should not print when silent is true', () => {
+    it('should not print when quiet is true', () => {
       const options: OutputOptions = {
-        quiet: false,
+        quiet: true,
         format: 'json',
         color: true,
-        verbose: false,
-        silent: true,
+        verbose: false
       };
       printError(new Error('Test error'), options);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
-      expect(stderrWriteSpy).toHaveBeenCalledWith('Error: Test error\n');
+      expect(stderrWriteSpy).toHaveBeenCalledWith('{"error":"Test error"}\n');
     });
 
     it('should print error message', () => {
       const options: OutputOptions = {
-        quiet: false,
         format: 'json',
         color: true,
         verbose: false,
-        silent: false,
+        quiet: false,
       };
       printError(new Error('Test error'), options);
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -301,7 +287,7 @@ describe('Output Formatting', () => {
         format: 'json',
         color: true,
         verbose: true,
-        silent: false,
+        quiet: false,
       };
       const error = new Error('Test error');
       printError(error, options);

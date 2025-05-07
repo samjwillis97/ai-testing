@@ -11,7 +11,7 @@ The CLI package currently supports both "silent" and "quiet" modes, which create
 By removing silent mode, we'll simplify the codebase, make the logging behavior more consistent, and improve maintainability.
 
 ## Status
-📋 **PLANNED** - May 6, 2025
+✅ **COMPLETED** - May 7, 2025
 
 ## Requirements
 

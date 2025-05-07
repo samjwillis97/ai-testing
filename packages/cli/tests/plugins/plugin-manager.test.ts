@@ -34,7 +34,6 @@ vi.mock('../../src/utils/logger.js', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent',
     },
   };
 });
@@ -88,18 +87,18 @@ describe('CLI Plugin Manager', () => {
     }
   });
 
-  describe('Silent Mode', () => {
-    it('should set silent mode', () => {
-      // Set silent mode
-      pluginManager.setSilentMode(true);
+  describe('Quiet Mode', () => {
+    it('should set quiet mode', () => {
+      // Set quiet mode
+      pluginManager.setQuietMode(true);
 
-      // Verify that silent mode is set
-      expect((pluginManager as any).silentMode).toBe(true);
+      // Verify that quiet mode is set
+      expect((pluginManager as any).quietMode).toBe(true);
     });
 
-    it('should not log messages in silent mode', () => {
-      // Set silent mode
-      pluginManager.setSilentMode(true);
+    it('should not log messages in quiet mode', () => {
+      // Set quiet mode
+      pluginManager.setQuietMode(true);
 
       // Call log method
       pluginManager.log('Test message');
@@ -108,9 +107,9 @@ describe('CLI Plugin Manager', () => {
       expect(globalLogger.info).not.toHaveBeenCalled();
     });
 
-    it('should not log errors in silent mode', () => {
-      // Set silent mode
-      pluginManager.setSilentMode(true);
+    it('should not log errors in quiet mode', () => {
+      // Set quiet mode
+      pluginManager.setQuietMode(true);
 
       // Call logError method
       pluginManager.logError('Test error', new Error('Error details'));
@@ -119,9 +118,9 @@ describe('CLI Plugin Manager', () => {
       expect(globalLogger.error).not.toHaveBeenCalled();
     });
 
-    it('should log messages when not in silent mode', () => {
-      // Set silent mode to false
-      pluginManager.setSilentMode(false);
+    it('should log messages when not in quiet mode', () => {
+      // Set quiet mode to false
+      pluginManager.setQuietMode(false);
 
       // Call log method
       pluginManager.log('Test message');
@@ -130,9 +129,9 @@ describe('CLI Plugin Manager', () => {
       expect(globalLogger.info).toHaveBeenCalledWith('Test message');
     });
 
-    it('should log errors when not in silent mode', () => {
-      // Set silent mode to false
-      pluginManager.setSilentMode(false);
+    it('should log errors when not in quiet mode', () => {
+      // Set quiet mode to false
+      pluginManager.setQuietMode(false);
 
       // Create an error object
       const error = new Error('Error details');

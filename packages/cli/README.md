@@ -126,7 +126,7 @@ shc options https://example.com
 - `-t, --timeout <ms>` - Request timeout in milliseconds
 - `-o, --output <format>` - Output format (json, yaml, raw, table)
 - `-v, --verbose` - Verbose output
-- `-s, --silent` - Silent mode
+- `-q, --quiet` - Quiet mode - output only the response data without any formatting or decorations
 - `--no-color` - Disable colors
 
 ### Collection Requests
@@ -154,7 +154,7 @@ shc collection httpbin get-request -H "Accept: application/json" -q "param=value
 - `-t, --timeout <ms>` - Request timeout in milliseconds
 - `-o, --output <format>` - Output format (json, yaml, raw, table)
 - `-v, --verbose` - Verbose output
-- `-s, --silent` - Silent mode
+- `-q, --quiet` - Quiet mode - output only the response data without any formatting or decorations
 - `--no-color` - Disable colors
 
 ### List Command

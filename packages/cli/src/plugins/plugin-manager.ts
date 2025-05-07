@@ -37,16 +37,16 @@ export class CLIPluginManager {
   private shellCompletions: Map<string, CompletionHandler> = new Map();
   private responseVisualizers: Map<string, ResponseVisualizer> = new Map();
   private loadedPlugins: Map<string, CLIPlugin> = new Map();
-  private silentMode = false;
+  private quietMode = false;
 
   constructor() {}
 
   /**
-   * Set silent mode
-   * @param silent Whether to suppress log messages
+   * Set quiet mode
+   * @param quiet Whether to minimize log messages
    */
-  setSilentMode(silent: boolean): void {
-    this.silentMode = silent;
+  setQuietMode(quiet: boolean): void {
+    this.quietMode = quiet;
   }
 
   /**
@@ -54,7 +54,7 @@ export class CLIPluginManager {
    * @param message Message to log
    */
   log(message: string): void {
-    if (!this.silentMode) {
+    if (!this.quietMode) {
       globalLogger.info(message);
     }
   }
@@ -65,7 +65,7 @@ export class CLIPluginManager {
    * @param error Error object
    */
   logError(message: string, error?: unknown): void {
-    if (!this.silentMode) {
+    if (!this.quietMode) {
       globalLogger.error(message, error);
     }
   }
@@ -277,7 +277,7 @@ export class CLIPluginManager {
       registerCommand: this.registerCommand.bind(this),
       registerShellCompletion: this.registerShellCompletion.bind(this),
       registerResponseVisualizer: this.registerResponseVisualizer.bind(this),
-      silent: this.silentMode,
+      quiet: this.quietMode,
     };
 
     // Register plugin
@@ -374,10 +374,10 @@ export class CLIPluginManager {
   }
 
   /**
-   * Check if silent mode is enabled
+   * Check if quiet mode is enabled
    */
-  get silent(): boolean {
-    return this.silentMode;
+  get quiet(): boolean {
+    return this.quietMode;
   }
 }
 

@@ -113,7 +113,6 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
       []
     )
     .option('-v, --verbose', 'Verbose output')
-    .option('-s, --silent', 'Silent mode')
     .option(
       '-q, --quiet',
       'Quiet mode - output only the response data without any formatting or decorations'
@@ -128,38 +127,8 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
   if (options.initPlugins !== false) {
     try {
       const cmdOptions = program.opts();
-      const isSilent = Boolean(cmdOptions.silent);
-
-      if (isSilent) {
-        // Temporarily silence console output
-        const tempConsole = {
-          log: console.log,
-          info: console.info,
-          warn: console.warn,
-          error: console.error,
-          debug: console.debug,
-        };
-
-        console.log = () => {};
-        console.info = () => {};
-        console.warn = () => {};
-        console.error = () => {};
-        console.debug = () => {};
-
-        try {
-          await initializePlugins(cmdOptions);
-        } finally {
-          // Restore console methods
-          console.log = tempConsole.log;
-          console.info = tempConsole.info;
-          console.warn = tempConsole.warn;
-          console.error = tempConsole.error;
-          console.debug = tempConsole.debug;
-        }
-      } else {
-        // Initialize plugins normally
-        await initializePlugins(cmdOptions);
-      }
+      // Initialize plugins with the current options
+      await initializePlugins(cmdOptions);
     } catch (error) {
       console.error('Error initializing plugins:', error);
     }
@@ -181,9 +150,9 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
     // Get options
     const cmdOptions = thisCommand.opts();
 
-    // Update plugin manager with silent mode
-    if (cmdOptions.silent !== undefined) {
-      cliPluginManager.setSilentMode(Boolean(cmdOptions.silent));
+    // Update plugin manager with quiet mode
+    if (cmdOptions.quiet !== undefined) {
+      cliPluginManager.setQuietMode(Boolean(cmdOptions.quiet));
     }
   });
 

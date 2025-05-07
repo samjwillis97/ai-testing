@@ -1,10 +1,10 @@
 /**
- * Tests for silent mode in the CLI plugin system
+ * Tests for quiet mode in the CLI plugin system
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { cliPluginManager } from '../../src/plugins/plugin-manager.js';
 
-describe('CLI Plugin Manager Silent Mode', () => {
+describe('CLI Plugin Manager Quiet Mode', () => {
   let consoleLogSpy: vi.SpyInstance;
   let consoleErrorSpy: vi.SpyInstance;
 
@@ -16,13 +16,13 @@ describe('CLI Plugin Manager Silent Mode', () => {
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-    // Reset silent mode after each test
-    cliPluginManager.setSilentMode(false);
+    // Reset quiet mode after each test
+    cliPluginManager.setQuietMode(false);
   });
 
-  it('should not log messages when silent mode is enabled', () => {
-    // Enable silent mode
-    cliPluginManager.setSilentMode(true);
+  it('should not log messages when quiet mode is enabled', () => {
+    // Enable quiet mode
+    cliPluginManager.setQuietMode(true);
 
     // Register a test formatter
     cliPluginManager.registerOutputFormatter('test-format', (data) => String(data));

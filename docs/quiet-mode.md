@@ -2,6 +2,8 @@
 
 ## Overview
 
+> **Note:** As of May 7, 2025, quiet mode is now the only minimal output mode available in the SHC CLI. Silent mode has been removed to simplify the codebase and improve logging consistency.
+
 Quiet mode is a feature in the SHC CLI that outputs only the response data without any formatting, decorations, or status information. This mode is particularly useful for scripting and automation scenarios where you need to process the output programmatically or pipe it to other command-line tools.
 
 ## Usage
@@ -65,7 +67,6 @@ SHC CLI provides several output modes to suit different needs:
 |------|------|-------------|----------|
 | Normal | (default) | Formatted output with status and data | Interactive use |
 | Verbose | `--verbose` | Detailed output with headers and status | Debugging |
-| Silent | `--silent` | Minimal output with no decorations | Less noisy output |
 | Quiet | `--quiet` | Response data only, no status or formatting | Scripting and automation |
 
 ## Configuration

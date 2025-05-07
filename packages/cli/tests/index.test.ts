@@ -11,8 +11,8 @@ vi.mock('../src/utils/program.js', () => ({
   }),
 }));
 
-vi.mock('../src/silent-wrapper.js', () => ({
-  executeSilently: vi.fn().mockImplementation(async (fn) => {
+vi.mock('../src/quiet-wrapper.js', () => ({
+  executeQuietly: vi.fn().mockImplementation(async (fn) => {
     await fn();
     return undefined;
   }),
@@ -20,7 +20,7 @@ vi.mock('../src/silent-wrapper.js', () => ({
 
 // Import the mocked modules
 import { makeProgram } from '../src/utils/program.js';
-import { executeSilently } from '../src/silent-wrapper.js';
+import { executeQuietly } from '../src/quiet-wrapper.js';
 
 describe('CLI Entry Point', () => {
   // Store original process.argv
@@ -57,25 +57,25 @@ describe('CLI Entry Point', () => {
     expect(makeProgram).toHaveBeenCalledWith({ initPlugins: true });
   });
 
-  it('should execute in silent mode when -s flag is provided', async () => {
-    // Set process.argv to simulate arguments with silent flag
-    process.argv = ['node', 'cli.js', 'command', '-s'];
+  it('should execute in quiet mode when -q flag is provided', async () => {
+    // Set process.argv to simulate arguments with quiet flag
+    process.argv = ['node', 'cli.js', 'command', '-q'];
 
     // Import the index module, which will trigger the main function
     await import('../src/index');
 
-    // Verify that executeSilently was called
-    expect(executeSilently).toHaveBeenCalled();
+    // Verify that executeQuietly was called
+    expect(executeQuietly).toHaveBeenCalled();
   });
 
-  it('should execute in silent mode when --silent flag is provided', async () => {
-    // Set process.argv to simulate arguments with silent flag
-    process.argv = ['node', 'cli.js', 'command', '--silent'];
+  it('should execute in quiet mode when --quiet flag is provided', async () => {
+    // Set process.argv to simulate arguments with quiet flag
+    process.argv = ['node', 'cli.js', 'command', '--quiet'];
 
     // Import the index module, which will trigger the main function
     await import('../src/index');
 
-    // Verify that executeSilently was called
-    expect(executeSilently).toHaveBeenCalled();
+    // Verify that executeQuietly was called
+    expect(executeQuietly).toHaveBeenCalled();
   });
 });

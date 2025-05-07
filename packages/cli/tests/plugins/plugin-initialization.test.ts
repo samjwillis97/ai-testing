@@ -35,7 +35,6 @@ vi.mock('../../src/utils/logger.js', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent',
     },
   };
 });
@@ -153,7 +152,7 @@ api:
 `;
 
 describe('Plugin Initialization', () => {
-  let setSilentModeSpy: any;
+  let setQuietModeSpy: any;
   let loadPluginsSpy: any;
 
   beforeEach(() => {
@@ -165,8 +164,8 @@ describe('Plugin Initialization', () => {
     // Write test config file
     fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_CONTENT);
 
-    // Spy on the setSilentMode method of the cliPluginManager
-    setSilentModeSpy = vi.spyOn(cliPluginManager, 'setSilentMode');
+    // Spy on the setQuietMode method of the cliPluginManager
+    setQuietModeSpy = vi.spyOn(cliPluginManager, 'setQuietMode');
 
     // Mock the loadPlugins method to prevent actual plugin loading
     loadPluginsSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockImplementation(async () => {
@@ -193,22 +192,22 @@ describe('Plugin Initialization', () => {
   });
 
   it('should initialize plugins with normal mode', async () => {
-    // Initialize plugins with silent mode disabled
-    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    // Initialize plugins with quiet mode disabled
+    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
 
     // Verify that silent mode was set correctly
-    expect(setSilentModeSpy).toHaveBeenCalledWith(false);
+    expect(setQuietModeSpy).toHaveBeenCalledWith(false);
 
     // Verify that loadPlugins was called
     expect(loadPluginsSpy).toHaveBeenCalled();
   });
 
-  it('should initialize plugins with silent mode', async () => {
-    // Initialize plugins with silent mode enabled
-    await initializePlugins({ silent: true, config: TEST_CONFIG_PATH });
+  it('should initialize plugins with quiet mode', async () => {
+    // Initialize plugins with quiet mode enabled
+    await initializePlugins({ quiet: true, config: TEST_CONFIG_PATH });
 
     // Verify that silent mode was set correctly
-    expect(setSilentModeSpy).toHaveBeenCalledWith(true);
+    expect(setQuietModeSpy).toHaveBeenCalledWith(true);
 
     // Verify that loadPlugins was called
     expect(loadPluginsSpy).toHaveBeenCalled();
@@ -219,7 +218,7 @@ describe('Plugin Initialization', () => {
     loadPluginsSpy.mockRejectedValueOnce(new Error('Test error'));
 
     // Initialize plugins
-    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
 
     // Verify that the error was logged using the logger
     expect(globalLogger.error).toHaveBeenCalledWith(
@@ -233,18 +232,18 @@ describe('Plugin Initialization', () => {
     fs.writeFileSync(TEST_CONFIG_PATH, TEST_CONFIG_NO_PLUGINS_CONTENT);
 
     // Initialize plugins
-    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
 
     // Verify that loadPlugins was called
     expect(loadPluginsSpy).toHaveBeenCalled();
   });
 
-  it('should suppress errors in silent mode', async () => {
+  it('should suppress errors in quiet mode', async () => {
     // Make loadPlugins throw an error
     loadPluginsSpy.mockRejectedValueOnce(new Error('Test error'));
 
-    // Initialize plugins with silent mode
-    await initializePlugins({ silent: true, config: TEST_CONFIG_PATH });
+    // Initialize plugins with quiet mode
+    await initializePlugins({ quiet: true, config: TEST_CONFIG_PATH });
 
     // Verify that the error was not logged
     expect(globalLogger.error).not.toHaveBeenCalled();
@@ -252,7 +251,7 @@ describe('Plugin Initialization', () => {
 
   it('should pass the config file path to plugins', async () => {
     // Initialize plugins with a config file path
-    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
 
     // Verify that loadPlugins was called with the config containing the file path
     expect(loadPluginsSpy).toHaveBeenCalledWith(
@@ -268,7 +267,7 @@ describe('Plugin Initialization', () => {
     (createConfigManagerFromOptions as any).mockRejectedValueOnce(new Error('Config error'));
 
     // Initialize plugins
-    await initializePlugins({ silent: false, config: TEST_CONFIG_PATH });
+    await initializePlugins({ quiet: false, config: TEST_CONFIG_PATH });
 
     // Verify that the error was logged
     expect(globalLogger.error).toHaveBeenCalledWith(

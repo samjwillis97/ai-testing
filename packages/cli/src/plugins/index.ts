@@ -12,12 +12,12 @@ import { Logger } from '../utils/logger.js';
  * @param options CLI options
  */
 export async function initializePlugins(options: Record<string, unknown>): Promise<void> {
-  const silent = Boolean(options.silent);
+  const quiet = Boolean(options.quiet);
   const logger = Logger.fromCommandOptions(options);
 
   try {
-    // Set silent mode in plugin manager
-    cliPluginManager.setSilentMode(silent);
+    // Set quiet mode in plugin manager
+    cliPluginManager.setQuietMode(quiet);
 
     // Create a config manager from CLI options
     const configManager = await createConfigManagerFromOptions(options);
@@ -48,8 +48,8 @@ export async function initializePlugins(options: Record<string, unknown>): Promi
     // Load plugins from configuration
     await cliPluginManager.loadPlugins(config);
   } catch (error) {
-    // Error handling is suppressed in silent mode
-    if (!silent) {
+    // Error handling is suppressed in quiet mode
+    if (!quiet) {
       logger.error('Failed to initialize CLI plugins:', error);
     }
   }

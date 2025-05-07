@@ -1,5 +1,5 @@
 /**
- * Tests for silent mode in CLI commands
+ * Tests for quiet mode in CLI commands
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OutputOptions } from '../../src/types.js';
@@ -23,7 +23,7 @@ vi.mock('@shc/core', () => ({
 // Import the modules after mocking
 import { printResponse } from '../../src/utils/output.js';
 
-describe('CLI Silent Mode', () => {
+describe('CLI Quiet Mode', () => {
   let consoleLogSpy: vi.SpyInstance;
   let consoleErrorSpy: vi.SpyInstance;
   let processExitSpy: vi.SpyInstance;
@@ -52,7 +52,7 @@ describe('CLI Silent Mode', () => {
     vi.clearAllMocks();
   });
 
-  it('should suppress all output except raw data when silent mode is enabled with raw format', async () => {
+  it('should output minimal data when quiet mode is enabled with raw format', async () => {
     // Create test response
     const testResponse = {
       status: 200,
@@ -61,16 +61,16 @@ describe('CLI Silent Mode', () => {
       data: { test: 'data' },
     };
 
-    // Execute with silent mode enabled and raw format
-    const silentOptions: OutputOptions = {
+    // Execute with quiet mode enabled and raw format
+    const quietOptions: OutputOptions = {
       format: 'raw',
       color: true,
       verbose: false,
-      silent: true,
+      quiet: true,
     };
 
     // Test printResponse
-    printResponse(testResponse, silentOptions);
+    printResponse(testResponse, quietOptions);
 
     // Verify console.log was not called
     expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -79,7 +79,7 @@ describe('CLI Silent Mode', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('test'));
   });
 
-  it('should not suppress output when silent mode is disabled', async () => {
+  it('should not suppress output when quiet mode is disabled', async () => {
     // Create test response
     const testResponse = {
       status: 200,
@@ -88,16 +88,16 @@ describe('CLI Silent Mode', () => {
       data: { test: 'data' },
     };
 
-    // Execute with silent mode disabled
-    const nonSilentOptions: OutputOptions = {
+    // Execute with quiet mode disabled
+    const nonQuietOptions: OutputOptions = {
       format: 'json',
       color: true,
       verbose: false,
-      silent: false,
+      quiet: false,
     };
 
     // Test printResponse
-    printResponse(testResponse, nonSilentOptions);
+    printResponse(testResponse, nonQuietOptions);
 
     // Verify console.log was called
     expect(consoleLogSpy).toHaveBeenCalled();

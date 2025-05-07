@@ -30,8 +30,7 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
     raw: formatRawData,
   };
 
-  // In silent mode, still return formatted data (the caller will decide whether to print it)
-  // This allows tests to verify the formatting even in silent mode
+  // Format the data according to the specified format
 
   // Check if there's a custom formatter plugin for this format
   const customFormatter = cliPluginManager.getOutputFormatter(options.format);
@@ -112,8 +111,8 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   // Format the response data
   const formattedData = formatOutput(response.data, options);
 
-  // For quiet mode or silent mode, just return the formatted data without status
-  if (options.quiet || options.silent) {
+  // For quiet mode, just return the formatted data without status
+  if (options.quiet) {
     return formattedData;
   }
   
@@ -154,18 +153,7 @@ export function printResponse(response: ResponseData, options: OutputOptions): v
     return;
   }
   
-  // In silent mode, only output raw data directly to stdout
-  if (options.silent) {
-    if (options.format === 'raw') {
-      // For raw format in silent mode, write directly to stdout
-      if (typeof response.data === 'string') {
-        process.stdout.write(response.data + '\n');
-      } else {
-        process.stdout.write(JSON.stringify(response.data, null, 2) + '\n');
-      }
-    }
-    return;
-  }
+
   
   // In quiet mode, write directly to stdout
   if (options.quiet) {
@@ -193,13 +181,7 @@ export function printError(error: Error | unknown, options: OutputOptions): void
     return;
   }
 
-  if (options.silent) {
-    // In silent mode, don't print errors to console
-    // Instead, write a simple error message to stderr
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${errorMessage}\n`);
-    return;
-  }
+
 
   let errorMessage = '';
   let errorDetails = '';

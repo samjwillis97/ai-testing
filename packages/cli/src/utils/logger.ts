@@ -14,11 +14,10 @@ export enum LogLevel {
   INFO = 'info',
   WARN = 'warn',
   ERROR = 'error',
-  SILENT = 'silent',
 }
 
 // Type mapping from our LogLevel to Pino's Level
-type PinoLevel = pino.Level | 'silent';
+type PinoLevel = pino.Level;
 
 // Convert LogLevel to Pino Level
 function toPinoLevel(level: LogLevel): PinoLevel {
@@ -31,8 +30,6 @@ function toPinoLevel(level: LogLevel): PinoLevel {
       return 'warn';
     case LogLevel.ERROR:
       return 'error';
-    case LogLevel.SILENT:
-      return 'silent';
     default:
       return 'info';
   }
@@ -93,8 +90,6 @@ export class Logger {
     // Configure Pino logger
     const pinoOptions: pino.LoggerOptions = {
       level: pinoLevel,
-      // Disable logging completely if level is SILENT
-      enabled: pinoLevel !== 'silent',
     };
 
     // Configure pretty printing if color is enabled
@@ -117,13 +112,13 @@ export class Logger {
       // Regular logs go to stdout (with null check)
       if (this.options.output) {
         streams.push({
-          level: pinoLevel === 'silent' ? 'error' : pinoLevel, // Avoid using 'silent' as a level
+          level: pinoLevel,
           stream: this.options.output,
         });
       }
 
       // Error logs always go to stderr (with null check)
-      if (pinoLevel !== 'silent' && this.options.errorOutput) {
+      if (this.options.errorOutput) {
         streams.push({
           level: 'error',
           stream: this.options.errorOutput,
@@ -201,13 +196,8 @@ export class Logger {
 
     if (options.verbose) {
       level = LogLevel.DEBUG;
-    } else if (options.quiet || options.silent) {
+    } else if (options.quiet) {
       level = LogLevel.ERROR;
-    }
-
-    // If silent mode is enabled, set level to SILENT
-    if (options.silent) {
-      level = LogLevel.SILENT;
     }
 
     return new Logger({
