@@ -94,7 +94,7 @@ export function addCompletionCommand(program: Command): void {
 
     try {
       const collections = await getCollectionsForCompletion(options);
-      logger.info(collections.join('\n'));
+      process.stdout.write(collections.join('\n'));
     } catch (error) {
       process.exit(1);
     }
@@ -108,7 +108,7 @@ export function addCompletionCommand(program: Command): void {
 
       try {
         const requests = await getRequestsForCompletion(collection, options);
-        logger.info(requests.join('\n'));
+        process.stdout.write(requests.join('\n'));
       } catch (error) {
         process.exit(1);
       }

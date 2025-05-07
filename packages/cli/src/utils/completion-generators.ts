@@ -149,45 +149,63 @@ export function generateZshCompletionScript(commands: CommandInfo[], isEvalMode 
       let handlerFunction = `# Handler for ${cmd.name} command
 _shc_${cmd.name.replace(/-/g, '_')}() {`;
       
-      // Dynamic handling for commands with special completion needs
-      if (cmd.name === 'list' || cmd.name === 'collection') {
-        // Determine the appropriate dynamic completion based on command
-        let dynamicCompletionCode = '';
-        
-        if (cmd.name === 'list') {
-          // For list command
-          dynamicCompletionCode = `
-  # Handle subcommands
+      // Generate dynamic completion handlers based on command structure
+      // Check if this command has subcommands that need special handling
+      if (cmd.subcommands.length > 0) {
+        // Extract subcommand descriptions for dynamic completion
+        const subcommandDescriptions = cmd.subcommands
+          .filter(subcmd => !subcmd.isHidden)
+          .map(subcmd => `"${subcmd.name}:${subcmd.description.replace(/"/g, '\\"')}"`)
+          .join('\n      ');
+
+        // Create a mapping of subcommand names to their options for dynamic completion
+        const subcommandOptionsMapping = cmd.subcommands
+          .filter(subcmd => !subcmd.isHidden)
+          .map(subcmd => {
+            const subcmdOptions = subcmd.options
+              .filter(opt => opt.long || opt.short)
+              .map(opt => {
+                const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
+                const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
+                return `'${flag}[${desc}]'`;
+              })
+              .join(' ');
+
+            return `      ${subcmd.name})\n        _arguments ${subcmdOptions || ''}\n        ;;`;
+          })
+          .join('\n');
+
+        // Create the dynamic handler for commands with subcommands
+        handlerFunction = `# Handler for ${cmd.name} command
+_shc_${cmd.name.replace(/-/g, '_')}() {
+  # Check if we need to complete a subcommand or its options
   if [[ $CURRENT -eq 2 ]]; then
+    # Complete subcommand names
     local -a subcmds
     subcmds=(
-      "collections:List all collections"
-      "requests:List all requests in a collection"
+      ${subcommandDescriptions}
     )
-    _describe "list subcommand" subcmds
-  elif [[ $CURRENT -eq 3 && $words[2] == "requests" ]]; then
-    # Complete collection names for 'list requests'
-    local -a collections
-    collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
-    _describe 'collections' collections
+    _describe "${cmd.name} subcommand" subcmds
   else
-    # Complete options based on current subcommand
-    case $words[2] in
-      collections)
-        _arguments \
-          '--collection-dir[Collection directory]:directory:_files -/' \
-          '--config[Config file path]:config file:_files'
-        ;;
-      requests)
-        _arguments \
-          '--collection-dir[Collection directory]:directory:_files -/' \
-          '--config[Config file path]:config file:_files'
+    # Complete options for the specified subcommand
+    local subcmd="$words[2]"
+    case $subcmd in
+${subcommandOptionsMapping}
+      *)
+        # Fall back to file completion
+        _files
         ;;
     esac
-  fi`;
-        } else if (cmd.name === 'collection') {
-          // For collection command
-          dynamicCompletionCode = `
+  fi
+}`;
+
+        return handlerFunction;
+      }
+      
+      // Special handling for commands that need dynamic completion from external sources
+      if (cmd.name === 'collection') {
+        // For collection command - dynamically fetch collections and requests
+        const dynamicCompletionCode = `
   # Handle collection completion
   if [[ $CURRENT -eq 2 ]]; then
     # Complete collection names
@@ -201,26 +219,12 @@ _shc_${cmd.name.replace(/-/g, '_')}() {`;
     _describe 'requests' requests
   else
     # Complete options
-    _arguments \
-      '--collection-dir[Collection directory]:directory:_files -/' \
-      '--config[Config file path]:config file:_files' \
-      '--output[Output format]:format:(json yaml raw table)' \
-      '--header[Add or override header]:header:' \
-      '--query[Add or override query parameter]:query:' \
-      '--data[Override request body]:data:' \
-      '--auth[Override authentication]:auth:' \
-      '--timeout[Request timeout]:timeout:' \
-      '--verbose[Enable verbose output]' \
-      '--quiet[Quiet mode]' \
-      '--var-set[Override variable set]:namespace=value:' \
-      '--no-color[Disable colors]'
+    _arguments ${options}
   fi`;
-        }
         
         // Create the handler function with dynamic completion
         handlerFunction = `# Handler for ${cmd.name} command
 _shc_${cmd.name.replace(/-/g, '_')}() {
-  ${options ? `_arguments -C ${options}` : ''}
   ${dynamicCompletionCode}
 }`;
         
