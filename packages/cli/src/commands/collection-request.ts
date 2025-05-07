@@ -215,10 +215,7 @@ export function addCollectionCommand(program: Command): void {
             logger.error(
               chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
             );
-            if (
-              error instanceof Error &&
-              error.stack
-            ) {
+            if (error instanceof Error && error.stack) {
               logger.error(chalk.gray(error.stack));
             }
             process.exit(1);
