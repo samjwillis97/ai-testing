@@ -150,12 +150,12 @@ describe('Program Creation Utility', () => {
     // Verify that plugins were not initialized
     expect(pluginManager.cliPluginManager.loadPlugins).not.toHaveBeenCalled();
   });
-  
+
   it('registers custom commands from plugins', async () => {
     // Setup a mock Map with custom commands
     const customCommandsMap = new Map();
     customCommandsMap.set('custom-command', vi.fn());
-    
+
     // Mock the getAllCommands to return our custom commands
     const pluginsModule = await import('../../src/plugins/index.js');
     const mockPluginManager = {
@@ -193,16 +193,17 @@ describe('Program Creation Utility', () => {
       unregisterShellCompletion: vi.fn(),
     };
     vi.spyOn(pluginsModule, 'cliPluginManager', 'get').mockReturnValue(mockPluginManager as any);
-    
+
     // Create program with custom commands
     const program = await makeProgram();
-    
+
     // Verify custom commands were registered by checking for a command with description containing 'custom-command'
-    const customCommand = program.commands.find(cmd => 
-      cmd.description().includes('Custom command: custom-command'));
+    const customCommand = program.commands.find((cmd) =>
+      cmd.description().includes('Custom command: custom-command')
+    );
     expect(customCommand).toBeDefined();
   });
-  
+
   it('handles preAction hook to update plugin options', async () => {
     // Setup a mock for cliPluginManager
     const setQuietModeMock = vi.fn();
@@ -235,48 +236,48 @@ describe('Program Creation Utility', () => {
       hasOutputFormatter: vi.fn(),
       hasResponseVisualizer: vi.fn(),
     };
-    
+
     // Replace the cliPluginManager with our mock
     vi.spyOn(pluginsModule, 'cliPluginManager', 'get').mockReturnValue(mockPluginManager);
-    
+
     // Mock initializePlugins to throw an error
     const initializePluginsSpy = vi.spyOn(pluginsModule, 'initializePlugins');
     initializePluginsSpy.mockRejectedValueOnce(new Error('Plugin initialization failed'));
-    
+
     // Create program - this should not throw despite the plugin error
     const program = await makeProgram();
-    
+
     // Verify error was logged
     expect(consoleErrorSpy).toHaveBeenCalledWith('Error initializing plugins:', expect.any(Error));
-    
+
     // Verify program was still created successfully
     expect(program).toBeDefined();
     expect(program.name()).toBe('shc');
   });
-  
+
   it.skip('handles quiet mode during plugin initialization', async () => {
     // Create a spy for console methods to verify they're temporarily silenced
     const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    
+
     // Mock process.argv to include --silent
     const originalArgv = process.argv;
     process.argv = ['node', 'shc', '--quiet'];
-    
+
     // Get the plugins module and spy on initializePlugins
     const pluginsModule = await import('../../src/plugins/index.js');
     const initializePluginsSpy = vi.spyOn(pluginsModule, 'initializePlugins');
-    
+
     // Create program with quiet mode
     const program = await makeProgram();
-    
+
     // Verify initializePlugins was called
     expect(initializePluginsSpy).toHaveBeenCalled();
-    
+
     // Restore process.argv
     process.argv = originalArgv;
-    
+
     // Restore console spies
     consoleInfoSpy.mockRestore();
     consoleWarnSpy.mockRestore();

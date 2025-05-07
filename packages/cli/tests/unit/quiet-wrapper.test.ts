@@ -1,10 +1,10 @@
 /**
- * Tests for silent-wrapper utility
+ * Tests for quiet-wrapper utility
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { executeSilently } from '../../src/silent-wrapper.js';
+import { executeQuietly } from '../../src/quiet-wrapper.js';
 
-describe('Silent Wrapper', () => {
+describe('Quiet Wrapper', () => {
   // Store original console methods for restoration
   const originalConsole = {
     log: console.log,
@@ -42,41 +42,43 @@ describe('Silent Wrapper', () => {
     vi.clearAllMocks();
   });
 
-  it('should suppress console output during execution', async () => {
-    // Function to execute in silent mode
+  it('should suppress most console output during execution but allow errors', async () => {
+    // Function to execute in quiet mode
     const testFn = async () => {
       console.log('This should be suppressed');
       console.info('This info should be suppressed');
       console.warn('This warning should be suppressed');
-      console.error('This error should be suppressed');
+      console.error('This error should NOT be suppressed');
       console.debug('This debug message should be suppressed');
       return 'test result';
     };
 
-    // Execute the function in silent mode
-    const result = await executeSilently(testFn);
+    // Execute the function in quiet mode
+    const result = await executeQuietly(testFn);
 
     // Verify that console methods were overridden during execution
     expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(consoleInfoSpy).not.toHaveBeenCalled();
     expect(consoleWarnSpy).not.toHaveBeenCalled();
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
     expect(consoleDebugSpy).not.toHaveBeenCalled();
+
+    // Error messages should still be displayed in quiet mode
+    expect(consoleErrorSpy).toHaveBeenCalledWith('This error should NOT be suppressed');
 
     // Verify that the function executed and returned the expected result
     expect(result).toBe('test result');
   });
 
   it('should restore console methods after execution', async () => {
-    // Function to execute in silent mode
+    // Function to execute in quiet mode
     const testFn = async () => {
       return 'test result';
     };
 
-    // Execute the function in silent mode
-    await executeSilently(testFn);
+    // Execute the function in quiet mode
+    await executeQuietly(testFn);
 
-    // Execute a function after silent mode
+    // Execute a function after quiet mode
     console.log('This should be logged');
 
     // Verify that console methods were restored
@@ -89,14 +91,14 @@ describe('Silent Wrapper', () => {
       throw new Error('Test error');
     };
 
-    // Execute the function in silent mode and catch the error
+    // Execute the function in quiet mode and catch the error
     try {
-      await executeSilently(errorFn);
+      await executeQuietly(errorFn);
     } catch (error) {
       // Expected to throw
     }
 
-    // Execute a function after silent mode
+    // Execute a function after quiet mode
     console.log('This should be logged');
 
     // Verify that console methods were restored
@@ -109,7 +111,7 @@ describe('Silent Wrapper', () => {
       throw new Error('Test error');
     };
 
-    // Execute the function in silent mode and expect it to throw
-    await expect(executeSilently(errorFn)).rejects.toThrow('Test error');
+    // Execute the function in quiet mode and expect it to throw
+    await expect(executeQuietly(errorFn)).rejects.toThrow('Test error');
   });
 });

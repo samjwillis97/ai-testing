@@ -115,12 +115,12 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   if (options.quiet) {
     return formattedData;
   }
-  
+
   // For raw format without verbose mode, just return the formatted data without status
   if (options.format === 'raw' && !options.verbose) {
     return formattedData;
   }
-  
+
   // In verbose mode, include detailed headers and status
   if (options.verbose) {
     const statusLine = `${chalk.bold('Status:')} ${response.status} ${response.statusText}`;
@@ -152,9 +152,7 @@ export function printResponse(response: ResponseData, options: OutputOptions): v
   if (!output) {
     return;
   }
-  
 
-  
   // In quiet mode, write directly to stdout
   if (options.quiet) {
     process.stdout.write(output + '\n');
@@ -180,8 +178,6 @@ export function printError(error: Error | unknown, options: OutputOptions): void
     process.stderr.write(`${errorOutput}\n`);
     return;
   }
-
-
 
   let errorMessage = '';
   let errorDetails = '';

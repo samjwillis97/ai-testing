@@ -46,56 +46,58 @@ describe('PluginManager Coverage Improvements', () => {
     vi.clearAllMocks();
     pluginManager = new PluginManagerImpl();
     // Mock process.cwd() to return a consistent value
-    vi.spyOn(process, 'cwd').mockReturnValue('/home/sam/code/github.com/samjwillis97/ai-testing/take-2');
+    vi.spyOn(process, 'cwd').mockReturnValue(
+      '/home/sam/code/github.com/samjwillis97/ai-testing/take-2'
+    );
   });
 
   describe('isValidPlugin', () => {
     it('should validate a valid plugin', () => {
       // Access the private method using type assertion
       const isValidPlugin = (pluginManager as any).isValidPlugin.bind(pluginManager);
-      
+
       const validPlugin = {
         name: 'test-plugin',
         version: '1.0.0',
         type: 'request-preprocessor',
         execute: () => {},
       };
-      
+
       expect(isValidPlugin(validPlugin)).toBe(true);
     });
 
     it('should reject an invalid plugin missing required properties', () => {
       // Access the private method using type assertion
       const isValidPlugin = (pluginManager as any).isValidPlugin.bind(pluginManager);
-      
+
       const invalidPlugin1 = {
         name: 'test-plugin',
         version: '1.0.0',
         type: 'request-preprocessor',
         // Missing execute function
       };
-      
+
       const invalidPlugin2 = {
         name: 'test-plugin',
         version: '1.0.0',
         // Missing type
         execute: () => {},
       };
-      
+
       const invalidPlugin3 = {
         name: 'test-plugin',
         // Missing version
         type: 'request-preprocessor',
         execute: () => {},
       };
-      
+
       const invalidPlugin4 = {
         // Missing name
         version: '1.0.0',
         type: 'request-preprocessor',
         execute: () => {},
       };
-      
+
       expect(isValidPlugin(invalidPlugin1)).toBe(false);
       expect(isValidPlugin(invalidPlugin2)).toBe(false);
       expect(isValidPlugin(invalidPlugin3)).toBe(false);
@@ -105,35 +107,35 @@ describe('PluginManager Coverage Improvements', () => {
     it('should reject an invalid plugin with wrong property types', () => {
       // Access the private method using type assertion
       const isValidPlugin = (pluginManager as any).isValidPlugin.bind(pluginManager);
-      
+
       const invalidPlugin1 = {
         name: 123, // Should be string
         version: '1.0.0',
         type: 'request-preprocessor',
         execute: () => {},
       };
-      
+
       const invalidPlugin2 = {
         name: 'test-plugin',
         version: 123, // Should be string
         type: 'request-preprocessor',
         execute: () => {},
       };
-      
+
       const invalidPlugin3 = {
         name: 'test-plugin',
         version: '1.0.0',
         type: 123, // Should be string
         execute: () => {},
       };
-      
+
       const invalidPlugin4 = {
         name: 'test-plugin',
         version: '1.0.0',
         type: 'request-preprocessor',
         execute: 'not-a-function', // Should be function
       };
-      
+
       expect(isValidPlugin(invalidPlugin1)).toBe(false);
       expect(isValidPlugin(invalidPlugin2)).toBe(false);
       expect(isValidPlugin(invalidPlugin3)).toBe(false);
@@ -152,14 +154,17 @@ describe('PluginManager Coverage Improvements', () => {
       };
 
       // Mock the private methods
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage')
-        .mockResolvedValue(mockPlugin);
-      
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromLocalPath')
-        .mockResolvedValue(mockPlugin);
-      
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromGit')
-        .mockResolvedValue(mockPlugin);
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage').mockResolvedValue(
+        mockPlugin
+      );
+
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromLocalPath').mockResolvedValue(
+        mockPlugin
+      );
+
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromGit').mockResolvedValue(
+        mockPlugin
+      );
 
       // Test npm package config
       const npmConfig: PluginConfig = {
@@ -173,10 +178,14 @@ describe('PluginManager Coverage Improvements', () => {
       // Reset for next test
       vi.clearAllMocks();
       pluginManager = new PluginManagerImpl();
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage')
-        .mockResolvedValue({...mockPlugin, name: 'path-plugin'});
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromLocalPath')
-        .mockResolvedValue({...mockPlugin, name: 'path-plugin'});
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage').mockResolvedValue({
+        ...mockPlugin,
+        name: 'path-plugin',
+      });
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromLocalPath').mockResolvedValue({
+        ...mockPlugin,
+        name: 'path-plugin',
+      });
 
       // Test local path config
       const pathConfig: PluginConfig = {
@@ -189,10 +198,14 @@ describe('PluginManager Coverage Improvements', () => {
       // Reset for next test
       vi.clearAllMocks();
       pluginManager = new PluginManagerImpl();
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage')
-        .mockResolvedValue({...mockPlugin, name: 'git-plugin'});
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromGit')
-        .mockResolvedValue({...mockPlugin, name: 'git-plugin'});
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage').mockResolvedValue({
+        ...mockPlugin,
+        name: 'git-plugin',
+      });
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromGit').mockResolvedValue({
+        ...mockPlugin,
+        name: 'git-plugin',
+      });
 
       // Test git repo config
       const gitConfig: PluginConfig = {
@@ -229,8 +242,9 @@ describe('PluginManager Coverage Improvements', () => {
         configure: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage')
-        .mockResolvedValue(mockPlugin);
+      vi.spyOn(PluginManagerImpl.prototype as any, 'loadPluginFromPackage').mockResolvedValue(
+        mockPlugin
+      );
 
       const config: PluginConfig = {
         name: 'config-plugin',

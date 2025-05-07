@@ -46,7 +46,6 @@ describe('Output Formatting', () => {
         format: 'json' as OutputOptions['format'],
         color: true,
         verbose: false,
-        
       };
       const result = formatOutput({ test: 'data' }, options);
       expect(result).toBe(JSON.stringify({ test: 'data' }, null, 2));
@@ -147,7 +146,7 @@ describe('Output Formatting', () => {
         quiet: true,
         format: 'json' as OutputOptions['format'],
         color: true,
-        verbose: false
+        verbose: false,
       };
       const result = formatResponse(mockResponse, options);
       expect(result).toBe(JSON.stringify({ result: 'success' }, null, 2));
@@ -263,7 +262,7 @@ describe('Output Formatting', () => {
         quiet: true,
         format: 'json',
         color: true,
-        verbose: false
+        verbose: false,
       };
       printError(new Error('Test error'), options);
       expect(consoleErrorSpy).not.toHaveBeenCalled();

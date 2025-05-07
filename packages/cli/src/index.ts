@@ -29,7 +29,7 @@ async function main() {
           level: LogLevel.ERROR,
           quiet: true,
         });
-        
+
         // Execute in quiet mode
         executeQuietly(async () => {
           await program.parseAsync(process.argv);

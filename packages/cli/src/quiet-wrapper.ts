@@ -39,7 +39,7 @@ export async function executeQuietly<T>(fn: () => Promise<T>): Promise<T> {
     // Configure the global logger to ERROR level with quiet mode
     configureGlobalLogger({
       level: LogLevel.ERROR,
-      quiet: true
+      quiet: true,
     });
 
     // Execute the function

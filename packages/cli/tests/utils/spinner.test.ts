@@ -62,7 +62,7 @@ describe('Spinner Utility', () => {
   it('creates a disabled spinner', () => {
     const spinner = new Spinner('Loading...', { enabled: false, logger: mockLogger });
     expect(spinner).toBeDefined();
-    
+
     // Test that the spinner uses the logger instead of ora
     spinner.start();
     expect(loggerInfoSpy).toHaveBeenCalled();
@@ -71,7 +71,7 @@ describe('Spinner Utility', () => {
   it('starts the spinner', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.start();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -79,7 +79,7 @@ describe('Spinner Utility', () => {
   it('shows a success message', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.succeed('Success!');
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -87,7 +87,7 @@ describe('Spinner Utility', () => {
   it('shows a success message with default text', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.succeed();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -95,7 +95,7 @@ describe('Spinner Utility', () => {
   it('shows a failure message', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.fail('Failed!');
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -103,7 +103,7 @@ describe('Spinner Utility', () => {
   it('shows a failure message with default text', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.fail();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -111,7 +111,7 @@ describe('Spinner Utility', () => {
   it('shows a warning message', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.warn('Warning!');
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -119,7 +119,7 @@ describe('Spinner Utility', () => {
   it('shows a warning message with default text', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.warn();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -127,7 +127,7 @@ describe('Spinner Utility', () => {
   it('shows an info message', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.info('Info!');
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -135,7 +135,7 @@ describe('Spinner Utility', () => {
   it('shows an info message with default text', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.info();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -143,7 +143,7 @@ describe('Spinner Utility', () => {
   it('updates the spinner text', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.setText('New text');
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -151,7 +151,7 @@ describe('Spinner Utility', () => {
   it('stops the spinner', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.stop();
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
@@ -159,14 +159,14 @@ describe('Spinner Utility', () => {
   it('stops and clears the spinner', () => {
     const spinner = new Spinner('Loading...');
     const result = spinner.stop(true);
-    
+
     // Check method chaining works
     expect(result).toBe(spinner);
   });
 
   it('handles disabled spinner for all methods', () => {
     const spinner = new Spinner('Loading...', { enabled: false, logger: mockLogger });
-    
+
     // Test all methods with disabled spinner
     spinner.start();
     spinner.succeed('Success!');
@@ -176,7 +176,7 @@ describe('Spinner Utility', () => {
     spinner.setText('New text');
     spinner.stop();
     spinner.stop(true);
-    
+
     // Verify logger was used
     expect(loggerInfoSpy).toHaveBeenCalled();
     expect(loggerErrorSpy).toHaveBeenCalled();

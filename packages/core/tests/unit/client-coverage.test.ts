@@ -133,7 +133,7 @@ describe('SHCClient Coverage Improvements', () => {
     vi.clearAllMocks();
     // Create a client with our mocks
     client = SHCClient.create(mockConfigManager);
-    
+
     // Replace the event emitter with a real one we can spy on
     const realEmitter = new EventEmitter();
     const emitSpy = vi.spyOn(realEmitter, 'emit');
@@ -153,7 +153,7 @@ describe('SHCClient Coverage Improvements', () => {
       // Manually trigger the events since we're mocking the client
       (client as any).eventEmitter.emit('request', { url: 'https://api.example.com/test' });
       (client as any).eventEmitter.emit('response', { status: 200, data: { success: true } });
-      
+
       expect(requestHandler).toHaveBeenCalled();
       expect(responseHandler).toHaveBeenCalled();
       expect(errorHandler).not.toHaveBeenCalled();
@@ -186,9 +186,9 @@ describe('SHCClient Coverage Improvements', () => {
       } catch (error) {
         // Ignore the error, we expect it to throw
       }
-      
+
       expect(errorHandler).toHaveBeenCalled();
-      
+
       // The client should still work even if event handlers throw
       const response = await client.get('https://api.example.com/test');
       expect(response.status).toBe(200);
@@ -211,10 +211,10 @@ describe('SHCClient Coverage Improvements', () => {
       (client as any).pluginManager.getPlugin = vi.fn().mockReturnValue(mockPlugin);
       (client as any).pluginManager.listPlugins = vi.fn().mockReturnValue([mockPlugin]);
       (client as any).pluginManager.isPluginEnabled = vi.fn().mockReturnValue(true);
-      
+
       // Make a request
       await client.get('https://api.example.com/test');
-      
+
       // We can't directly verify the plugin was called since we're mocking the axios instance
       // Instead, we'll just verify the test runs without errors
       expect(true).toBe(true);
@@ -235,10 +235,10 @@ describe('SHCClient Coverage Improvements', () => {
       (client as any).pluginManager.getPlugin = vi.fn().mockReturnValue(mockPlugin);
       (client as any).pluginManager.listPlugins = vi.fn().mockReturnValue([mockPlugin]);
       (client as any).pluginManager.isPluginEnabled = vi.fn().mockReturnValue(true);
-      
+
       // Make a request
       const response = await client.get('https://api.example.com/test');
-      
+
       // We can't directly verify the plugin was called since we're mocking the axios instance
       // Instead, we'll just verify the test runs without errors
       expect(response.status).toBe(200);
@@ -257,10 +257,10 @@ describe('SHCClient Coverage Improvements', () => {
       (client as any).pluginManager.getPlugin = vi.fn().mockReturnValue(mockPlugin);
       (client as any).pluginManager.listPlugins = vi.fn().mockReturnValue([mockPlugin]);
       (client as any).pluginManager.isPluginEnabled = vi.fn().mockReturnValue(true);
-      
+
       // Make a request - it should not throw an error even if the plugin does
       const response = await client.get('https://api.example.com/test');
-      
+
       // The request should still succeed
       expect(response.status).toBe(200);
     });
@@ -269,7 +269,7 @@ describe('SHCClient Coverage Improvements', () => {
   describe('HTTP methods', () => {
     it('should support all HTTP methods', async () => {
       const methods = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'];
-      
+
       for (const method of methods) {
         const response = await (client as any)[method]('https://api.example.com/test');
         expect(response.status).toBe(200);

@@ -597,8 +597,8 @@ describe('Direct Request Command', () => {
             method: 'GET',
             headers: {
               'X-Custom-Header': 'test-value',
-              'Authorization': 'Bearer token123'
-            }
+              Authorization: 'Bearer token123',
+            },
           },
         }),
         interceptors: {
@@ -628,8 +628,10 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-H', 'X-Custom-Header:test-value',
-        '-H', 'Authorization:Bearer token123'
+        '-H',
+        'X-Custom-Header:test-value',
+        '-H',
+        'Authorization:Bearer token123',
       ]);
 
       // Verify the axios instance was created
@@ -640,8 +642,8 @@ describe('Direct Request Command', () => {
         expect.objectContaining({
           headers: expect.objectContaining({
             'X-Custom-Header': 'test-value',
-            'Authorization': 'Bearer token123'
-          })
+            Authorization: 'Bearer token123',
+          }),
         })
       );
 
@@ -662,8 +664,8 @@ describe('Direct Request Command', () => {
             method: 'GET',
             params: {
               page: '1',
-              limit: '10'
-            }
+              limit: '10',
+            },
           },
         }),
         interceptors: {
@@ -693,8 +695,10 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-q', 'page=1',
-        '-q', 'limit=10'
+        '-q',
+        'page=1',
+        '-q',
+        'limit=10',
       ]);
 
       // Verify the axios instance was created
@@ -705,8 +709,8 @@ describe('Direct Request Command', () => {
         expect.objectContaining({
           params: expect.objectContaining({
             page: '1',
-            limit: '10'
-          })
+            limit: '10',
+          }),
         })
       );
 
@@ -725,7 +729,7 @@ describe('Direct Request Command', () => {
           config: {
             url: 'https://api.example.com/users',
             method: 'POST',
-            data: { name: 'Test User', email: 'test@example.com' }
+            data: { name: 'Test User', email: 'test@example.com' },
           },
         }),
         interceptors: {
@@ -755,7 +759,8 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-d', '{"name":"Test User","email":"test@example.com"}'
+        '-d',
+        '{"name":"Test User","email":"test@example.com"}',
       ]);
 
       // Verify the axios instance was created
@@ -766,8 +771,8 @@ describe('Direct Request Command', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Test User',
-            email: 'test@example.com'
-          })
+            email: 'test@example.com',
+          }),
         })
       );
 
@@ -786,7 +791,7 @@ describe('Direct Request Command', () => {
           config: {
             url: 'https://api.example.com/users',
             method: 'POST',
-            data: 'raw string data'
+            data: 'raw string data',
           },
         }),
         interceptors: {
@@ -816,7 +821,8 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-d', 'raw string data'
+        '-d',
+        'raw string data',
       ]);
 
       // Verify the axios instance was created
@@ -825,7 +831,7 @@ describe('Direct Request Command', () => {
       // Verify that the request was made with the correct data
       expect(stringDataAxiosInstance.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: 'raw string data'
+          data: 'raw string data',
         })
       );
 
@@ -846,8 +852,8 @@ describe('Direct Request Command', () => {
             method: 'GET',
             auth: {
               type: 'basic',
-              credentials: 'username:password'
-            }
+              credentials: 'username:password',
+            },
           },
         }),
         interceptors: {
@@ -877,7 +883,8 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-u', 'basic:username:password'
+        '-u',
+        'basic:username:password',
       ]);
 
       // Verify the axios instance was created
@@ -885,7 +892,7 @@ describe('Direct Request Command', () => {
 
       // Verify that the request was made
       expect(authAxiosInstance.request).toHaveBeenCalled();
-      
+
       // The auth parameter is processed differently in the actual code
       // Just verify the request was made successfully
 
@@ -904,7 +911,7 @@ describe('Direct Request Command', () => {
           config: {
             url: 'https://api.example.com/users',
             method: 'GET',
-            timeout: 5000
+            timeout: 5000,
           },
         }),
         interceptors: {
@@ -934,7 +941,8 @@ describe('Direct Request Command', () => {
         'https://api.example.com/users',
         '-c',
         configPath,
-        '-t', '5000'
+        '-t',
+        '5000',
       ]);
 
       // Verify the axios instance was created
@@ -943,7 +951,7 @@ describe('Direct Request Command', () => {
       // Verify that the request was made with the correct timeout
       expect(timeoutAxiosInstance.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          timeout: 5000
+          timeout: 5000,
         })
       );
 
@@ -1044,10 +1052,10 @@ describe('Direct Request Command', () => {
 
       // Mock axios.create to return our custom instance for this test
       (axios.create as any).mockReturnValueOnce(silentAxiosInstance);
-      
+
       // Mock process.stdout.write for this test
       const stdoutWriteSpy = vi.spyOn(process.stdout, 'write');
-      
+
       // Create a local mock function that simulates what would happen in the output.ts file
       // This is needed because the actual implementation might not be calling process.stdout.write in the test environment
       const mockPrintResponse = (response: any, options: any) => {
@@ -1077,19 +1085,22 @@ describe('Direct Request Command', () => {
 
       // Check if the command executed without error
       expect(process.exit).toHaveBeenCalledWith(0);
-      
+
       // Manually call our mock function to simulate what would happen in the real code
-      mockPrintResponse({
-        data: { success: true },
-        status: 200,
-        statusText: 'OK',
-        headers: { 'content-type': 'application/json' }
-      }, {
-        format: 'raw',
-        color: true,
-        verbose: false,
-        quiet: true
-      });
+      mockPrintResponse(
+        {
+          data: { success: true },
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+        },
+        {
+          format: 'raw',
+          color: true,
+          verbose: false,
+          quiet: true,
+        }
+      );
 
       // Verify that process.stdout.write was called (raw output)
       expect(stdoutWriteSpy).toHaveBeenCalled();
