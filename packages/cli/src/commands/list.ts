@@ -32,9 +32,7 @@ export function addListCommand(program: Command): void {
         await listCollections(collectionDir, options);
       } catch (error) {
         const logger = Logger.fromCommandOptions(options);
-        logger.error(
-          chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
-        );
+        logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -61,9 +59,7 @@ export function addListCommand(program: Command): void {
         await listRequests(collectionDir, collection, options);
       } catch (error) {
         const logger = Logger.fromCommandOptions(options);
-        logger.error(
-          chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
-        );
+        logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -72,7 +68,10 @@ export function addListCommand(program: Command): void {
 /**
  * List collections
  */
-async function listCollections(collectionDir: string, options: Record<string, unknown>): Promise<void> {
+async function listCollections(
+  collectionDir: string,
+  options: Record<string, unknown>
+): Promise<void> {
   const logger = Logger.fromCommandOptions(options);
   logger.info(chalk.gray(`Loading collections from ${collectionDir}...`));
 
@@ -104,7 +103,11 @@ async function listCollections(collectionDir: string, options: Record<string, un
 /**
  * List requests in a collection
  */
-async function listRequests(collectionDir: string, collectionName: string, options: Record<string, unknown>): Promise<void> {
+async function listRequests(
+  collectionDir: string,
+  collectionName: string,
+  options: Record<string, unknown>
+): Promise<void> {
   const logger = Logger.fromCommandOptions(options);
   logger.info(chalk.gray(`Loading requests for collection '${collectionName}'...`));
 

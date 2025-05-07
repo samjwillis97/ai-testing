@@ -135,8 +135,8 @@ export class CLIPluginManager {
 
     // Add project-specific plugin directory if config file path is available
     // We need to check for configFilePath which might be added by the CLI
-    if ((config as any).configFilePath) {
-      const configDir = path.dirname((config as any).configFilePath);
+    if ((config as Record<string, unknown>).configFilePath) {
+      const configDir = path.dirname((config as Record<string, unknown>).configFilePath as string);
       directories.push(path.join(configDir, 'cli-plugins'));
     }
 
@@ -203,7 +203,7 @@ export class CLIPluginManager {
       }
 
       // Check for plugin.json or package.json
-      let pluginInfo: any = null;
+      let pluginInfo: Record<string, unknown> | null = null;
       const pluginJsonPath = path.join(absolutePath, 'plugin.json');
       const packageJsonPath = path.join(absolutePath, 'package.json');
 
@@ -217,7 +217,11 @@ export class CLIPluginManager {
       }
 
       // Check for main file
-      const mainFile = pluginInfo.main || 'index.js';
+      if (!pluginInfo) {
+        throw new Error(`Failed to load plugin info from ${absolutePath}`);
+      }
+
+      const mainFile = (pluginInfo.main as string) || 'index.js';
       const mainFilePath = path.join(absolutePath, mainFile);
 
       if (!fs.existsSync(mainFilePath)) {

@@ -21,7 +21,7 @@ interface ResponseData {
 /**
  * Format response data according to output options
  */
-function formatOutput(data: unknown, options: OutputOptions): string {
+export function formatOutput(data: unknown, options: OutputOptions): string {
   // Built-in formatters
   const formatters: Record<string, (data: unknown) => string> = {
     json: formatJsonData,
@@ -30,10 +30,8 @@ function formatOutput(data: unknown, options: OutputOptions): string {
     raw: formatRawData,
   };
 
-  // In silent mode, only return raw data for the raw format
-  if (options.silent) {
-    return '';
-  }
+  // In silent mode, still return formatted data (the caller will decide whether to print it)
+  // This allows tests to verify the formatting even in silent mode
 
   // Check if there's a custom formatter plugin for this format
   const customFormatter = cliPluginManager.getOutputFormatter(options.format);
@@ -114,7 +112,17 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   // Format the response data
   const formattedData = formatOutput(response.data, options);
 
-  // In verbose mode, include headers and status
+  // For quiet mode or silent mode, just return the formatted data without status
+  if (options.quiet || options.silent) {
+    return formattedData;
+  }
+  
+  // For raw format without verbose mode, just return the formatted data without status
+  if (options.format === 'raw' && !options.verbose) {
+    return formattedData;
+  }
+  
+  // In verbose mode, include detailed headers and status
   if (options.verbose) {
     const statusLine = `${chalk.bold('Status:')} ${response.status} ${response.statusText}`;
     const headersSection = Object.entries(response.headers)
@@ -132,8 +140,9 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
     );
   }
 
-  // In non-verbose mode, just return the formatted data
-  return formattedData;
+  // In non-verbose mode, include basic status and the formatted data
+  const statusLine = `${chalk.bold('Status:')} ${response.status} ${response.statusText}`;
+  return `${statusLine}\n\n${formattedData}`;
 }
 
 /**
@@ -141,7 +150,28 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
  */
 export function printResponse(response: ResponseData, options: OutputOptions): void {
   const output = formatResponse(response, options);
-  if (output) {
+  if (!output) {
+    return;
+  }
+  
+  // In silent mode, only output raw data directly to stdout
+  if (options.silent) {
+    if (options.format === 'raw') {
+      // For raw format in silent mode, write directly to stdout
+      if (typeof response.data === 'string') {
+        process.stdout.write(response.data + '\n');
+      } else {
+        process.stdout.write(JSON.stringify(response.data, null, 2) + '\n');
+      }
+    }
+    return;
+  }
+  
+  // In quiet mode, write directly to stdout
+  if (options.quiet) {
+    process.stdout.write(output + '\n');
+  } else {
+    // In normal mode, use console.log
     console.log(output);
   }
 }

@@ -24,6 +24,10 @@
     "blessed": "^0.1.81"
   },
   "devDependencies": {
-    "axios": "^1.6.0"
+    "@types/node": "^22.15.14",
+    "@types/pino": "^7.0.5",
+    "axios": "^1.6.0",
+    "pino": "^8.16.2",
+    "vitest": "^3.1.2"
   }
 }

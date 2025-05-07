@@ -39,12 +39,12 @@ export class Spinner {
     this.options = options;
     this.logger = options.logger || new Logger();
     this.logLevel = options.logLevel || LogLevel.INFO;
-    
+
     // Only create the spinner if enabled
     if (options.enabled !== false) {
       this.spinner = ora({
         text,
-        ...options
+        ...options,
       });
     }
   }
@@ -159,15 +159,15 @@ export class Spinner {
    */
   static fromCommandOptions(text: string, options: Record<string, unknown>): Spinner {
     const logger = Logger.fromCommandOptions(options);
-    
+
     // Enable spinner only if not in silent mode and log level is INFO or DEBUG
-    const enabled = logger['options'].level !== LogLevel.SILENT && 
-                    logger['options'].level !== LogLevel.ERROR;
-    
+    const enabled =
+      logger['options'].level !== LogLevel.SILENT && logger['options'].level !== LogLevel.ERROR;
+
     return new Spinner(text, {
       enabled,
       logger,
-      color: options.color !== false ? 'cyan' : undefined
+      color: options.color !== false ? 'cyan' : undefined,
     });
   }
 }

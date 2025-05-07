@@ -6,7 +6,7 @@
 import path from 'path';
 import { ConfigManager } from '@shc/core';
 import { promises as fsPromises } from 'fs';
-import { Logger, globalLogger } from './logger.js';
+import { globalLogger } from './logger.js';
 
 // Export for testing purposes
 export const configManagerFactory = () => new ConfigManager();
@@ -294,7 +294,9 @@ export async function createConfigManagerFromOptions(
         configManager.set(key, value);
         globalLogger.info(`Set config value: ${key}=${JSON.stringify(value)}`);
       } catch (error) {
-        globalLogger.error(`Failed to set config value: ${error instanceof Error ? error.message : String(error)}`);
+        globalLogger.error(
+          `Failed to set config value: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }

@@ -14,7 +14,7 @@ export enum LogLevel {
   INFO = 'info',
   WARN = 'warn',
   ERROR = 'error',
-  SILENT = 'silent'
+  SILENT = 'silent',
 }
 
 // Type mapping from our LogLevel to Pino's Level
@@ -76,11 +76,13 @@ export class Logger {
       color: options.color !== false, // Default to true
       output: options.output || process.stdout,
       errorOutput: options.errorOutput || process.stderr,
-      verbose: options.verbose || false
+      verbose: options.verbose || false,
     };
 
     // Determine the effective log level
-    let effectiveLevel = this.options.verbose ? LogLevel.DEBUG : this.options.level || LogLevel.INFO;
+    let effectiveLevel = this.options.verbose
+      ? LogLevel.DEBUG
+      : this.options.level || LogLevel.INFO;
     if (this.options.quiet) {
       effectiveLevel = LogLevel.ERROR;
     }
@@ -92,7 +94,7 @@ export class Logger {
     const pinoOptions: pino.LoggerOptions = {
       level: pinoLevel,
       // Disable logging completely if level is SILENT
-      enabled: pinoLevel !== 'silent'
+      enabled: pinoLevel !== 'silent',
     };
 
     // Configure pretty printing if color is enabled
@@ -104,9 +106,9 @@ export class Logger {
           options: {
             colorize: true,
             translateTime: true,
-            ignore: 'pid,hostname'
-          }
-        }
+            ignore: 'pid,hostname',
+          },
+        },
       });
     } else {
       // Setup multi-stream logging using Pino's built-in support
@@ -116,7 +118,7 @@ export class Logger {
       if (this.options.output) {
         streams.push({
           level: pinoLevel === 'silent' ? 'error' : pinoLevel, // Avoid using 'silent' as a level
-          stream: this.options.output
+          stream: this.options.output,
         });
       }
 
@@ -124,15 +126,12 @@ export class Logger {
       if (pinoLevel !== 'silent' && this.options.errorOutput) {
         streams.push({
           level: 'error',
-          stream: this.options.errorOutput
+          stream: this.options.errorOutput,
         });
       }
 
       // Create logger with multiple streams
-      this.logger = pino(
-        pinoOptions,
-        pino.multistream(streams)
-      );
+      this.logger = pino(pinoOptions, pino.multistream(streams));
     }
   }
 
@@ -178,8 +177,16 @@ export class Logger {
    * @returns A new logger instance with the additional context
    */
   child(bindings: Record<string, unknown>): Logger {
+    // Create a new logger with the same options
     const childLogger = new Logger(this.options);
-    (childLogger as any).logger = this.logger.child(bindings);
+
+    // Use Object.defineProperty to set the private property
+    Object.defineProperty(childLogger, 'logger', {
+      value: this.logger.child(bindings),
+      writable: true,
+      configurable: true,
+    });
+
     return childLogger;
   }
 
@@ -191,22 +198,23 @@ export class Logger {
   static fromCommandOptions(options: Record<string, unknown>): Logger {
     // Determine the appropriate log level based on command options
     let level = LogLevel.INFO;
-    
+
     if (options.verbose) {
       level = LogLevel.DEBUG;
     } else if (options.quiet || options.silent) {
       level = LogLevel.ERROR;
     }
-    
+
     // If silent mode is enabled, set level to SILENT
     if (options.silent) {
       level = LogLevel.SILENT;
     }
-    
+
     return new Logger({
       level,
       color: options.color !== false,
-      verbose: Boolean(options.verbose)
+      verbose: Boolean(options.verbose),
+      quiet: Boolean(options.quiet),
     });
   }
 }
@@ -226,31 +234,33 @@ export function configureGlobalLogger(options: LoggerOptions): void {
  * Create a test logger that captures output for testing
  * @returns A logger and the captured output
  */
-export function createTestLogger(): { 
-  logger: Logger; 
-  output: string; 
+export function createTestLogger(): {
+  logger: Logger;
+  output: string;
   getOutput: () => string;
   clearOutput: () => void;
 } {
   let output = '';
-  
+
   const testStream = new Writable({
     write(chunk, encoding, callback) {
       output += chunk.toString();
       callback();
-    }
+    },
   });
-  
+
   const logger = new Logger({
     output: testStream as unknown as NodeJS.WriteStream,
     errorOutput: testStream as unknown as NodeJS.WriteStream,
-    color: false
+    color: false,
   });
-  
-  return { 
-    logger, 
+
+  return {
+    logger,
     output,
     getOutput: () => output,
-    clearOutput: () => { output = ''; }
+    clearOutput: () => {
+      output = '';
+    },
   };
 }

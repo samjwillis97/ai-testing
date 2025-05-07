@@ -14,7 +14,7 @@ vi.mock('../../src/utils/logger.js', () => {
   const mockError = vi.fn();
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
-  
+
   return {
     globalLogger: {
       info: mockInfo,
@@ -35,7 +35,7 @@ vi.mock('../../src/utils/logger.js', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent'
+      SILENT: 'silent',
     },
   };
 });
@@ -169,11 +169,9 @@ describe('Plugin Initialization', () => {
     setSilentModeSpy = vi.spyOn(cliPluginManager, 'setSilentMode');
 
     // Mock the loadPlugins method to prevent actual plugin loading
-    loadPluginsSpy = vi
-      .spyOn(cliPluginManager, 'loadPlugins')
-      .mockImplementation(async () => {
-        return;
-      });
+    loadPluginsSpy = vi.spyOn(cliPluginManager, 'loadPlugins').mockImplementation(async () => {
+      return;
+    });
 
     // Reset mocks
     vi.clearAllMocks();

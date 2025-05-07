@@ -21,7 +21,7 @@ vi.mock('../../src/utils/logger.js', () => {
   const mockError = vi.fn();
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
-  
+
   return {
     globalLogger: {
       info: mockInfo,
@@ -34,7 +34,7 @@ vi.mock('../../src/utils/logger.js', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent'
+      SILENT: 'silent',
     },
   };
 });
@@ -822,8 +822,12 @@ variable_sets:
         },
       });
 
-      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: api=production');
-      expect(globalLogger.info).toHaveBeenCalledWith('Request-specific variable set override applied: resource=test');
+      expect(globalLogger.info).toHaveBeenCalledWith(
+        'Request-specific variable set override applied: api=production'
+      );
+      expect(globalLogger.info).toHaveBeenCalledWith(
+        'Request-specific variable set override applied: resource=test'
+      );
     });
 
     it('should apply global variable set overrides', () => {
@@ -841,11 +845,21 @@ variable_sets:
       // Pass false for requestSpecific parameter
       applyVariableSetOverrides(configManager, overrides, false);
 
-      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.api.active_value', 'production');
-      expect(configManager.set).toHaveBeenCalledWith('variable_sets.global.resource.active_value', 'test');
+      expect(configManager.set).toHaveBeenCalledWith(
+        'variable_sets.global.api.active_value',
+        'production'
+      );
+      expect(configManager.set).toHaveBeenCalledWith(
+        'variable_sets.global.resource.active_value',
+        'test'
+      );
 
-      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: api=production');
-      expect(globalLogger.info).toHaveBeenCalledWith('Variable set override applied: resource=test');
+      expect(globalLogger.info).toHaveBeenCalledWith(
+        'Variable set override applied: api=production'
+      );
+      expect(globalLogger.info).toHaveBeenCalledWith(
+        'Variable set override applied: resource=test'
+      );
     });
 
     it('should warn about non-existent variable sets', () => {

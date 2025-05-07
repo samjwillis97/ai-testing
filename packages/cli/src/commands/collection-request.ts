@@ -4,16 +4,13 @@
 import { Command, Option } from 'commander';
 import chalk from 'chalk';
 import { SHCClient, SHCEvent } from '@shc/core';
-import { Collection, Request } from '@shc/core';
+import { OutputOptions, RequestOptions } from '../types.js';
+import { printResponse } from '../utils/output.js';
 import {
-  CollectionOptions,
-  OutputOptions,
-  HttpMethod,
-  RequestOptions,
-} from '../types.js';
-import { printResponse, printError } from '../utils/output.js';
-import { getEffectiveOptions, createConfigManagerFromOptions, getCollectionDir } from '../utils/config.js';
-import path from 'path';
+  getEffectiveOptions,
+  createConfigManagerFromOptions,
+  getCollectionDir,
+} from '../utils/config.js';
 import fs from 'fs/promises';
 import { Logger, LogLevel } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
@@ -87,7 +84,10 @@ export function addCollectionCommand(program: Command): void {
 
         try {
           // Create spinner for loading the request
-          const spinner = Spinner.fromCommandOptions(`Loading request '${requestName}' from collection '${collectionName}'`, options);
+          const spinner = Spinner.fromCommandOptions(
+            `Loading request '${requestName}' from collection '${collectionName}'`,
+            options
+          );
 
           let requestOptions: RequestOptions;
           try {
@@ -101,7 +101,9 @@ export function addCollectionCommand(program: Command): void {
             spinner.succeed(`Request '${requestName}' loaded successfully`);
           } catch (error) {
             // Stop the spinner with error message
-            spinner.fail(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+            spinner.fail(
+              chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+            );
             process.exit(1);
           }
 
@@ -173,24 +175,24 @@ export function addCollectionCommand(program: Command): void {
             requestSpinner.start();
 
             // Create client with ConfigManager and register event handlers before plugins are loaded
-            const eventHandlers: { event: SHCEvent; handler: (event: any) => void }[] = 
+            const eventHandlers: { event: SHCEvent; handler: (event: unknown) => void }[] =
               logger['options'].level === LogLevel.DEBUG
                 ? [
                     {
                       event: 'request',
-                      handler: (req: any) => {
+                      handler: (req: unknown) => {
                         logger.debug('Request:', JSON.stringify(req, null, 2));
                       },
                     },
                     {
                       event: 'response',
-                      handler: (res: any) => {
+                      handler: (res: unknown) => {
                         logger.debug('Response:', JSON.stringify(res, null, 2));
                       },
                     },
                     {
                       event: 'error',
-                      handler: (err: any) => {
+                      handler: (err: unknown) => {
                         logger.error(
                           chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
                         );
@@ -212,14 +214,22 @@ export function addCollectionCommand(program: Command): void {
             // Update spinner with error message
             requestSpinner.fail(chalk.red('Request failed'));
 
-            logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-            if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
+            logger.error(
+              chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+            );
+            if (
+              error instanceof Error &&
+              error.stack &&
+              logger['options'].level === LogLevel.DEBUG
+            ) {
               logger.error(chalk.gray(error.stack));
             }
             process.exit(1);
           }
         } catch (error) {
-          logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+          logger.error(
+            chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+          );
           if (error instanceof Error && error.stack && logger['options'].level === LogLevel.DEBUG) {
             logger.error(chalk.gray(error.stack));
           }

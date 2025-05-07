@@ -3,7 +3,12 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CLIPluginManager } from '../../src/plugins/plugin-manager.js';
-import { CLIPluginContext, CLIPluginType, CommandHandler, ResponseVisualizer } from '../../src/types/cli-plugin.types.js';
+import {
+  CLIPluginContext,
+  CLIPluginType,
+  CommandHandler,
+  ResponseVisualizer,
+} from '../../src/types/cli-plugin.types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -16,7 +21,7 @@ vi.mock('../../src/utils/logger.js', () => {
   const mockError = vi.fn();
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
-  
+
   return {
     globalLogger: {
       info: mockInfo,
@@ -29,7 +34,7 @@ vi.mock('../../src/utils/logger.js', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent'
+      SILENT: 'silent',
     },
   };
 });
@@ -145,7 +150,7 @@ describe('CLI Plugin Manager', () => {
       // Create a test plugin file
       const pluginDir = path.join(TEST_PLUGIN_DIR, 'test-plugin');
       fs.mkdirSync(pluginDir, { recursive: true });
-      
+
       // Create package.json
       fs.writeFileSync(
         path.join(pluginDir, 'package.json'),
@@ -153,10 +158,10 @@ describe('CLI Plugin Manager', () => {
           name: 'test-plugin',
           version: '1.0.0',
           description: 'Test plugin',
-          main: 'index.js'
+          main: 'index.js',
         })
       );
-      
+
       // Create the plugin file
       fs.writeFileSync(
         path.join(pluginDir, 'index.js'),
@@ -181,14 +186,16 @@ describe('CLI Plugin Manager', () => {
               name: 'test-plugin',
               package: '',
               path: pluginDir,
-              enabled: true
-            }
-          ]
-        }
+              enabled: true,
+            },
+          ],
+        },
       };
 
       // Directly register a command to verify our test setup
-      const commandHandler: CommandHandler = async () => { /* empty */ };
+      const commandHandler: CommandHandler = async () => {
+        /* empty */
+      };
       pluginManager.registerCommand('direct-test-command', commandHandler);
       expect(pluginManager.getCommand('direct-test-command')).toBeDefined();
 
@@ -198,14 +205,17 @@ describe('CLI Plugin Manager', () => {
         version: '1.0.0',
         description: 'Test plugin',
         type: CLIPluginType.CUSTOM_COMMAND,
-        register: function(context: CLIPluginContext) {
-          const handler: CommandHandler = async () => { /* empty */ };
+        register: function (context: CLIPluginContext) {
+          const handler: CommandHandler = async () => {
+            /* empty */
+          };
           context.registerCommand('test-command', handler);
-        }
+        },
       };
-      
+
       // Replace the loadPathPlugin method with a mock that returns our test plugin
-      const loadPathPluginSpy = vi.spyOn(pluginManager as any, 'loadPathPlugin')
+      const loadPathPluginSpy = vi
+        .spyOn(pluginManager as any, 'loadPathPlugin')
         .mockResolvedValue(testPlugin);
 
       // Load the plugin using the public loadPlugins method
@@ -213,7 +223,7 @@ describe('CLI Plugin Manager', () => {
 
       // Verify that loadPathPlugin was called
       expect(loadPathPluginSpy).toHaveBeenCalledWith(pluginDir);
-      
+
       // Verify that the plugin was registered
       expect(pluginManager.getCommand('test-command')).toBeDefined();
     });
@@ -225,16 +235,19 @@ describe('CLI Plugin Manager', () => {
         version: '1.0.0',
         description: 'Test plugin',
         type: CLIPluginType.CUSTOM_COMMAND,
-        register: function(context: CLIPluginContext) {
-          const handler: CommandHandler = async () => { /* empty */ };
+        register: function (context: CLIPluginContext) {
+          const handler: CommandHandler = async () => {
+            /* empty */
+          };
           context.registerCommand('test-command', handler);
-        }
+        },
       };
-      
+
       // Mock the loadPathPlugin method
-      const loadPathPluginSpy = vi.spyOn(pluginManager as any, 'loadPathPlugin')
+      const loadPathPluginSpy = vi
+        .spyOn(pluginManager as any, 'loadPathPlugin')
         .mockResolvedValue(testPlugin);
-      
+
       // Create a plugin config
       const config = {
         cli: {
@@ -243,23 +256,25 @@ describe('CLI Plugin Manager', () => {
               name: 'test-plugin',
               package: '',
               path: '/fake/path',
-              enabled: true
-            }
-          ]
-        }
+              enabled: true,
+            },
+          ],
+        },
       };
 
       // Load the plugin twice
       await pluginManager.loadPlugins(config);
-      
+
       // Manually register the command since we're mocking the plugin loading
       (pluginManager as any).loadedPlugins.set('test-plugin', testPlugin);
-      const handler: CommandHandler = async () => { /* empty */ };
+      const handler: CommandHandler = async () => {
+        /* empty */
+      };
       pluginManager.registerCommand('test-command', handler);
-      
+
       // Clear mocks to check for the second call
       vi.clearAllMocks();
-      
+
       await pluginManager.loadPlugins(config);
 
       // Verify that the plugin was registered only once
@@ -274,15 +289,14 @@ describe('CLI Plugin Manager', () => {
         version: '1.0.0',
         description: 'Plugin with error',
         type: CLIPluginType.CUSTOM_COMMAND,
-        register: function() {
+        register: function () {
           throw new Error('Plugin initialization error');
-        }
+        },
       };
-      
+
       // Mock the loadPathPlugin method
-      vi.spyOn(pluginManager as any, 'loadPathPlugin')
-        .mockResolvedValue(testPlugin);
-      
+      vi.spyOn(pluginManager as any, 'loadPathPlugin').mockResolvedValue(testPlugin);
+
       // Create a plugin config
       const config = {
         cli: {
@@ -291,10 +305,10 @@ describe('CLI Plugin Manager', () => {
               name: 'error-plugin',
               package: '',
               path: '/fake/path',
-              enabled: true
-            }
-          ]
-        }
+              enabled: true,
+            },
+          ],
+        },
       };
 
       // Load the plugin
@@ -333,7 +347,9 @@ describe('CLI Plugin Manager', () => {
 
   describe('Commands', () => {
     it('should register and retrieve a command', () => {
-      const command: CommandHandler = async () => { /* empty */ };
+      const command: CommandHandler = async () => {
+        /* empty */
+      };
       pluginManager.registerCommand('test', command);
       expect(pluginManager.getCommand('test')).toBe(command);
     });
@@ -343,8 +359,12 @@ describe('CLI Plugin Manager', () => {
     });
 
     it('should get all registered commands', () => {
-      const command1: CommandHandler = async () => { /* empty */ };
-      const command2: CommandHandler = async () => { /* empty */ };
+      const command1: CommandHandler = async () => {
+        /* empty */
+      };
+      const command2: CommandHandler = async () => {
+        /* empty */
+      };
       pluginManager.registerCommand('test1', command1);
       pluginManager.registerCommand('test2', command2);
       const commands = (pluginManager as any).commands;

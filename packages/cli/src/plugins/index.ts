@@ -5,7 +5,7 @@
 import { createConfigManagerFromOptions } from '../utils/config.js';
 import { cliPluginManager } from './plugin-manager.js';
 import { SHCConfig } from '@shc/core';
-import { Logger, globalLogger } from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
 /**
  * Initialize the CLI plugin system
@@ -28,16 +28,20 @@ export async function initializePlugins(options: Record<string, unknown>): Promi
     // Store the config file path for plugin discovery
     const configFilePath = options.config as string;
     if (configFilePath) {
-      (config as any).configFilePath = configFilePath;
+      (config as Record<string, unknown>).configFilePath = configFilePath;
     }
 
     // Store the output format in the config for use by plugins
     if (options.output && typeof options.output === 'string') {
       if (!config.cli) {
-        (config as any).cli = {};
+        (config as Record<string, unknown>).cli = {};
       }
-      if (!(config as any).cli.defaultFormat) {
-        (config as any).cli.defaultFormat = options.output;
+      const typedConfig = config as Record<string, unknown>;
+      if (typedConfig.cli && typeof typedConfig.cli === 'object') {
+        const cliConfig = typedConfig.cli as Record<string, unknown>;
+        if (!cliConfig.defaultFormat) {
+          cliConfig.defaultFormat = options.output;
+        }
       }
     }
 

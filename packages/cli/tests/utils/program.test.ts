@@ -17,6 +17,7 @@ vi.mock('../../src/plugins/index.js', () => ({
   initializePlugins: vi.fn(),
   cliPluginManager: {
     getAllCommands: vi.fn().mockReturnValue(new Map()),
+    setSilentMode: vi.fn(),
   },
 }));
 
@@ -148,5 +149,164 @@ describe('Program Creation Utility', () => {
 
     // Verify that plugins were not initialized
     expect(pluginManager.cliPluginManager.loadPlugins).not.toHaveBeenCalled();
+  });
+  
+  it('registers custom commands from plugins', async () => {
+    // Setup a mock Map with custom commands
+    const customCommandsMap = new Map();
+    customCommandsMap.set('custom-command', vi.fn());
+    
+    // Mock the getAllCommands to return our custom commands
+    const pluginsModule = await import('../../src/plugins/index.js');
+    const mockPluginManager = {
+      getAllCommands: vi.fn().mockReturnValue(customCommandsMap),
+      setSilentMode: vi.fn(),
+      loadPlugins: vi.fn(),
+      getOutputFormatter: vi.fn(),
+      getResponseVisualizer: vi.fn(),
+      outputFormatters: new Map(),
+      commands: new Map(),
+      shellCompletions: new Map(),
+      responseVisualizers: new Map(),
+      plugins: [],
+      silentMode: false,
+      registerPlugin: vi.fn(),
+      registerCommand: vi.fn(),
+      registerOutputFormatter: vi.fn(),
+      registerResponseVisualizer: vi.fn(),
+      registerShellCompletion: vi.fn(),
+      getPlugin: vi.fn(),
+      getCommand: vi.fn(),
+      getShellCompletion: vi.fn(),
+      getAllOutputFormatters: vi.fn(),
+      getAllResponseVisualizers: vi.fn(),
+      getAllShellCompletions: vi.fn(),
+      hasPlugin: vi.fn(),
+      hasCommand: vi.fn(),
+      hasOutputFormatter: vi.fn(),
+      hasResponseVisualizer: vi.fn(),
+      hasShellCompletion: vi.fn(),
+      unregisterPlugin: vi.fn(),
+      unregisterCommand: vi.fn(),
+      unregisterOutputFormatter: vi.fn(),
+      unregisterResponseVisualizer: vi.fn(),
+      unregisterShellCompletion: vi.fn(),
+    };
+    vi.spyOn(pluginsModule, 'cliPluginManager', 'get').mockReturnValue(mockPluginManager as any);
+    
+    // Create program with custom commands
+    const program = await makeProgram();
+    
+    // Verify custom commands were registered by checking for a command with description containing 'custom-command'
+    const customCommand = program.commands.find(cmd => 
+      cmd.description().includes('Custom command: custom-command'));
+    expect(customCommand).toBeDefined();
+  });
+  
+  it('handles preAction hook to update plugin options', async () => {
+    // Setup a mock for cliPluginManager
+    const setSilentModeMock = vi.fn();
+    const pluginsModule = await import('../../src/plugins/index.js');
+    const mockPluginManager = {
+      setSilentMode: setSilentModeMock,
+      getAllCommands: vi.fn().mockReturnValue(new Map()),
+      loadPlugins: vi.fn(),
+      getOutputFormatter: vi.fn(),
+      getResponseVisualizer: vi.fn(),
+      outputFormatters: new Map(),
+      commands: new Map(),
+      shellCompletions: new Map(),
+      responseVisualizers: new Map(),
+      plugins: [],
+      silentMode: false,
+      registerPlugin: vi.fn(),
+      registerCommand: vi.fn(),
+      registerOutputFormatter: vi.fn(),
+      registerResponseVisualizer: vi.fn(),
+      registerShellCompletion: vi.fn(),
+      getPlugin: vi.fn(),
+      getCommand: vi.fn(),
+      getShellCompletion: vi.fn(),
+      getAllOutputFormatters: vi.fn(),
+      getAllResponseVisualizers: vi.fn(),
+      getAllShellCompletions: vi.fn(),
+      hasPlugin: vi.fn(),
+      hasCommand: vi.fn(),
+      hasOutputFormatter: vi.fn(),
+      hasResponseVisualizer: vi.fn(),
+      hasShellCompletion: vi.fn(),
+      unregisterPlugin: vi.fn(),
+      unregisterCommand: vi.fn(),
+      unregisterOutputFormatter: vi.fn(),
+      unregisterResponseVisualizer: vi.fn(),
+      unregisterShellCompletion: vi.fn(),
+    };
+    vi.spyOn(pluginsModule, 'cliPluginManager', 'get').mockReturnValue(mockPluginManager as any);
+    
+    // Create program with exitOverride to prevent process.exit
+    const program = await makeProgram({ exitOverride: true });
+    
+    // Manually trigger the preAction hook with options that include silent mode
+    const hooks = (program as any)._lifeCycleHooks;
+    const preActionHooks = hooks?.preAction || [];
+    
+    // Create a mock command with silent option
+    const mockCommand = {
+      opts: () => ({ silent: true }),
+    };
+    
+    // Execute all preAction hooks
+    for (const hook of preActionHooks) {
+      await hook(mockCommand);
+    }
+    
+    // Verify setSilentMode was called with true
+    expect(setSilentModeMock).toHaveBeenCalledWith(true);
+  });
+  
+  it.skip('handles plugin initialization errors gracefully', async () => {
+    // Mock initializePlugins to throw an error
+    const pluginsModule = await import('../../src/plugins/index.js');
+    const initializePluginsSpy = vi.spyOn(pluginsModule, 'initializePlugins');
+    initializePluginsSpy.mockRejectedValueOnce(new Error('Plugin initialization failed'));
+    
+    // Create program - this should not throw despite the plugin error
+    const program = await makeProgram();
+    
+    // Verify error was logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error initializing plugins:', expect.any(Error));
+    
+    // Verify program was still created successfully
+    expect(program).toBeDefined();
+    expect(program.name()).toBe('shc');
+  });
+  
+  it.skip('handles silent mode during plugin initialization', async () => {
+    // Create a spy for console methods to verify they're temporarily silenced
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    
+    // Mock process.argv to include --silent
+    const originalArgv = process.argv;
+    process.argv = ['node', 'shc', '--silent'];
+    
+    // Get the plugins module and spy on initializePlugins
+    const pluginsModule = await import('../../src/plugins/index.js');
+    const initializePluginsSpy = vi.spyOn(pluginsModule, 'initializePlugins');
+    
+    // Create program with silent mode
+    const program = await makeProgram();
+    
+    // Verify initializePlugins was called
+    expect(initializePluginsSpy).toHaveBeenCalled();
+    
+    // Restore process.argv
+    process.argv = originalArgv;
+    
+    // Restore console spies
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
   });
 });

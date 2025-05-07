@@ -13,7 +13,7 @@ vi.mock('../../src/utils/logger', () => {
   const mockError = vi.fn();
   const mockWarn = vi.fn();
   const mockDebug = vi.fn();
-  
+
   return {
     Logger: {
       fromCommandOptions: vi.fn().mockReturnValue({
@@ -28,7 +28,7 @@ vi.mock('../../src/utils/logger', () => {
       INFO: 'info',
       WARN: 'warn',
       ERROR: 'error',
-      SILENT: 'silent'
+      SILENT: 'silent',
     },
   };
 });
@@ -39,7 +39,7 @@ describe.skip('Completion Command', () => {
     it('should register the completion command with the program', () => {
       // Import the module after mocking
       const { addCompletionCommand } = require('../../src/commands/completion');
-      
+
       // Create a new Command instance
       const program = new Command();
 

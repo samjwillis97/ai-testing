@@ -5,10 +5,8 @@ import { Command, Option } from 'commander';
 import chalk from 'chalk';
 import { SHCClient, SHCEvent } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
-import { printResponse, printError } from '../utils/output.js';
+import { printResponse } from '../utils/output.js';
 import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
-import path from 'path';
-import fs from 'fs/promises';
 import { Logger, LogLevel } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
 
@@ -129,14 +127,14 @@ async function executeDirectRequest(
     debug: console.debug,
   };
 
-  // Create no-op functions for silent mode
-  const noopConsole = {
-    log: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    debug: () => {},
-  };
+  // Create no-op functions for silent mode (not currently used but kept for future reference)
+  // const noopConsole = {
+  //   log: () => {},
+  //   info: () => {},
+  //   warn: () => {},
+  //   error: () => {},
+  //   debug: () => {},
+  // };
 
   // Get effective options
   const effectiveOptions = await getEffectiveOptions(options);
@@ -220,24 +218,24 @@ async function executeDirectRequest(
       const configManager = await createConfigManagerFromOptions(effectiveOptions);
 
       // Register event handlers for debugging
-      const eventHandlers: { event: SHCEvent; handler: (event: any) => void }[] =
+      const eventHandlers: { event: SHCEvent; handler: (event: unknown) => void }[] =
         logger['options'].level === LogLevel.DEBUG
           ? [
               {
                 event: 'request',
-                handler: (req: any) => {
+                handler: (req: unknown) => {
                   logger.debug('Request:', JSON.stringify(req, null, 2));
                 },
               },
               {
                 event: 'response',
-                handler: (res: any) => {
+                handler: (res: unknown) => {
                   logger.debug('Response:', JSON.stringify(res, null, 2));
                 },
               },
               {
                 event: 'error',
-                handler: (err: any) => {
+                handler: (err: unknown) => {
                   logger.error(
                     chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
                   );
