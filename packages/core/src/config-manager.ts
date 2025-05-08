@@ -80,6 +80,11 @@ export class ConfigManagerImpl implements IConfigManager {
 
     this.templateEngine = createTemplateEngine();
     this.eventEmitter = new EventEmitter();
+    
+    // Initialize collections property
+    if (!this.config.collections) {
+      this.config.collections = { items: [], paths: [] };
+    }
   }
 
   async loadFromFile(filePath: string): Promise<void> {
@@ -117,6 +122,12 @@ export class ConfigManagerImpl implements IConfigManager {
       }
 
       this.config = this.mergeConfigs(this.config, parsedConfig);
+      
+      // Load collections from the configured path if autoload is enabled
+      if (this.config.storage?.collections?.autoload !== false) {
+        await this.loadCollectionsFromPath();
+      }
+      
       this.eventEmitter.emit('config:loaded', this.config);
     } catch (error) {
       throw new Error(`Failed to load configuration from ${filePath}: ${error instanceof Error ? error.message : error}`);
@@ -134,6 +145,12 @@ export class ConfigManagerImpl implements IConfigManager {
       }
       
       this.config = this.mergeConfigs(this.config, parsedConfig);
+      
+      // Load collections from the configured path if autoload is enabled
+      if (this.config.storage?.collections?.autoload !== false) {
+        await this.loadCollectionsFromPath();
+      }
+      
       this.eventEmitter.emit('config:loaded', this.config);
     } catch (error) {
       throw new Error(`Failed to parse configuration string: ${error instanceof Error ? error.message : error}`);
@@ -201,10 +218,321 @@ export class ConfigManagerImpl implements IConfigManager {
     return path.resolve(relativePath);
   }
 
+  // Flag to track if collections have been loaded
+  private collectionsLoaded = false;
+
   // Get the collection directory path, resolving relative paths if needed
   getCollectionPath(): string {
     const collectionPath = this.get<string>('storage.collections.path', './collections');
     return this.resolveConfigPath(collectionPath);
+  }
+  
+  /**
+   * Load collections from the configured path
+   * This is a public method that can be called to refresh collections
+   * If collections have already been loaded, this will not reload them unless force=true
+   * @param force Force reloading collections even if they've already been loaded
+   */
+  async loadCollections(force = false): Promise<void> {
+    // Skip loading if already loaded and not forced
+    if (this.collectionsLoaded && !force) {
+      return;
+    }
+    
+    try {
+      const collectionsPath = this.getCollectionPath();
+      
+      // Check if the path exists
+      try {
+        await fs.access(collectionsPath);
+      } catch (error) {
+        // Create the directory if it doesn't exist
+        await fs.mkdir(collectionsPath, { recursive: true });
+        this.collectionsLoaded = true; // Mark as loaded even though there are no collections yet
+        return; // No collections to load yet
+      }
+      
+      // Check if the path is a directory
+      try {
+        const stats = await fs.stat(collectionsPath);
+        if (!stats.isDirectory()) {
+          throw new Error(`Collections path is not a directory: ${collectionsPath}`);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Collections path is not a directory')) {
+          throw error; // Rethrow our own error
+        }
+        throw new Error(`Failed to stat collections path: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Load collections from the directory
+      await this.loadCollectionsFromDirectory(collectionsPath);
+      this.collectionsLoaded = true;
+      this.eventEmitter.emit('collections:loaded', this.config.collections);
+    } catch (error) {
+      // Handle errors during collection loading
+      this.eventEmitter.emit('error', 
+        new Error(`Failed to load collections from config: ${error instanceof Error ? error.message : String(error)}`)
+      );
+      throw error; // Rethrow the error so callers can handle it
+    }
+  }
+  
+  /**
+   * Safely load collections from a directory path
+   * This method ensures we only read files, not directories
+   * @param directoryPath Path to the directory containing collection files
+   */
+  async loadCollectionsFromDirectory(directoryPath: string): Promise<void> {
+    try {
+      // Ensure the directory exists
+      try {
+        await fs.access(directoryPath);
+      } catch (error) {
+        // Create the directory if it doesn't exist
+        await fs.mkdir(directoryPath, { recursive: true });
+        return; // No collections to load yet
+      }
+      
+      // Check if the path is a directory
+      let stats;
+      try {
+        stats = await fs.stat(directoryPath);
+        if (!stats.isDirectory()) {
+          this.eventEmitter.emit('error', new Error(`Collections path is not a directory: ${directoryPath}`));
+          return;
+        }
+      } catch (error) {
+        this.eventEmitter.emit('error', new Error(`Failed to stat collections path: ${error instanceof Error ? error.message : String(error)}`));
+        return;
+      }
+      
+      // Read all files in the collections directory
+      let files;
+      try {
+        files = await fs.readdir(directoryPath);
+      } catch (error) {
+        this.eventEmitter.emit('error', new Error(`Failed to read collections directory: ${error instanceof Error ? error.message : String(error)}`));
+        return;
+      }
+      
+      const collectionFiles = files.filter(file => 
+        file.endsWith('.json') || file.endsWith('.yaml') || file.endsWith('.yml')
+      );
+      
+      // Initialize collections array if it doesn't exist
+      if (!this.config.collections) {
+        this.config.collections = { items: [] };
+      }
+      if (!this.config.collections.items) {
+        this.config.collections.items = [];
+      }
+      
+      // Track loaded collections for this path
+      const loadedCollections: string[] = [];
+      
+      // Load each collection file using the loadCollectionFromFile method
+      for (const file of collectionFiles) {
+        try {
+          const filePath = path.join(directoryPath, file);
+          
+          // Check if the path is a file before attempting to load
+          try {
+            const fileStats = await fs.stat(filePath);
+            if (!fileStats.isFile()) {
+              // Skip directories and other non-file entries
+              continue;
+            }
+            
+            // Load the collection file
+            await this.loadCollectionFromFile(filePath);
+            
+            // Find the collection that was just loaded
+            const loadedCollection = this.config.collections.items.find(
+              c => c.metadata?.filePath === filePath || c.metadata?.fileName === file
+            );
+            
+            if (loadedCollection) {
+              loadedCollections.push(loadedCollection.name);
+            }
+          } catch (error) {
+            // Log warning but continue with other files
+            this.eventEmitter.emit('warning', new Error(
+              `Failed to load collection file ${file}: ${error instanceof Error ? error.message : String(error)}`
+            ));
+          }
+        } catch (error) {
+          // Log warning but continue with other files
+          this.eventEmitter.emit('warning', new Error(
+            `Failed to process collection file ${file}: ${error instanceof Error ? error.message : String(error)}`
+          ));
+        }
+      }
+      
+      // Store the collection paths in the config
+      if (!this.config.collections.paths) {
+        this.config.collections.paths = [];
+      }
+      if (!this.config.collections.paths.includes(directoryPath)) {
+        this.config.collections.paths.push(directoryPath);
+      }
+      
+      // Update the directory in the config
+      this.config.collections.directory = directoryPath;
+      
+      // Emit event with loaded collections
+      if (loadedCollections.length > 0) {
+        this.eventEmitter.emit('collections:loaded:path', {
+          path: directoryPath,
+          collections: loadedCollections
+        });
+      }
+    } catch (error) {
+      this.eventEmitter.emit('error', new Error(
+        `Failed to load collections from directory ${directoryPath}: ${error instanceof Error ? error.message : String(error)}`
+      ));
+      throw error;
+    }
+  }
+  
+  /**
+   * Load collections from the configured path
+   * This will scan the collections directory and load all collections into the config
+   * @private
+   */
+  private async loadCollectionsFromPath(): Promise<void> {
+    try {
+      const collectionsPath = this.getCollectionPath();
+      // Use our new method to safely load collections from the directory
+      await this.loadCollectionsFromDirectory(collectionsPath);
+    } catch (error) {
+      // Rethrow the error to be handled by the caller
+      throw new Error(`Failed to load collection from ${this.getCollectionPath()}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Load a collection from a specific file path
+   * This loads a single collection file and adds it to the config
+   * @param filePath The path to the collection file
+   * @returns A promise that resolves when the collection is loaded
+   */
+  async loadCollectionFromFile(filePath: string): Promise<void> {
+    try {
+      // Check if the file exists
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        throw new Error(`Collection file not found: ${filePath}`);
+      }
+      
+      // Check if the file is a regular file
+      const fileStats = await fs.stat(filePath);
+      if (!fileStats.isFile()) {
+        throw new Error(`Path is not a file: ${filePath}`);
+      }
+      
+      // Read file content
+      let content;
+      try {
+        content = await fs.readFile(filePath, 'utf8');
+      } catch (readError) {
+        throw new Error(`Failed to read file ${filePath}: ${readError instanceof Error ? readError.message : String(readError)}`);
+      }
+      
+      // Parse file content
+      let collection;
+      try {
+        if (filePath.endsWith('.json')) {
+          collection = JSON.parse(content);
+        } else if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
+          collection = yaml.load(content);
+        } else {
+          throw new Error(`Unsupported file type: ${filePath}`);
+        }
+      } catch (parseError) {
+        throw new Error(`Failed to parse file ${filePath}: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      }
+      
+      // Add the collection to the config if it's valid
+      if (collection && typeof collection === 'object' && 'name' in collection) {
+        // Initialize collections array if it doesn't exist
+        if (!this.config.collections) {
+          this.config.collections = { items: [] };
+        }
+        if (!this.config.collections.items) {
+          this.config.collections.items = [];
+        }
+        
+        // Add file path to the collection metadata
+        collection.metadata = collection.metadata || {};
+        collection.metadata.filePath = filePath;
+        collection.metadata.fileName = path.basename(filePath);
+        
+        // Normalize collection structure
+        this.normalizeCollection(collection);
+        
+        // Check if the collection already exists
+        const existingIndex = this.config.collections.items.findIndex(
+          c => c.name === collection.name
+        );
+        
+        if (existingIndex >= 0) {
+          // Update existing collection
+          this.config.collections.items[existingIndex] = collection;
+        } else {
+          // Add new collection
+          this.config.collections.items.push(collection);
+        }
+        
+        // Store the collection path in the config
+        const collectionDir = path.dirname(filePath);
+        if (!this.config.collections.paths) {
+          this.config.collections.paths = [];
+        }
+        if (!this.config.collections.paths.includes(collectionDir)) {
+          this.config.collections.paths.push(collectionDir);
+        }
+        
+        // Emit event for the loaded collection
+        this.eventEmitter.emit('collection:loaded', {
+          path: filePath,
+          collection: collection.name
+        });
+      } else {
+        throw new Error(`Invalid collection in file ${filePath}: missing name property`);
+      }
+    } catch (error) {
+      this.eventEmitter.emit('error', new Error(
+        `Failed to load collection from file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+      ));
+      throw error;
+    }
+  }
+  
+  /**
+   * Normalize collection structure to handle different naming conventions
+   * @private
+   */
+  private normalizeCollection(collection: any): void {
+    // Ensure metadata exists
+    collection.metadata = collection.metadata || {};
+    // Handle both baseUrl and base_url naming conventions
+    if (!collection.baseUrl && collection.base_url) {
+      collection.baseUrl = collection.base_url;
+    }
+    
+    // Ensure requests array exists
+    if (!collection.requests) {
+      collection.requests = [];
+    }
+    
+    // Ensure each request has an id
+    for (const request of collection.requests) {
+      if (!request.id && request.name) {
+        request.id = request.name.toLowerCase().replace(/\s+/g, '-');
+      }
+    }
   }
 
   has(path: string): boolean {

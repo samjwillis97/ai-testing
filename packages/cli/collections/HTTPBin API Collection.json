@@ -1,0 +1,158 @@
+{
+  "name": "HTTPBin API Collection",
+  "version": "1.0.0",
+  "variableSets": [],
+  "requests": [
+    {
+      "id": "get-request",
+      "name": "GET Request",
+      "description": "Simple GET request to HTTPBin",
+      "method": "GET",
+      "path": "/get",
+      "headers": {
+        "Accept": "application/json",
+        "X-Custom-Header": "SHC Demo"
+      },
+      "query": {
+        "foo": "bar",
+        "baz": "qux"
+      }
+    },
+    {
+      "id": "post-request",
+      "name": "POST Request",
+      "description": "POST request with JSON body",
+      "method": "POST",
+      "path": "/post",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "type": "json",
+        "content": "{\n  \"name\": \"SHC Demo\",\n  \"version\": \"1.0.0\",\n  \"features\": [\"HTTP Client\", \"Collections\", \"Variable Sets\"]\n}\n"
+      }
+    },
+    {
+      "id": "put-request",
+      "name": "PUT Request",
+      "description": "PUT request with JSON body",
+      "method": "PUT",
+      "path": "/put",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "type": "json",
+        "content": "{\n  \"id\": 1,\n  \"name\": \"Updated Resource\",\n  \"timestamp\": \"${Date.now()}\"\n}\n"
+      }
+    },
+    {
+      "id": "delete-request",
+      "name": "DELETE Request",
+      "description": "DELETE request",
+      "method": "DELETE",
+      "path": "/delete",
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    {
+      "id": "status-code",
+      "name": "Status Code",
+      "description": "Get specific status code",
+      "method": "GET",
+      "path": "/status/${variables.params.status}",
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    {
+      "id": "delay-request",
+      "name": "Delayed Response",
+      "description": "Response with specified delay",
+      "method": "GET",
+      "path": "/delay/${variables.params.delay}",
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    {
+      "id": "stream-bytes",
+      "name": "Stream Bytes",
+      "description": "Stream random bytes",
+      "method": "GET",
+      "path": "/stream-bytes/${variables.params.bytes}",
+      "headers": {
+        "Accept": "application/octet-stream"
+      }
+    },
+    {
+      "id": "basic-auth",
+      "name": "Basic Auth",
+      "description": "Test basic authentication",
+      "method": "GET",
+      "path": "/basic-auth/${variables.auth.username}/${variables.auth.password}",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "authentication": {
+        "type": "basic",
+        "username": "${variables.auth.username}",
+        "password": "${variables.auth.password}"
+      }
+    },
+    {
+      "id": "bearer-auth",
+      "name": "Bearer Auth",
+      "description": "Test bearer token authentication",
+      "method": "GET",
+      "path": "/bearer",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer ${variables.auth.token}"
+      }
+    },
+    {
+      "id": "cookies",
+      "name": "Cookies",
+      "description": "Get and set cookies",
+      "method": "GET",
+      "path": "/cookies",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "cookies": {
+        "session": "abc123",
+        "user": "john_doe"
+      }
+    }
+  ],
+  "description": "Collection for testing HTTP requests using HTTPBin",
+  "base_url": "https://httpbin.org",
+  "authentication": {
+    "type": "nib-plugin"
+  },
+  "variable_sets": [
+    {
+      "name": "params",
+      "description": "Request parameters for testing",
+      "defaultValue": "default",
+      "activeValue": "default",
+      "values": {
+        "default": {
+          "delay": 2,
+          "status": 200,
+          "uuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "bytes": 1024
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "filePath": "/home/sam/code/github.com/samjwillis97/ai-testing/take-2/packages/cli/collections/HTTPBin API Collection.json",
+    "fileName": "HTTPBin API Collection.json"
+  },
+  "baseUrl": "https://httpbin.org"
+}

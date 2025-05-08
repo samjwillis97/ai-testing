@@ -162,6 +162,22 @@ export interface ConfigManager {
    * @returns The resolved absolute path to the collections directory
    */
   getCollectionPath(): string;
+  
+  /**
+   * Load collections from the configured path
+   * This scans the collections directory and loads all collections into the config
+   * The loaded collections are available in the config.collections.items array
+   * @returns A promise that resolves when all collections are loaded
+   */
+  loadCollections(force?: boolean): Promise<void>;
+  
+  /**
+   * Load a collection from a specific file path
+   * This loads a single collection file and adds it to the config
+   * @param filePath The path to the collection file
+   * @returns A promise that resolves when the collection is loaded
+   */
+  loadCollectionFromFile(filePath: string): Promise<void>;
 }
 
 // Used in some places for generic config objects

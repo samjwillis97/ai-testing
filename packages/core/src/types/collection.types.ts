@@ -32,6 +32,24 @@ export interface Collection {
   variableSetOverrides?: Record<string, string>;
   requests: Request[];
   authentication?: AuthConfig;
+  /**
+   * Metadata about the collection
+   * This is used internally by the system and not part of the user-facing API
+   */
+  metadata?: {
+    /**
+     * The file path where this collection was loaded from
+     */
+    filePath?: string;
+    /**
+     * The file name where this collection was loaded from
+     */
+    fileName?: string;
+    /**
+     * Any other metadata properties
+     */
+    [key: string]: unknown;
+  };
 }
 
 export interface ExecuteOptions {
