@@ -96,7 +96,7 @@ function extractArgumentInfo(command: Command): ArgumentInfo[] {
       choices?: unknown;
     }>;
   };
-  
+
   const registeredArgs = commandWithArgs.registeredArguments || [];
 
   return registeredArgs.map((arg) => {

@@ -84,21 +84,25 @@ export function generateBashCompletionScript(commands: CommandInfo[]): string {
     .join('\n');
 
   // Read the bash completion template
-  const templatePath = path.join(new URL('..', import.meta.url).pathname, 'templates', 'bash-completion.template.sh');
+  const templatePath = path.join(
+    new URL('..', import.meta.url).pathname,
+    'templates',
+    'bash-completion.template.sh'
+  );
   let template = fs.readFileSync(templatePath, 'utf-8');
-  
+
   // Replace placeholders with actual values
   template = template.replace('{{COMMAND_MAPPING}}', commandMappingBash);
   template = template.replace('{{OPTIONS_MAPPING}}', optionsMappingBash);
   template = template.replace('{{COMMAND_LIST}}', commandList);
-  
+
   return template;
 }
 
 /**
  * Helper function to generate Zsh option strings
  */
-function generateZshOptionsString(options: OptionInfo[]): string {
+function _generateZshOptionsString(options: OptionInfo[]): string {
   return options
     .filter((opt) => opt.long || opt.short)
     .map((opt) => {
@@ -117,11 +121,13 @@ export function generateZshCompletionScript(commands: CommandInfo[], isEvalMode 
   const commandDescriptions = commands
     .filter((cmd) => !cmd.isHidden)
     .map((cmd) => `"${cmd.name}:${cmd.description.replace(/"/g, '\\"')}"`);
-  
+
   // Format as a Zsh array initialization
   const commandDescriptionsStr = `commands=(
-    ${commandDescriptions.join(' \
-    ')}
+    ${commandDescriptions.join(
+      ' \
+    '
+    )}
   )`;
 
   // Create global options
@@ -137,8 +143,8 @@ export function generateZshCompletionScript(commands: CommandInfo[], isEvalMode 
     .map((cmd) => {
       // Get options for this command
       const options = cmd.options
-        .filter(opt => opt.long || opt.short)
-        .map(opt => {
+        .filter((opt) => opt.long || opt.short)
+        .map((opt) => {
           const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
           const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
           return `'${flag}[${desc}]'`;
@@ -148,23 +154,23 @@ export function generateZshCompletionScript(commands: CommandInfo[], isEvalMode 
       // Generate handler function for this command
       let handlerFunction = `# Handler for ${cmd.name} command
 _shc_${cmd.name.replace(/-/g, '_')}() {`;
-      
+
       // Generate dynamic completion handlers based on command structure
       // Check if this command has subcommands that need special handling
       if (cmd.subcommands.length > 0) {
         // Extract subcommand descriptions for dynamic completion
         const subcommandDescriptions = cmd.subcommands
-          .filter(subcmd => !subcmd.isHidden)
-          .map(subcmd => `"${subcmd.name}:${subcmd.description.replace(/"/g, '\\"')}"`)
+          .filter((subcmd) => !subcmd.isHidden)
+          .map((subcmd) => `"${subcmd.name}:${subcmd.description.replace(/"/g, '\\"')}"`)
           .join('\n      ');
 
         // Create a mapping of subcommand names to their options for dynamic completion
         const subcommandOptionsMapping = cmd.subcommands
-          .filter(subcmd => !subcmd.isHidden)
-          .map(subcmd => {
+          .filter((subcmd) => !subcmd.isHidden)
+          .map((subcmd) => {
             const subcmdOptions = subcmd.options
-              .filter(opt => opt.long || opt.short)
-              .map(opt => {
+              .filter((opt) => opt.long || opt.short)
+              .map((opt) => {
                 const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
                 const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
                 return `'${flag}[${desc}]'`;
@@ -201,52 +207,100 @@ ${subcommandOptionsMapping}
 
         return handlerFunction;
       }
-      
+
       // Special handling for commands that need dynamic completion from external sources
       if (cmd.name === 'collection') {
         // For collection command - dynamically fetch collections and requests
+        // Get the command's options and format them for ZSH completion
+        // Format options with proper escaping for ZSH completion
+        const formattedOptionParts: string[] = [];
+
+        cmd.options
+          .filter((opt) => opt.long || opt.short)
+          .forEach((opt) => {
+            const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
+            const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
+
+            // Handle options with values and special completions
+            let optionStr = '';
+            if (opt.long === 'config') {
+              optionStr = `'${flag}[${desc}]:config file:_files'`;
+            } else if (opt.long === 'collection-dir') {
+              optionStr = `'${flag}[${desc}]:directory:_files -/'`;
+            } else if (opt.long === 'output') {
+              optionStr = `'${flag}[${desc}]:format:(json yaml raw table)'`;
+            } else if (opt.takesValue) {
+              optionStr = `'${flag}[${desc}]:${opt.long}:'`;
+            } else {
+              optionStr = `'${flag}[${desc}]'`;
+            }
+
+            formattedOptionParts.push(optionStr);
+          });
+
+        // Format options for ZSH completion script with proper escaping
+        const optionsArray = formattedOptionParts.map((opt) => `      ${opt}`);
+        const optionsLines = optionsArray.join(' \\\n');
+
         const dynamicCompletionCode = `
-  # Handle collection completion
-  if [[ $CURRENT -eq 2 ]]; then
-    # Complete collection names
-    local -a collections
-    collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
-    _describe 'collections' collections
-  elif [[ $CURRENT -eq 3 ]]; then
-    # Complete request names for the specified collection
-    local -a requests
-    requests=(\${(f)"$(shc --get-requests $words[2] 2>/dev/null)"})
-    _describe 'requests' requests
-  else
-    # Complete options
-    _arguments ${options}
-  fi`;
-        
+  # First handle options which can appear at any position
+  local curcontext="$curcontext" state line ret=1
+  typeset -A opt_args
+  
+  # Define all options for this command
+  _arguments -C \
+${optionsLines} \
+    '1: :->collections' \
+    '2: :->requests' \
+    '*: :->args' && ret=0
+    
+  case $state in
+    collections)
+      # Complete collection names
+      local -a collections
+      collections=(\${(f)"$(shc --get-collections 2>/dev/null)"})
+      _describe 'collections' collections && ret=0
+      ;;
+    requests)
+      # Complete request names for the specified collection
+      local -a requests
+      requests=(\${(f)"$(shc --get-requests $words[2] 2>/dev/null)"})
+      _describe 'requests' requests && ret=0
+      ;;
+    args)
+      # Additional argument handling if needed
+      ;;
+  esac
+  
+  return ret`;
+
         // Create the handler function with dynamic completion
         handlerFunction = `# Handler for ${cmd.name} command
 _shc_${cmd.name.replace(/-/g, '_')}() {
   ${dynamicCompletionCode}
 }`;
-        
+
         return handlerFunction;
       }
 
       // Handle subcommands if any
       if (cmd.subcommands.length > 0) {
         const subcommandDescriptions = cmd.subcommands
-          .filter(subcmd => !subcmd.isHidden)
-          .map(subcmd => `"${subcmd.name}:${subcmd.description.replace(/"/g, '\\"')}"`);
+          .filter((subcmd) => !subcmd.isHidden)
+          .map((subcmd) => `"${subcmd.name}:${subcmd.description.replace(/"/g, '\\"')}"`);
 
         handlerFunction += `
   local -a subcmds
   subcmds=(
-    ${subcommandDescriptions.join(' \
-    ')}
+    ${subcommandDescriptions.join(
+      ' \
+    '
+    )}
   )
 
   _arguments -C \
     ${options ? options + ' \\' : ''}
-    "1: :{_describe \"${cmd.name} subcommand\" subcmds}" \
+    "1: :{_describe '${cmd.name} subcommand' subcmds}" \
     "*::subcmd:->subcmd-options"
 
   case $state in
@@ -255,10 +309,10 @@ _shc_${cmd.name.replace(/-/g, '_')}() {
       case $subcmd in`;
 
         // Add handler for each subcommand
-        cmd.subcommands.forEach(subcmd => {
+        cmd.subcommands.forEach((subcmd) => {
           const subcmdOptions = subcmd.options
-            .filter(opt => opt.long || opt.short)
-            .map(opt => {
+            .filter((opt) => opt.long || opt.short)
+            .map((opt) => {
               const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
               const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
               return `'${flag}[${desc}]'`;
@@ -292,42 +346,50 @@ _shc_${cmd.name.replace(/-/g, '_')}() {
 
   // Create options mapping for direct access
   const optionsMappingEntries: string[] = [];
-  
+
   // Add main command options
-  commands.forEach(cmd => {
+  commands.forEach((cmd) => {
     const options = cmd.options
-      .filter(opt => opt.long || opt.short)
-      .map(opt => {
+      .filter((opt) => opt.long || opt.short)
+      .map((opt) => {
         const flag = opt.long ? `--${opt.long}` : `-${opt.short}`;
         const desc = opt.description.replace(/"/g, '\\"').replace(/'/g, "''");
         return `'${flag}[${desc}]'`;
       })
       .join(' ');
-    
+
     if (options) {
-      optionsMappingEntries.push(`# ${cmd.name} options\n_shc_${cmd.name.replace(/-/g, '_')}_opts="${options}"`);
+      optionsMappingEntries.push(
+        `# ${cmd.name} options\n_shc_${cmd.name.replace(/-/g, '_')}_opts="${options}"`
+      );
     }
   });
-  
+
   const optionsMappingStr = optionsMappingEntries.join('\n');
 
   // Read the appropriate zsh completion template based on eval mode
-  const templateFileName = isEvalMode ? 'zsh-completion-eval.template.sh' : 'zsh-completion.template.sh';
-  const templatePath = path.join(new URL('..', import.meta.url).pathname, 'templates', templateFileName);
+  const templateFileName = isEvalMode
+    ? 'zsh-completion-eval.template.sh'
+    : 'zsh-completion.template.sh';
+  const templatePath = path.join(
+    new URL('..', import.meta.url).pathname,
+    'templates',
+    templateFileName
+  );
   let template = fs.readFileSync(templatePath, 'utf-8');
-  
+
   // Set eval mode for the standard template (not needed for eval-specific template)
   const evalMode = isEvalMode
     ? ''
     : '# If this completion file is loaded as a plugin, compdef will be available\n# If it is directly sourced, we need to explicitly call compdef\nif type compdef &>/dev/null; then\n  compdef _shc shc\nelse\n  autoload -U +X compinit && compinit\n  compdef _shc shc\nfi';
-  
+
   // Replace placeholders with actual values
   template = template.replace('{{COMMAND_DESCRIPTIONS}}', commandDescriptionsStr);
   template = template.replace('{{OPTIONS_MAPPING}}', optionsMappingStr);
   template = template.replace('{{GLOBAL_OPTIONS}}', globalOptions);
   template = template.replace('{{COMMAND_HANDLERS}}', commandHandlers);
   template = template.replace('{{EVAL_MODE}}', evalMode);
-  
+
   return template;
 }
 
@@ -345,13 +407,13 @@ export function generateFishCompletionScript(commands: CommandInfo[]): string {
   const commandCases = commands
     .map((cmd) => {
       if (cmd.subcommands.length === 0) return '';
-      
+
       const subcommands = cmd.subcommands
         .filter((subcmd) => !subcmd.isHidden)
         .map((subcmd) => subcmd.name)
         .join(' ');
-      
-      return `    case ${cmd.name}\n      echo "${subcommands}"`;  
+
+      return `    case ${cmd.name}\n      echo "${subcommands}"`;
     })
     .filter(Boolean)
     .join('\n');
@@ -372,11 +434,11 @@ export function generateFishCompletionScript(commands: CommandInfo[]): string {
             .map((opt) => (opt.long ? `--${opt.long}` : `-${opt.short}`))
             .join(' ');
 
-          return `    case "${cmd.name} ${subcmd.name}"\n      echo "${subOptions}"`;  
+          return `    case "${cmd.name} ${subcmd.name}"\n      echo "${subOptions}"`;
         })
         .join('\n');
 
-      return `    case ${cmd.name}\n      echo "${options}"\n${subcommandCases}`;  
+      return `    case ${cmd.name}\n      echo "${options}"\n${subcommandCases}`;
     })
     .join('\n');
 
@@ -391,7 +453,7 @@ export function generateFishCompletionScript(commands: CommandInfo[]): string {
 
   // Generate subcommand completions
   const subcommandCompletions = commands
-    .flatMap((cmd) => 
+    .flatMap((cmd) =>
       cmd.subcommands
         .filter((subcmd) => !subcmd.isHidden)
         .map((subcmd) => {
@@ -402,15 +464,19 @@ export function generateFishCompletionScript(commands: CommandInfo[]): string {
     .join('\n');
 
   // Read the fish completion template
-  const templatePath = path.join(new URL('..', import.meta.url).pathname, 'templates', 'fish-completion.template.sh');
+  const templatePath = path.join(
+    new URL('..', import.meta.url).pathname,
+    'templates',
+    'fish-completion.template.sh'
+  );
   let template = fs.readFileSync(templatePath, 'utf-8');
-  
+
   // Replace placeholders with actual values
   template = template.replace('{{COMMAND_LIST}}', commandList);
   template = template.replace('{{COMMAND_CASES}}', commandCases);
   template = template.replace('{{OPTION_CASES}}', optionCases);
   template = template.replace('{{COMMAND_COMPLETIONS}}', commandCompletions);
   template = template.replace('{{SUBCOMMAND_COMPLETIONS}}', subcommandCompletions);
-  
+
   return template;
 }

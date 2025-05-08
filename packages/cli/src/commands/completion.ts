@@ -36,7 +36,7 @@ export function addCompletionCommand(program: Command): void {
         // Set environment variable for eval mode if needed
         if (options.eval) {
           process.env.SHC_COMPLETION_EVAL_MODE = 'true';
-          
+
           // In eval mode, we want to output directly to stdout without any logger formatting
           const script = generateCompletionScript(shell as 'bash' | 'zsh' | 'fish');
           // Use process.stdout.write to avoid any additional newlines or formatting
@@ -90,8 +90,6 @@ export function addCompletionCommand(program: Command): void {
 
   // Hidden commands for tab completion
   program.command('--get-collections', { hidden: true }).action(async (options) => {
-    const logger = Logger.fromCommandOptions(options);
-
     try {
       const collections = await getCollectionsForCompletion(options);
       process.stdout.write(collections.join('\n'));
@@ -104,8 +102,6 @@ export function addCompletionCommand(program: Command): void {
     .command('--get-requests', { hidden: true })
     .argument('<collection>', 'Collection name')
     .action(async (collection, options) => {
-      const logger = Logger.fromCommandOptions(options);
-
       try {
         const requests = await getRequestsForCompletion(collection, options);
         process.stdout.write(requests.join('\n'));
