@@ -351,6 +351,7 @@ export class SHCClient implements ISHCClient {
 
     // Load collections from specific file paths
     if (config.collections?.paths && config.collections.paths.length > 0) {
+      console.log('Loading collections from paths:', config.collections.paths);
       for (const filePath of config.collections.paths) {
         try {
           if (
@@ -376,7 +377,7 @@ export class SHCClient implements ISHCClient {
           const errorMessage = error instanceof Error ? error.message : String(error);
           this.eventEmitter.emit(
             'error',
-            new Error(`Failed to load collection from ${filePath}: ${errorMessage}`)
+            new Error(`Failed to load collection from path ${filePath}: ${errorMessage}`)
           );
         }
       }
@@ -426,7 +427,7 @@ export class SHCClient implements ISHCClient {
               const errorMessage = error instanceof Error ? error.message : String(error);
               this.eventEmitter.emit(
                 'error',
-                new Error(`Failed to load collection from ${file}: ${errorMessage}`)
+                new Error(`Failed to load collection from JSON ${file}: ${errorMessage}`)
               );
             }
           }

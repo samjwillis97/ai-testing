@@ -11,6 +11,7 @@ import {
   generateZshCompletionScript as generateDynamicZshCompletionScript,
   generateFishCompletionScript as generateDynamicFishCompletionScript,
 } from './completion-generators.js';
+import { createSilentLogger } from './logger.js';
 
 // Store the program instance for introspection
 let programInstance: Command | null = null;
@@ -429,7 +430,7 @@ export async function getCollectionsForCompletion(
 ): Promise<string[]> {
   try {
     const collectionDir = await getCollectionDir(options);
-    return await getCollections(collectionDir);
+    return await getCollections(collectionDir, createSilentLogger().logger);
   } catch (error) {
     return [];
   }
@@ -444,7 +445,7 @@ export async function getRequestsForCompletion(
 ): Promise<string[]> {
   try {
     const collectionDir = await getCollectionDir(options);
-    const requests = await getRequests(collectionDir, collectionName);
+    const requests = await getRequests(collectionDir, collectionName, createSilentLogger().logger);
     // Return just the request IDs for completion
     return requests.map((req) => req.id);
   } catch (error) {

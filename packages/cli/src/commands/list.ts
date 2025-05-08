@@ -80,7 +80,7 @@ async function listCollections(
   logger.info(chalk.gray(`Loading collections from ${collectionDir}...`));
 
   try {
-    const collections = await getCollections(collectionDir);
+    const collections = await getCollections(collectionDir, logger);
     logger.info(chalk.green('Collections loaded successfully'));
 
     if (collections.length === 0) {
@@ -115,7 +115,7 @@ async function listRequests(
   logger.info(chalk.gray(`Loading requests for collection '${collectionName}'...`));
 
   try {
-    const requests = await getRequests(collectionDir, collectionName);
+    const requests = await getRequests(collectionDir, collectionName, logger);
     logger.info(chalk.green(`Requests for collection '${collectionName}' loaded successfully`));
 
     if (requests.length === 0) {

@@ -317,3 +317,33 @@ export function createTestLogger(): {
     },
   };
 }
+
+/**
+ * Create a silent logger that doesn't output anything
+ * Useful for tests where you want to suppress all logging
+ * @returns A logger with suppressed output and dummy methods
+ */
+export function createSilentLogger(): {
+  logger: Logger;
+  getOutput: () => string;
+  clearOutput: () => void;
+} {
+  // Create a writable stream that discards all input
+  const writable = new Writable({
+    write: (chunk, encoding, callback) => {
+      callback();
+    }
+  });
+
+  const logger = Logger.createTestInstance({
+    output: writable as unknown as NodeJS.WriteStream,
+    errorOutput: writable as unknown as NodeJS.WriteStream,
+    color: false,
+  });
+
+  return {
+    logger,
+    getOutput: () => "",
+    clearOutput: () => {}
+  };
+}

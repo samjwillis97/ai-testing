@@ -407,7 +407,7 @@ export class ConfigManagerImpl implements IConfigManager {
       await this.loadCollectionsFromDirectory(collectionsPath);
     } catch (error) {
       // Rethrow the error to be handled by the caller
-      throw new Error(`Failed to load collection from ${this.getCollectionPath()}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to load collection from path ${this.getCollectionPath()}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   

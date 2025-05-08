@@ -131,9 +131,6 @@
   ],
   "description": "Collection for testing HTTP requests using HTTPBin",
   "base_url": "https://httpbin.org",
-  "authentication": {
-    "type": "nib-plugin"
-  },
   "variable_sets": [
     {
       "name": "params",
@@ -150,8 +147,12 @@
       }
     }
   ],
+  "authentication": {
+    "type": "bearer",
+    "token": "${variables.auth.token}"
+  },
   "metadata": {
-    "filePath": "/home/sam/code/github.com/samjwillis97/ai-testing/take-2/packages/cli/collections/HTTPBin API Collection.json",
+    "filePath": "/Users/sam/code/github.com/samjwillis97/ai-testing/main/packages/cli/collections/HTTPBin API Collection.json",
     "fileName": "HTTPBin API Collection.json"
   },
   "baseUrl": "https://httpbin.org"

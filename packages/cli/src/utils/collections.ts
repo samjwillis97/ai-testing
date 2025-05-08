@@ -85,9 +85,9 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  */
 export async function getConfigWithCollections(
   collectionDir: string,
-  logger?: Logger
+  logger: Logger
 ): Promise<ConfigManager> {
-  if (logger) logger.debug(`Getting config with collections from: ${collectionDir}`);
+  logger.debug(`Getting config with collections from: ${collectionDir}`);
   
   // Get the config manager instance
   const configManager = await getConfigManager();
@@ -96,7 +96,7 @@ export async function getConfigWithCollections(
   try {
     const stats = await fs.stat(collectionDir);
     if (!stats.isDirectory()) {
-      if (logger) logger.error(`Collection path is not a directory: ${collectionDir}`);
+      logger.error(`Collection path is not a directory: ${collectionDir}`);
       throw new Error(`Collection path is not a directory: ${collectionDir}`);
     }
     
@@ -106,31 +106,31 @@ export async function getConfigWithCollections(
       file.endsWith('.json') || file.endsWith('.yaml') || file.endsWith('.yml')
     );
     
-    if (logger) logger.debug(`Found ${collectionFiles.length} collection files in ${collectionDir}: ${collectionFiles.join(', ')}`);
+    logger.debug(`Found ${collectionFiles.length} collection files in ${collectionDir}: ${collectionFiles.join(', ')}`);
     
     // Load each collection file individually using the new loadCollectionFromFile method
     for (const file of collectionFiles) {
       try {
         const filePath = path.join(collectionDir, file);
-        if (logger) logger.debug(`Loading collection file: ${filePath}`);
+        logger.debug(`Loading collection file: ${filePath}`);
         
         // Check if the file is a regular file
         const fileStats = await fs.stat(filePath);
         if (!fileStats.isFile()) {
-          if (logger) logger.debug(`Skipping non-file: ${filePath}`);
+          logger.debug(`Skipping non-file: ${filePath}`);
           continue;
         }
         
         // Load the collection file directly
         await configManager.loadCollectionFromFile(filePath);
-        if (logger) logger.debug(`Successfully loaded collection from file: ${filePath}`);
+        logger.debug(`Successfully loaded collection from file: ${filePath}`);
       } catch (error) {
-        if (logger) logger.warn(`Failed to load collection file ${file}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.warn(`Failed to load collection file ${file}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other files even if one fails
       }
     }
   } catch (error) {
-    if (logger) logger.error(`Failed to get ConfigManager with collections: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(`Failed to get ConfigManager with collections: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
   
@@ -146,7 +146,7 @@ export async function getConfigWithCollections(
  */
 export async function getCollections(
   collectionDir: string,
-  logger?: Logger
+  logger: Logger
 ): Promise<string[]> {
   try {
     // Get the config manager with collections loaded
@@ -158,9 +158,7 @@ export async function getCollections(
     // Return collection names
     return collections.map((c: Collection) => c.name);
   } catch (error) {
-    if (logger) {
-      logger.error(`Failed to get collections: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    logger.error(`Failed to get collections: ${error instanceof Error ? error.message : String(error)}`);
     // Return an empty array instead of throwing to make the API more resilient
     return [];
   }
@@ -176,7 +174,7 @@ export async function getCollections(
 export async function getRequests(
   collectionDir: string,
   collectionName: string,
-  logger?: Logger
+  logger: Logger
 ): Promise<RequestInfo[]> {
   try {
     // Create a cache key for this collection
@@ -246,7 +244,7 @@ export async function getRequest(
   collectionDir: string,
   collectionName: string,
   requestName: string,
-  logger?: Logger
+  logger: Logger
 ): Promise<RequestOptions> {
   try {
     // Get the config manager with collections loaded
@@ -259,9 +257,7 @@ export async function getRequest(
     const collection = findCollection(collections, collectionName);
     if (!collection) {
       const error = new Error(`Collection '${collectionName}' not found`);
-      if (logger) {
-        logger.error(error.message);
-      }
+      logger.error(error.message);
       throw error;
     }
 
@@ -269,9 +265,7 @@ export async function getRequest(
     const request = findRequest(collection, requestName);
     if (!request) {
       const error = new Error(`Request '${requestName}' not found in collection '${collection.name}'`);
-      if (logger) {
-        logger.error(error.message);
-      }
+      logger.error(error.message);
       throw error;
     }
 
@@ -290,29 +284,21 @@ export async function getRequest(
     };
     
     // Log the baseUrl for debugging
-    if (logger) {
-      logger.debug(`Request baseUrl: ${requestOptions.baseUrl || 'not set'}`);
-    }
+    logger.debug(`Request baseUrl: ${requestOptions.baseUrl || 'not set'}`);
     
     // Ensure we have a baseUrl or a full URL in the path
     if (!requestOptions.baseUrl && requestOptions.path && !requestOptions.path.startsWith('http')) {
-      if (logger) {
-        logger.warn('No baseUrl found in collection, checking for default baseUrl');
-      }
+      logger.warn('No baseUrl found in collection, checking for default baseUrl');
       
       // Try to get a default baseUrl from the config
       const defaultBaseUrl = configManager.get('core.http.default_base_url');
       if (defaultBaseUrl) {
         requestOptions.baseUrl = defaultBaseUrl as string;
-        if (logger) {
-          logger.debug(`Using default baseUrl: ${defaultBaseUrl}`);
-        }
+        logger.debug(`Using default baseUrl: ${defaultBaseUrl}`);
       } else if (request.url) {
         // If there's a url property, use that instead of path
         requestOptions.path = request.url;
-        if (logger) {
-          logger.debug(`Using request.url: ${request.url}`);
-        }
+        logger.debug(`Using request.url: ${request.url}`);
       }
     }
 
@@ -353,9 +339,7 @@ export async function getRequest(
     
     return requestOptions;
   } catch (error) {
-    if (logger) {
-      logger.error(`Failed to get request: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    logger.error(`Failed to get request: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -374,7 +358,7 @@ export async function executeRequest(
   collectionName: string,
   requestName: string,
   options: ExecuteOptions = {},
-  logger?: Logger
+  logger: Logger
 ): Promise<Response<unknown>> {
   try {
     // Get the request options directly without relying on the core package's loadCollections
@@ -383,12 +367,10 @@ export async function executeRequest(
     // Create a config manager instance without loading collections
     const configManager = await getConfigManager();
     
-    if (logger) {
-      const url = requestOptions.baseUrl 
-        ? `${requestOptions.baseUrl}${requestOptions.path}` 
-        : requestOptions.path;
-      logger.info(`Executing ${requestOptions.method} request to: ${url}`);
-    }
+    const url = requestOptions.baseUrl 
+      ? `${requestOptions.baseUrl}${requestOptions.path}` 
+      : requestOptions.path;
+    logger.info(`Executing ${requestOptions.method} request to: ${url}`);
     
     // Create a client instance with a custom event handler to prevent collection loading errors
     const client = SHCClient.create(configManager, {
@@ -396,14 +378,14 @@ export async function executeRequest(
         {
           event: 'error',
           handler: (error: unknown) => {
-            // Suppress collection loading errors
+            // // Suppress collection loading errors
             const errorStr = String(error);
-            if (errorStr.includes('Failed to load collections') || errorStr.includes('EISDIR')) {
-              if (logger) logger.debug('Suppressed collection loading error');
-              return;
-            }
-            // Log other errors
-            if (logger) logger.error(`Client error: ${errorStr}`);
+            // if (errorStr.includes('Failed to load collections') || errorStr.includes('EISDIR')) {
+            //   logger.debug('Suppressed collection loading error');
+            //   return;
+            // }
+            // // Log other errors
+            logger.error(`Client error: ${errorStr}`);
           }
         }
       ]
@@ -420,9 +402,7 @@ export async function executeRequest(
     return client.request(mergedOptions);
   } catch (error) {
     const errorMessage = `Failed to execute request: ${error instanceof Error ? error.message : String(error)}`;
-    if (logger) {
-      logger.error(errorMessage);
-    }
+    logger.error(errorMessage);
     throw new Error(errorMessage);
   }
 }

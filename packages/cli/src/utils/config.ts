@@ -37,16 +37,19 @@ const loadedCollectionPaths = new Map<string, LoadedCollectionInfo>();
 export async function getConfigManager(options?: Record<string, unknown>): Promise<ConfigManager> {
   // If we already have a fully initialized instance and no new options, return it immediately
   if (configManagerInitialized && configManagerInstance && !options) {
+    Logger.getInstance().debug('Returning cached ConfigManager instance');
     return configManagerInstance;
   }
   
   // If initialization is in progress, return the pending promise to avoid duplicate work
   if (configManagerInitializing && pendingInitPromise) {
+    Logger.getInstance().debug('Waiting for ConfigManager initialization');
     return pendingInitPromise;
   }
   
   // Start initialization
   configManagerInitializing = true;
+  Logger.getInstance().debug('Initializing ConfigManager');
   
   // Create a new promise for initialization
   pendingInitPromise = (async () => {
