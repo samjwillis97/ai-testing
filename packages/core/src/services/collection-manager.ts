@@ -456,6 +456,8 @@ export class CollectionManagerImpl implements ICollectionManager {
       query: resolvedRequest.query,
       body: resolvedRequest.body,
       timeout: options?.timeout,
+      // Add authentication - prefer request-level auth over collection-level auth
+      authentication: resolvedRequest.authentication || collection.authentication,
     };
 
     return requestConfig;

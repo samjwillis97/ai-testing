@@ -351,6 +351,130 @@ describe('CollectionManager', () => {
         timeout: 10000,
       });
     });
+    
+    it('should transfer collection-level authentication to request config', async () => {
+      // Create a collection with authentication
+      const authCollection = {
+        ...mockCollection,
+        authentication: {
+          type: 'bearer',
+          token: 'collection-token',
+        },
+      };
+      
+      // Mock the readFile to return our auth collection
+      (fs.readFile as any).mockImplementation((filePath: string) => {
+        if (filePath.includes('auth-collection')) {
+          return Promise.resolve(JSON.stringify(authCollection));
+        }
+        return Promise.reject(new Error('File not found'));
+      });
+      
+      // Load the collection with authentication
+      await collectionManager.loadCollection('./test-collections/auth-collection.json');
+      
+      // Execute the request
+      await collectionManager.executeRequest('auth-collection', 'get-user-profile');
+      
+      // Check that the authentication was included in the request config
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authentication: {
+            type: 'bearer',
+            token: 'collection-token',
+          },
+        })
+      );
+    });
+    
+    it('should prefer request-level authentication over collection-level authentication', async () => {
+      // Create a collection with authentication
+      const authCollection = {
+        ...mockCollection,
+        authentication: {
+          type: 'bearer',
+          token: 'collection-token',
+        },
+        // Add a request with its own authentication
+        requests: [
+          {
+            ...mockCollection.requests[0],
+            authentication: {
+              type: 'basic',
+              username: 'user',
+              password: 'pass',
+            },
+          },
+        ],
+      };
+      
+      // Mock the readFile to return our auth collection
+      (fs.readFile as any).mockImplementation((filePath: string) => {
+        if (filePath.includes('auth-collection')) {
+          return Promise.resolve(JSON.stringify(authCollection));
+        }
+        return Promise.reject(new Error('File not found'));
+      });
+      
+      // Load the collection with authentication
+      await collectionManager.loadCollection('./test-collections/auth-collection.json');
+      
+      // Execute the request
+      await collectionManager.executeRequest('auth-collection', 'get-user-profile');
+      
+      // Check that the request-level authentication was used instead of collection-level
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authentication: {
+            type: 'basic',
+            username: 'user',
+            password: 'pass',
+          },
+        })
+      );
+    });
+    
+    it('should handle requests with no authentication when collection has authentication', async () => {
+      // Create a collection with authentication but a request without auth
+      const authCollection = {
+        ...mockCollection,
+        authentication: {
+          type: 'bearer',
+          token: 'collection-token',
+        },
+        // Ensure the request doesn't have authentication
+        requests: [
+          {
+            ...mockCollection.requests[0],
+            authentication: undefined,
+          },
+        ],
+      };
+      
+      // Mock the readFile to return our auth collection
+      (fs.readFile as any).mockImplementation((filePath: string) => {
+        if (filePath.includes('auth-collection')) {
+          return Promise.resolve(JSON.stringify(authCollection));
+        }
+        return Promise.reject(new Error('File not found'));
+      });
+      
+      // Load the collection with authentication
+      await collectionManager.loadCollection('./test-collections/auth-collection.json');
+      
+      // Execute the request
+      await collectionManager.executeRequest('auth-collection', 'get-user-profile');
+      
+      // Check that the collection-level authentication was used
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authentication: {
+            type: 'bearer',
+            token: 'collection-token',
+          },
+        })
+      );
+    });
   });
 
   describe('Variable resolution and template handling', () => {

@@ -15,6 +15,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
 - [x] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
 - [x] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
+- [x] Fix authentication transfer from collections to requests (see tasks/fix-collection-authentication-transfer.md)
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
