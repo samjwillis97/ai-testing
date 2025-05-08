@@ -83,7 +83,7 @@ export class ConfigManagerImpl implements IConfigManager {
     
     // Initialize collections property
     if (!this.config.collections) {
-      this.config.collections = { items: [], paths: [] };
+      this.config.collections = { items: [], files: [], directories: [] };
     }
   }
 
@@ -369,16 +369,13 @@ export class ConfigManagerImpl implements IConfigManager {
         }
       }
       
-      // Store the collection paths in the config
-      if (!this.config.collections.paths) {
-        this.config.collections.paths = [];
+      // Store the collection directory in the config
+      if (!this.config.collections.directories) {
+        this.config.collections.directories = [];
       }
-      if (!this.config.collections.paths.includes(directoryPath)) {
-        this.config.collections.paths.push(directoryPath);
+      if (!this.config.collections.directories.includes(directoryPath)) {
+        this.config.collections.directories.push(directoryPath);
       }
-      
-      // Update the directory in the config
-      this.config.collections.directory = directoryPath;
       
       // Emit event with loaded collections
       if (loadedCollections.length > 0) {
@@ -485,13 +482,21 @@ export class ConfigManagerImpl implements IConfigManager {
           this.config.collections.items.push(collection);
         }
         
-        // Store the collection path in the config
-        const collectionDir = path.dirname(filePath);
-        if (!this.config.collections.paths) {
-          this.config.collections.paths = [];
+        // Store the collection file path in the config
+        if (!this.config.collections.files) {
+          this.config.collections.files = [];
         }
-        if (!this.config.collections.paths.includes(collectionDir)) {
-          this.config.collections.paths.push(collectionDir);
+        if (!this.config.collections.files.includes(filePath)) {
+          this.config.collections.files.push(filePath);
+        }
+        
+        // Also track the directory for reference
+        const collectionDir = path.dirname(filePath);
+        if (!this.config.collections.directories) {
+          this.config.collections.directories = [];
+        }
+        if (!this.config.collections.directories.includes(collectionDir)) {
+          this.config.collections.directories.push(collectionDir);
         }
         
         // Emit event for the loaded collection

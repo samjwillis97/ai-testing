@@ -60,6 +60,7 @@ export interface ExecuteOptions {
 export interface CollectionManager {
   // Collection operations
   loadCollection(path: string): Promise<Collection>;
+  loadCollectionsFromDirectory(directoryPath: string): Promise<string[]>;
   saveCollection(collection: Collection): Promise<void>;
   createCollection(name: string, config?: Partial<Collection>): Promise<Collection>;
   deleteCollection(name: string): Promise<void>;

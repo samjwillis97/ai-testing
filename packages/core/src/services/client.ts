@@ -8,8 +8,6 @@ import { createPluginManager } from './plugin-manager';
 import { createCollectionManager } from './collection-manager';
 import { ConfigManagerImpl } from '../config-manager';
 import { ConfigManager } from '../types/config.types';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 // Type extensions for plugin error handling
 declare module 'axios' {
@@ -350,9 +348,9 @@ export class SHCClient implements ISHCClient {
     }
 
     // Load collections from specific file paths
-    if (config.collections?.paths && config.collections.paths.length > 0) {
-      console.log('Loading collections from paths:', config.collections.paths);
-      for (const filePath of config.collections.paths) {
+    if (config.collections?.files && config.collections.files.length > 0) {
+      console.log('Loading collections from files:', config.collections.files);
+      for (const filePath of config.collections.files) {
         try {
           if (
             typeof this.collectionManager === 'object' &&
@@ -377,69 +375,46 @@ export class SHCClient implements ISHCClient {
           const errorMessage = error instanceof Error ? error.message : String(error);
           this.eventEmitter.emit(
             'error',
-            new Error(`Failed to load collection from path ${filePath}: ${errorMessage}`)
+            new Error(`Failed to load collection from file ${filePath}: ${errorMessage}`)
           );
         }
       }
     }
 
-    // Load collections from directory
-    if (config.collections?.directory) {
-      try {
-        const directoryPath = config.collections.directory;
-
-        // Check if directory exists
+    // Load collections from directories
+    if (config.collections?.directories && config.collections.directories.length > 0) {
+      console.log('Loading collections from directories:', config.collections.directories);
+      for (const directoryPath of config.collections.directories) {
         try {
-          await fs.access(directoryPath);
-        } catch {
-          // Create directory if it doesn't exist
-          await fs.mkdir(directoryPath, { recursive: true });
-        }
-
-        // Read all files in the directory
-        const files = await fs.readdir(directoryPath);
-
-        // Load each JSON file as a collection
-        for (const file of files) {
-          if (file.endsWith('.json')) {
-            try {
-              const filePath = path.join(directoryPath, file);
-              if (
-                typeof this.collectionManager === 'object' &&
-                this.collectionManager !== null &&
-                'loadCollection' in this.collectionManager &&
-                typeof (
-                  this.collectionManager as {
-                    loadCollection: (filePath: string) => Promise<{ name: string }>;
-                  }
-                ).loadCollection === 'function'
-              ) {
-                const collection = await (
-                  this.collectionManager as {
-                    loadCollection: (filePath: string) => Promise<{ name: string }>;
-                  }
-                ).loadCollection(filePath);
-                this.eventEmitter.emit('collection:loaded', collection.name);
-              } else {
-                throw new Error('Collection manager does not support loadCollection');
+          if (
+            typeof this.collectionManager === 'object' &&
+            this.collectionManager !== null &&
+            'loadCollectionsFromDirectory' in this.collectionManager &&
+            typeof (
+              this.collectionManager as {
+                loadCollectionsFromDirectory: (directoryPath: string) => Promise<string[]>;
               }
-            } catch (error: unknown) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              this.eventEmitter.emit(
-                'error',
-                new Error(`Failed to load collection from JSON ${file}: ${errorMessage}`)
-              );
+            ).loadCollectionsFromDirectory === 'function'
+          ) {
+            const collectionNames = await (
+              this.collectionManager as {
+                loadCollectionsFromDirectory: (directoryPath: string) => Promise<string[]>;
+              }
+            ).loadCollectionsFromDirectory(directoryPath);
+            
+            for (const name of collectionNames) {
+              this.eventEmitter.emit('collection:loaded', name);
             }
+          } else {
+            throw new Error('Collection manager does not support loadCollectionsFromDirectory');
           }
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.eventEmitter.emit(
+            'error',
+            new Error(`Failed to load collections from directory ${directoryPath}: ${errorMessage}`)
+          );
         }
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.eventEmitter.emit(
-          'error',
-          new Error(
-            `Failed to load collections from directory ${config.collections.directory}: ${errorMessage}`
-          )
-        );
       }
     }
   }

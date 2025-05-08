@@ -58,6 +58,66 @@ export class CollectionManagerImpl implements ICollectionManager {
   }
 
   /**
+   * Load all collections from a directory
+   * @param directoryPath Path to the directory containing collection files
+   * @returns Array of loaded collection names
+   */
+  async loadCollectionsFromDirectory(directoryPath: string): Promise<string[]> {
+    try {
+      // Ensure the directory exists
+      try {
+        await fs.access(directoryPath);
+      } catch (error) {
+        // Create the directory if it doesn't exist
+        await fs.mkdir(directoryPath, { recursive: true });
+        return []; // No collections to load yet
+      }
+      
+      // Check if the path is a directory
+      const stats = await fs.stat(directoryPath);
+      if (!stats.isDirectory()) {
+        throw new Error(`Collection path is not a directory: ${directoryPath}`);
+      }
+      
+      // Read all files in the directory
+      const files = await fs.readdir(directoryPath);
+      
+      // Filter for collection files (JSON, YAML, YML files)
+      const collectionFiles = files.filter(file => 
+        file.endsWith('.json') || file.endsWith('.yaml') || file.endsWith('.yml')
+      );
+      
+      const loadedCollections: string[] = [];
+      
+      // Load each collection file
+      for (const file of collectionFiles) {
+        try {
+          const filePath = path.join(directoryPath, file);
+          
+          // Check if the file is a regular file
+          const fileStats = await fs.stat(filePath);
+          if (!fileStats.isFile()) {
+            continue;
+          }
+          
+          // Load the collection
+          const collection = await this.loadCollection(filePath);
+          loadedCollections.push(collection.name);
+        } catch (error) {
+          // Continue with other collections even if one fails
+          console.error(`Failed to load collection file ${file}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+      
+      return loadedCollections;
+    } catch (error) {
+      throw new Error(
+        `Failed to load collections from directory ${directoryPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
    * Save a collection to a file
    */
   async saveCollection(collection: Collection): Promise<void> {

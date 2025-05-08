@@ -75,10 +75,22 @@ export interface SHCConfig {
       autoload?: boolean;
     };
   };
+  /**
+   * Collections configuration
+   */
   collections?: {
+    /**
+     * Collection items loaded directly into memory
+     */
     items?: Collection[];
-    paths?: string[];
-    directory?: string;
+    /**
+     * Paths to individual collection files
+     */
+    files?: string[];
+    /**
+     * Paths to directories containing collection files
+     */
+    directories?: string[];
   };
   cli?: {
     plugins?: {

@@ -205,14 +205,11 @@ async function manuallyLoadCollections(
       }
     }
     
-    // Store the collection paths in the config
-    config.collections.paths = config.collections.paths || [];
-    if (!config.collections.paths.includes(collectionDir)) {
-      config.collections.paths.push(collectionDir);
+    // Store the collection directory in the config
+    config.collections.directories = config.collections.directories || [];
+    if (!config.collections.directories.includes(collectionDir)) {
+      config.collections.directories.push(collectionDir);
     }
-    
-    // Update the directory in the config
-    config.collections.directory = collectionDir;
     
     // Update the configManager's config
     (configManager as any).config = config;
@@ -248,8 +245,11 @@ export async function ensureCollectionsLoaded(
   
   if (logger) logger.debug(`Loading collections from path: ${normalizedPath}`);
   
-  // Set the collection path in the config
-  configManager.set('collections.directory', normalizedPath);
+  // Add the collection path to the directories array
+  const currentDirectories = configManager.get<string[]>('collections.directories', []);
+  if (!currentDirectories.includes(normalizedPath)) {
+    configManager.set('collections.directories', [...currentDirectories, normalizedPath]);
+  }
   
   try {
     // Always use our manual loading method to avoid EISDIR errors
@@ -437,10 +437,11 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
   
   // If no local collections, use the ConfigManager to get the configured path
   const configManager = await getConfigManager(options);
-  const configCollectionDir = configManager.get<string>('collections.directory', '');
+  const configDirectories = configManager.get<string[]>('collections.directories', []);
   
-  if (configCollectionDir) {
-    return configCollectionDir;
+  if (configDirectories && configDirectories.length > 0) {
+    // Use the first directory in the array
+    return configDirectories[0];
   }
   
   // Fall back to default path in user's home directory
