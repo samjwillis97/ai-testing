@@ -37,7 +37,6 @@ export function addDirectCommand(program: Command): void {
     .option('-u, --auth <auth>', 'Authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
-    .option('-v, --verbose', 'Verbose output')
 
     .option(
       '--quiet',
@@ -78,7 +77,6 @@ function addHttpMethodCommand(
     .option('-u, --auth <auth>', 'Authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
-    .option('-v, --verbose', 'Verbose output')
 
     .option(
       '--quiet',

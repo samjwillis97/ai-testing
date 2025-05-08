@@ -18,8 +18,6 @@ export function addListCommand(program: Command): void {
     .description('List all collections')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
-    .option('-v, --verbose', 'Enable verbose output')
-    .option('-q, --quiet', 'Quiet mode - output only the essential data')
     .action(async (options: Record<string, unknown>) => {
       try {
         // Create config manager from options
@@ -47,8 +45,6 @@ export function addListCommand(program: Command): void {
     .description('List all requests in a collection')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
-    .option('-v, --verbose', 'Enable verbose output')
-    .option('-q, --quiet', 'Quiet mode - output only the essential data')
     .action(async (collection: string, options: Record<string, unknown>) => {
       try {
         // Create config manager from options

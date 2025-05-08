@@ -34,11 +34,6 @@ export function addCollectionCommand(program: Command): void {
     .option('-d, --data <data>', 'Override request body')
     .option('-u, --auth <auth>', 'Override authentication (format: type:credentials)')
     .option('-t, --timeout <ms>', 'Request timeout in milliseconds')
-    .option('-v, --verbose', 'Enable verbose output')
-    .option(
-      '-q, --quiet',
-      'Quiet mode - output only the response data without any formatting or decorations'
-    )
     .option(
       '--var-set <namespace>=<value>',
       'Override variable set for this request (i.e. --var-set api=production)',

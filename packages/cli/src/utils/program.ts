@@ -89,6 +89,8 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
     .description('SHC Command Line Interface')
     .version('0.1.0')
     .option('-c, --config <PATH>', 'Config file path')
+    .option('-v, --verbose', 'Enable verbose output')
+    .option('-q, --quiet', 'Quiet mode - output only the essential data')
     .option(
       '-V, --set <key>=<value>',
       'Set config value, (i.e. --set storage.collections.path="./collections")',
