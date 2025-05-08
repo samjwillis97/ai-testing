@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { getCollections, getRequests } from '../utils/collections.js';
 import { createConfigManagerFromOptions } from '../utils/config.js';
 import { Logger } from '../utils/logger.js';
+import { Console } from '../utils/console.js';
 
 /**
  * Add list command to program
@@ -17,6 +18,8 @@ export function addListCommand(program: Command): void {
     .description('List all collections')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
+    .option('-v, --verbose', 'Enable verbose output')
+    .option('-q, --quiet', 'Quiet mode - output only the essential data')
     .action(async (options: Record<string, unknown>) => {
       try {
         // Create config manager from options
@@ -44,6 +47,8 @@ export function addListCommand(program: Command): void {
     .description('List all requests in a collection')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
+    .option('-v, --verbose', 'Enable verbose output')
+    .option('-q, --quiet', 'Quiet mode - output only the essential data')
     .action(async (collection: string, options: Record<string, unknown>) => {
       try {
         // Create config manager from options
@@ -73,6 +78,9 @@ async function listCollections(
   options: Record<string, unknown>
 ): Promise<void> {
   const logger = Logger.fromCommandOptions(options);
+  const console = Console.fromCommandOptions(options);
+  
+  // Log detailed information only in verbose mode
   logger.info(chalk.gray(`Loading collections from ${collectionDir}...`));
 
   try {
@@ -80,21 +88,17 @@ async function listCollections(
     logger.info(chalk.green('Collections loaded successfully'));
 
     if (collections.length === 0) {
-      logger.info(chalk.yellow('No collections found.'));
+      console.print(chalk.yellow('No collections found.'));
       logger.info(chalk.gray(`Collection directory: ${collectionDir}`));
       return;
     }
 
-    logger.info(chalk.bold('\nAvailable collections:'));
-    collections.forEach((collection, index) => {
-      logger.info(`${chalk.cyan(`${index + 1}.`)} ${collection}`);
-    });
-    logger.info(''); // Empty line for spacing
+    // Use the console utility for direct user-facing output
+    console.printList('Available collections:', collections);
   } catch (error) {
-    logger.error(
-      chalk.red(
-        `Failed to load collections: ${error instanceof Error ? error.message : String(error)}`
-      )
+    // Always show errors
+    console.error(
+      `Failed to load collections: ${error instanceof Error ? error.message : String(error)}`
     );
     throw error;
   }
@@ -109,6 +113,9 @@ async function listRequests(
   options: Record<string, unknown>
 ): Promise<void> {
   const logger = Logger.fromCommandOptions(options);
+  const console = Console.fromCommandOptions(options);
+  
+  // Log detailed information only in verbose mode
   logger.info(chalk.gray(`Loading requests for collection '${collectionName}'...`));
 
   try {
@@ -116,56 +123,60 @@ async function listRequests(
     logger.info(chalk.green(`Requests for collection '${collectionName}' loaded successfully`));
 
     if (requests.length === 0) {
-      logger.info(chalk.yellow(`No requests found in collection '${collectionName}'.`));
+      console.print(chalk.yellow(`No requests found in collection '${collectionName}'.`));
       return;
     }
 
-    logger.info(chalk.bold(`\nRequests in collection '${collectionName}':`));
+    // Use direct console output for user-facing content
+    const title = `Requests in collection '${collectionName}':`;
 
     // Calculate column widths for better formatting
     const idWidth = Math.max(...requests.map((r) => r.id?.length || 0), 2) + 2;
     const nameWidth = Math.max(...requests.map((r) => r.name?.length || 0), 4) + 2;
-
-    // Print top of table
-    logger.info(
+    
+    // Build table as a string
+    let tableOutput = '';
+    
+    // Add top of table
+    tableOutput += 
       chalk.dim('┌─') +
-        chalk.dim('─'.repeat(3)) +
-        chalk.dim('─┬─') +
-        chalk.dim('─'.repeat(idWidth)) +
-        chalk.dim('─┬─') +
-        chalk.dim('─'.repeat(nameWidth)) +
-        chalk.dim('─┬─') +
-        chalk.dim('─'.repeat(8)) +
-        chalk.dim('─┐')
-    );
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┬─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┐') + 
+      '\n';
 
-    // Print header
-    logger.info(
+    // Add header
+    tableOutput += 
       chalk.dim('│ ') +
-        chalk.cyan(chalk.bold('#'.padEnd(3))) +
-        chalk.dim(' │ ') +
-        chalk.cyan(chalk.bold('ID'.padEnd(idWidth))) +
-        chalk.dim(' │ ') +
-        chalk.cyan(chalk.bold('NAME'.padEnd(nameWidth))) +
-        chalk.dim(' │ ') +
-        chalk.cyan(chalk.bold('METHOD'.padEnd(8))) +
-        chalk.dim(' │')
-    );
+      chalk.cyan(chalk.bold('#'.padEnd(3))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('ID'.padEnd(idWidth))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('NAME'.padEnd(nameWidth))) +
+      chalk.dim(' │ ') +
+      chalk.cyan(chalk.bold('METHOD'.padEnd(8))) +
+      chalk.dim(' │') +
+      '\n';
 
-    // Print separator
-    logger.info(
+    // Add separator
+    tableOutput += 
       chalk.dim('├─') +
-        chalk.dim('─'.repeat(3)) +
-        chalk.dim('─┼─') +
-        chalk.dim('─'.repeat(idWidth)) +
-        chalk.dim('─┼─') +
-        chalk.dim('─'.repeat(nameWidth)) +
-        chalk.dim('─┼─') +
-        chalk.dim('─'.repeat(8)) +
-        chalk.dim('─┤')
-    );
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┼─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┤') +
+      '\n';
 
-    // Print requests
+    // Add requests to table
     requests.forEach((request, index) => {
       const method = request.method || '';
       const methodColor =
@@ -181,38 +192,37 @@ async function listRequests(
                   ? chalk.magenta
                   : chalk.white;
 
-      logger.info(
+      tableOutput += 
         chalk.dim('│ ') +
-          chalk.cyan(`${index + 1}`.padEnd(3)) +
-          chalk.dim(' │ ') +
-          chalk.white(request.id.padEnd(idWidth)) +
-          chalk.dim(' │ ') +
-          chalk.white(request.name.padEnd(nameWidth)) +
-          chalk.dim(' │ ') +
-          methodColor(method.padEnd(8)) +
-          chalk.dim(' │')
-      );
+        chalk.cyan(`${index + 1}`.padEnd(3)) +
+        chalk.dim(' │ ') +
+        chalk.white(request.id.padEnd(idWidth)) +
+        chalk.dim(' │ ') +
+        chalk.white(request.name.padEnd(nameWidth)) +
+        chalk.dim(' │ ') +
+        methodColor(method.padEnd(8)) +
+        chalk.dim(' │') +
+        '\n';
     });
 
-    // Print bottom border
-    logger.info(
+    // Add bottom border
+    tableOutput += 
       chalk.dim('└─') +
-        chalk.dim('─'.repeat(3)) +
-        chalk.dim('─┴─') +
-        chalk.dim('─'.repeat(idWidth)) +
-        chalk.dim('─┴─') +
-        chalk.dim('─'.repeat(nameWidth)) +
-        chalk.dim('─┴─') +
-        chalk.dim('─'.repeat(8)) +
-        chalk.dim('─┘')
-    );
+      chalk.dim('─'.repeat(3)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(idWidth)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(nameWidth)) +
+      chalk.dim('─┴─') +
+      chalk.dim('─'.repeat(8)) +
+      chalk.dim('─┘');
 
-    logger.info(''); // Empty line for spacing
+    // Output the table with title
+    console.printWithTitle(title, tableOutput);
   } catch (error) {
-    logger.error(
-      chalk.red(
-        `Failed to load requests: ${error instanceof Error ? error.message : String(error)}`
-      )
+    // Always show errors
+    console.error(
+      `Failed to load requests: ${error instanceof Error ? error.message : String(error)}`
     );
     throw error;
   }

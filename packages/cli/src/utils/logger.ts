@@ -199,8 +199,8 @@ export class Logger {
    * @param args Additional arguments to log
    */
   public info(message: string, ...args: unknown[]): void {
-    // Skip INFO logs in quiet mode - direct check to ensure consistency
-    if (this.options.quiet === true) {
+    // Skip INFO logs in quiet mode or non-verbose mode
+    if (this.options.quiet === true || !this.options.verbose) {
       return;
     }
     this.logger.info(message, ...args);
