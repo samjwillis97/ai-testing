@@ -35,6 +35,8 @@ variable_sets:
         email: "jane@example.com"
 
 # Override global variable sets at collection level
+# These overrides have precedence over global variable sets
+# but can be overridden by per-request variable set overrides (--var-set)
 variable_set_overrides:
   api: "staging"
   auth: "admin"

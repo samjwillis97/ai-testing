@@ -88,6 +88,7 @@ Executes an HTTP request to the specified URL.
 | `--max-redirects <count>` | Maximum number of redirects to follow | `5` |
 | `--proxy <url>` | Use proxy for request | |
 | `--no-verify` | Disable SSL verification | |
+| `--var-set <namespace>=<value>` | Override variable set for this request | |
 
 ### Import Collection
 
@@ -193,6 +194,7 @@ Executes all requests in a collection.
 | `--parallel` | Run requests in parallel | `false` |
 | `--output <file>` | Write results to file | |
 | `--format <format>` | Output format (json, yaml, html) | `json` |
+| `--var-set <namespace>=<value>` | Override variable set for this collection run | |
 
 ## Environment Commands
 

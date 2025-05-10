@@ -30,11 +30,15 @@ The current environment is determined by the `environment.current` configuration
 
 ## Variable Resolution
 
-When a configuration value is requested, the system follows this resolution order:
+When a configuration value is requested, the system follows this resolution order (from highest to lowest priority):
 
-1. Check if the value exists in the current environment's variable set
-2. If not found, check the base configuration
-3. If still not found, return the default value (if provided)
+1. Check if the value exists in per-request variable set overrides (specified with `--var-set` option)
+2. Check if the value exists in collection-level variable set overrides (defined in collection files)
+3. Check if the value exists in the current environment's variable set (defined in the main configuration file)
+4. If not found, check the base configuration
+5. If still not found, return the default value (if provided)
+
+This precedence hierarchy ensures that more specific overrides take priority over more general configurations.
 
 This allows for partial overrides, where only the values that differ between environments need to be specified in the variable sets.
 

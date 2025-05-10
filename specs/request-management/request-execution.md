@@ -60,7 +60,10 @@ interface ExecutionOptions {
   // Environment to use for execution
   environment?: string;
   
-  // Variable set overrides
+  // Variable set overrides for this specific request execution
+  // Each key is a variable set namespace and each value is the name of the value to activate
+  // Example: { "api": "production", "auth": "admin" }
+  // These overrides have the highest precedence in the variable resolution hierarchy
   variableSets?: Record<string, string>;
   
   // Authentication override
