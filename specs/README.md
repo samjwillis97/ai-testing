@@ -66,17 +66,17 @@ These plugins are maintained in the `/plugins` directory at the root of the repo
 
 | Package        | Description                                | Link                                     |
 | -------------- | ------------------------------------------ | ---------------------------------------- |
-| @shc/core      | Core HTTP client and foundational features | [Core Package](/specs/core-package.md)   |
+| @shc/core      | Core HTTP client and foundational features | [Core Package](/specs/core/)             |
 | @shc/web-ui    | Web user interface                         | [Web UI](/specs/web-ui.md)               |
 | @shc/cli       | Command-line interface                     | [CLI Interface](/specs/cli-interface.md) |
-| @shc/neovim-ui | Neovim-based interface                    | [Neovim UI](/specs/neovim-ui.md)        |
+| @shc/neovim-ui | Neovim-based interface                     | [Neovim UI](/specs/neovim-ui.md)         |
 | Base Plugins   | Core plugin implementations                | [Base Plugins](/specs/base-plugins.md)   |
 
 ## Supporting Specifications
 
 | Component             | Description                           | Link                                                     |
 | --------------------- | ------------------------------------- | -------------------------------------------------------- |
-| Monorepo Architecture | Monorepo structure and configuration  | [Monorepo](/specs/monorepo.md)                          |
+| Monorepo Architecture | Monorepo structure and configuration  | [Monorepo](/specs/monorepo.md)                           |
 | Configuration         | Global configuration and variable sets | [Configuration](/specs/configuration.md)                 |
 | Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
 
