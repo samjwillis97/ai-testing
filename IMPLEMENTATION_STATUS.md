@@ -11,7 +11,7 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Improve CLI package test coverage to meet project thresholds (see tasks/improve-cli-test-coverage.md)
 - [x] Implement variable set override per request functionality (see tasks/implement-variable-set-override-per-request.md)
 - [x] Implement quiet mode for CLI to support piping JSON output to tools like jq (see tasks/implement-cli-quiet-mode.md)
-- [ ] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
+- [-] Implement dynamic shell completion generation for CLI commands (see tasks/implement-dynamic-shell-completion-generation.md)
 - [x] Implement external variable sets to support loading from separate files (see tasks/implement-external-variable-sets.md)
 - [x] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
 - [x] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
@@ -74,11 +74,15 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] YAML/JSON config loading
   - [x] Variable sets, environment, and secret management
   - [x] Template engine for `${namespace.function(args)}`
+    - [x] Template argument parsing for various data types
+    - [x] Nested template resolution
+    - [x] Type-safe template execution
   - [x] Schema validation (Zod)
 - [x] Collection management
   - [x] Collection file parsing (YAML/JSON)
   - [x] Request/collection CRUD operations
   - [x] Variable set overrides, authentication, and plugin config
+  - [x] Collection import/export
 - [x] Request management
   - [x] Request execution pipeline
   - [x] Request/response hooks
@@ -142,6 +146,8 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Dynamic suggestions based on available collections/requests
   - [x] Multi-level completion with Tab cycling
   - [-] Shell compatibility (bash, zsh, fish)
+  - [-] Dynamic command introspection for generating completions
+  - [-] Automatic completion script generation based on command structure
 - [x] CLI Extension System
   - [x] Plugin loading mechanisms
     - [x] Load from npm packages
@@ -199,10 +205,10 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Schema validation and error reporting
 
 ## General
-- [ ] TypeScript strict mode and best practices
-- [ ] Coverage thresholds: Statements 80%, Branches 65%, Functions 80%, Lines 80%
-- [ ] Linting and formatting
-- [ ] Documentation for all public APIs and features
+- [x] TypeScript strict mode and best practices
+- [x] Coverage thresholds: Statements 80%, Branches 65%, Functions 80%, Lines 80%
+- [x] Linting and formatting
+- [-] Documentation for all public APIs and features
 
 ---
 
