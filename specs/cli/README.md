@@ -43,6 +43,27 @@ The CLI package provides a command-line interface for the SHC project, allowing 
 - Plugin system integration
 - Collection management
 
+### Responsibility Boundaries
+
+The CLI package **must not** re-implement functionality that belongs to the core package, including:
+
+- Configuration reading, parsing, or handling
+- Variable sets management or resolution
+- Plugin system core implementation
+- Template resolution or substitution
+- Collection data structure or management
+- HTTP client implementation
+
+Instead, the CLI package should use the APIs provided by the core package for these features.
+
+### CLI-Specific Plugin Handling
+
+The only exception to the above rule is for CLI-specific visualization plugins that are exclusively relevant to the command-line interface. These plugins should:
+
+- Still use the core plugin system architecture
+- Only implement UI/visualization aspects specific to the CLI
+- Not duplicate any core functionality
+
 ## Dependencies
 
 - @shc/core: Core HTTP client and extension system

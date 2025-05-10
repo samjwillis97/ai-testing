@@ -80,6 +80,31 @@ These plugins are maintained in the `/plugins` directory at the root of the repo
 | Configuration         | Global configuration and variable sets | [Configuration](/specs/configuration.md)                 |
 | Request Management    | Collection and request organization   | [Request Management](/specs/request-management.md)       |
 
+## Package Responsibility Boundaries
+
+### Core Responsibilities
+
+The @shc/core package is the **only** package responsible for:
+
+- Configuration reading, parsing, and handling
+- Variable sets management and resolution
+- Plugin system implementation and management
+- Template resolution and substitution
+- Collection data structure and management
+- HTTP client implementation
+
+Other packages (@shc/cli, @shc/web-ui, @shc/neovim-ui) **must not** re-implement any of this functionality and should instead rely on the core package for these features.
+
+### Interface-Specific Responsibilities
+
+The only exception to the above rule is for interface-specific plugins:
+
+- @shc/cli may implement CLI-specific visualization plugins
+- @shc/web-ui may implement web-specific UI plugins
+- @shc/neovim-ui may implement Neovim-specific editor plugins
+
+These interface-specific plugins should still use the core plugin system architecture but may extend it for interface-specific functionality.
+
 ## Package Dependencies
 
 ```mermaid

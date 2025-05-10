@@ -42,6 +42,29 @@ The Web UI package provides a modern, feature-rich interface for managing and ex
   - Raw text editor
   - File upload support
 
+## Core Integration
+
+### Responsibility Boundaries
+
+The Web UI package **must not** re-implement functionality that belongs to the core package, including:
+
+- Configuration reading, parsing, or handling
+- Variable sets management or resolution
+- Plugin system core implementation
+- Template resolution or substitution
+- Collection data structure or management
+- HTTP client implementation
+
+Instead, the Web UI package should use the APIs provided by the core package for these features.
+
+### Web UI-Specific Plugin Handling
+
+The only exception to the above rule is for web-specific UI plugins that are exclusively relevant to the web interface. These plugins should:
+
+- Still use the core plugin system architecture
+- Only implement UI/visualization aspects specific to the web interface
+- Not duplicate any core functionality
+
 ## Dependencies
 
 - @shc/core: Core HTTP client and extension system

@@ -40,6 +40,27 @@ The Neovim UI package provides a Neovim plugin interface for the SHC project, al
 - Collection management
 - Template engine integration
 
+#### Responsibility Boundaries
+
+The Neovim UI package **must not** re-implement functionality that belongs to the core package, including:
+
+- Configuration reading, parsing, or handling
+- Variable sets management or resolution
+- Plugin system core implementation
+- Template resolution or substitution
+- Collection data structure or management
+- HTTP client implementation
+
+Instead, the Neovim UI package should use the APIs provided by the core package for these features.
+
+#### Neovim-Specific Plugin Handling
+
+The only exception to the above rule is for Neovim-specific UI plugins that are exclusively relevant to the Neovim interface. These plugins should:
+
+- Still use the core plugin system architecture
+- Only implement UI/visualization aspects specific to the Neovim editor
+- Not duplicate any core functionality
+
 ### Configuration
 
 - Customizable key mappings

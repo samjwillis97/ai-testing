@@ -2,7 +2,20 @@
 
 ## Overview
 
-The core package (@shc/core) is the foundation of SHC, providing HTTP client functionality, extension system, configuration management, and supporting features for other packages.
+The core package (@shc/core) is the foundation of SHC, providing HTTP client functionality, extension system, configuration management, and supporting features for other packages. It is the **exclusive provider** of configuration reading/parsing, variable sets management, plugin system implementation, and template resolution functionality for the entire SHC ecosystem.
+
+### Exclusive Responsibilities
+
+The following functionality **must only** be implemented in the core package and **never** duplicated in other packages:
+
+- Configuration reading, parsing, and handling
+- Variable sets management and resolution
+- Plugin system implementation and core plugin management
+- Template resolution and substitution
+- Collection data structure and management
+- HTTP client implementation
+
+All other packages (@shc/cli, @shc/web-ui, @shc/neovim-ui) must rely on the core package for these features to ensure consistency and maintainability across the ecosystem.
 
 ## Technical Specifications
 
