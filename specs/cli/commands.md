@@ -53,6 +53,7 @@ shc [options] [command]
 | `-h, --help` | Display help for command | |
 | `--config <path>` | Path to config file | `./shc.config.yaml` |
 | `--log-level <level>` | Set log level (debug, info, warn, error, silent) | `info` |
+| `--quiet` | Output only response data without formatting or status information | `false` |
 | `--no-color` | Disable colored output | |
 
 ## Request Commands

@@ -108,6 +108,8 @@ interface CoreConfig {
     logBodies?: boolean;
     // Maximum body size to log
     maxBodySize?: number;
+    // Whether to enable quiet mode (output only response data)
+    quiet?: boolean;
   };
 }
 ```
@@ -200,6 +202,7 @@ logging:
   console: true
   logBodies: true
   maxBodySize: 4096
+  quiet: false
 ```
 
 ### JSON Format (config.json)

@@ -32,9 +32,11 @@ export class Logger {
   private static instance: Logger;
   private pino: PinoLogger;
   private logLevel: LogLevel;
+  private quietMode: boolean;
   
   private constructor(options?: LoggerOptions) {
     this.logLevel = options?.level || 'info';
+    this.quietMode = options?.quiet ?? false;
     this.pino = pino({
       level: this.logLevel,
       transport: {
@@ -51,6 +53,14 @@ export class Logger {
   static getInstance(options?: LoggerOptions): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger(options);
+    } else if (options) {
+      // Update existing instance if options provided
+      if (options.level !== undefined) {
+        Logger.instance.setLevel(options.level);
+      }
+      if (options.quiet !== undefined) {
+        Logger.instance.setQuietMode(options.quiet);
+      }
     }
     return Logger.instance;
   }
@@ -62,6 +72,14 @@ export class Logger {
   
   getLevel(): LogLevel {
     return this.logLevel;
+  }
+  
+  setQuietMode(quiet: boolean): void {
+    this.quietMode = quiet;
+  }
+  
+  isQuietMode(): boolean {
+    return this.quietMode;
   }
   
   debug(message: string, ...args: any[]): void {
@@ -117,8 +135,8 @@ export class Logger {
   }
   
   private shouldShowSpinner(): boolean {
-    // Only show spinners for info level and below
-    return this.logLevel !== 'silent' && this.logLevel !== 'error';
+    // Don't show spinners in quiet mode or for error/silent log levels
+    return !this.quietMode && this.logLevel !== 'silent' && this.logLevel !== 'error';
   }
 }
 
@@ -126,6 +144,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'silent';
 
 export interface LoggerOptions {
   level?: LogLevel;
+  quiet?: boolean;
   colorize?: boolean;
   destination?: string | NodeJS.WritableStream;
 }
@@ -140,10 +159,17 @@ export class Spinner {
   private spinner: Ora.Ora | null;
   private text: string;
   private enabled: boolean;
+  private logger: Logger;
   
   constructor(text: string, options?: SpinnerOptions) {
     this.text = text;
     this.enabled = options?.enabled ?? true;
+    this.logger = Logger.getInstance();
+    
+    // Disable spinner in quiet mode regardless of other settings
+    if (this.logger.isQuietMode()) {
+      this.enabled = false;
+    }
     
     if (this.enabled) {
       this.spinner = ora({
@@ -249,6 +275,19 @@ All logging decisions in the CLI package are made based on the Logger's log leve
 4. **ERROR**: Error messages only
 5. **SILENT**: No output at all
 
+### Quiet Mode
+
+Quiet mode is a special output mode that outputs only the response data without any formatting, decorations, or status information. It is particularly useful for scripting and automation scenarios where the output needs to be processed programmatically or piped to other command-line tools.
+
+When quiet mode is enabled (using the `--quiet` flag), the Logger will:
+
+1. Disable spinners and progress indicators
+2. Output only the response data in the specified format
+3. Format errors in a minimal, machine-readable format
+4. Suppress all status and informational messages
+
+Quiet mode works with any output format (`json`, `yaml`, `raw`, or `table`), allowing users to get the response data in the format that best suits their needs.
+
 ### Decision Flow
 
 ```
@@ -323,6 +362,47 @@ async function longRunningTask() {
 }
 ```
 
+### Quiet Mode
+
+```typescript
+import { Logger } from './logger';
+
+async function executeRequestWithQuietMode(url: string, options: any) {
+  // Set up logger with quiet mode
+  const logger = Logger.getInstance({ quiet: options.quiet });
+  
+  // In quiet mode, spinners are automatically disabled
+  const spinner = logger.createSpinner('Executing request...');
+  spinner.start();
+  
+  try {
+    const response = await makeHttpRequest(url);
+    
+    if (logger.isQuietMode()) {
+      // In quiet mode, output only the response data
+      console.log(formatResponseData(response, options.format));
+    } else {
+      // In normal mode, show success message with formatted output
+      spinner.succeed('Request successful');
+      logger.info('Response:');
+      logger.json(response.data);
+    }
+    
+    return response;
+  } catch (error) {
+    if (logger.isQuietMode()) {
+      // In quiet mode, output errors in a minimal format
+      console.error(formatErrorForQuietMode(error, options.format));
+    } else {
+      // In normal mode, show detailed error
+      spinner.fail(`Request failed: ${error.message}`);
+    }
+    
+    throw error;
+  }
+}
+```
+
 ### Command Integration
 
 ```typescript
@@ -333,10 +413,13 @@ export function createCommand() {
   const command = new Command('example')
     .description('Example command')
     .option('--log-level <level>', 'Set log level', 'info')
+    .option('--quiet', 'Output only response data without formatting or status information')
     .action(async (options) => {
-      // Set log level based on command options
-      const logger = Logger.getInstance();
-      logger.setLevel(options.logLevel);
+      // Set log level and quiet mode based on command options
+      const logger = Logger.getInstance({
+        level: options.logLevel,
+        quiet: options.quiet
+      });
       
       // Execute command with appropriate logging
       const spinner = logger.createSpinner('Running example command');
@@ -344,10 +427,27 @@ export function createCommand() {
       
       try {
         // Command implementation
-        spinner.succeed('Command completed successfully');
+        const result = await executeCommand();
+        
+        if (logger.isQuietMode()) {
+          // In quiet mode, output only the result data
+          console.log(formatResultData(result, options.format));
+        } else {
+          // In normal mode, show success message with formatted output
+          spinner.succeed('Command completed successfully');
+          logger.info('Result:');
+          logger.json(result);
+        }
       } catch (error) {
-        spinner.fail(`Command failed: ${error.message}`);
-        process.exit(1);
+        if (logger.isQuietMode()) {
+          // In quiet mode, output errors in a minimal format
+          console.error(formatErrorForQuietMode(error, options.format));
+          process.exit(1);
+        } else {
+          // In normal mode, show detailed error
+          spinner.fail(`Command failed: ${error.message}`);
+          process.exit(1);
+        }
       }
     });
   
