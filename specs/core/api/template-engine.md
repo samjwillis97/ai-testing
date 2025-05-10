@@ -18,6 +18,10 @@ export class TemplateEngine {
   // Template resolution
   resolve(template: string, context: Partial<TemplateContext>): Promise<string>;
   resolveObject<T>(obj: T, context: Partial<TemplateContext>): Promise<T>;
+  
+  // Template argument parsing
+  parseTemplateArgs(argsString: string): unknown[];
+  parseTemplateExpression(expression: string): { namespace: string; functionName: string; args: unknown[] };
 }
 ```
 
@@ -85,6 +89,56 @@ ${secrets.SECRET_NAME}
 ```
 ${namespace.function(args)}
 ```
+
+## Template Argument Parsing
+
+The template engine provides sophisticated argument parsing for template functions, handling various data types and nested expressions:
+
+### Argument Types
+
+The template engine supports parsing the following argument types:
+
+- **Strings**: Both quoted (`"value"` or `'value'`) and unquoted (`value`) strings
+- **Numbers**: Integer and floating-point numbers (`123`, `45.67`)
+- **Booleans**: `true` and `false` values
+- **Null**: `null` value
+- **Arrays**: Comma-separated values in square brackets (`[1, 2, "three"]`)
+- **Objects**: Key-value pairs in curly braces (`{"key": "value", "num": 123}`)
+- **Nested Templates**: Templates within arguments (`${math.add(${math.multiply(2, 3)}, 5)}`)
+
+### Parsing Process
+
+The template argument parsing process involves:
+
+1. **Tokenization**: Breaking the argument string into tokens
+2. **Type Inference**: Determining the type of each argument
+3. **Nested Resolution**: Resolving nested templates within arguments
+4. **Validation**: Ensuring arguments match parameter types
+
+### Example Parsing
+
+```typescript
+// Parse simple arguments
+const args = templateEngine.parseTemplateArgs("1, 'string', true");
+// Result: [1, "string", true]
+
+// Parse complex arguments with nested structures
+const complexArgs = templateEngine.parseTemplateArgs("[1, 2, 3], {\"key\": \"value\"}, ${env.API_URL}");
+// Result: [[1, 2, 3], {key: "value"}, "https://api.example.com"]
+
+// Parse a complete template expression
+const expression = templateEngine.parseTemplateExpression("math.add(1, ${math.multiply(2, 3)})");
+// Result: { namespace: "math", functionName: "add", args: [1, 6] }
+```
+
+### Handling Special Cases
+
+The template engine handles several special cases during argument parsing:
+
+- **Escaped quotes**: Properly handles strings with escaped quotes (`"This is a \"quoted\" word"`)
+- **Nested structures**: Correctly parses nested arrays and objects
+- **Commas in strings**: Distinguishes between commas as argument separators and commas within strings
+- **Whitespace**: Trims unnecessary whitespace while preserving whitespace in strings
 
 ## Examples
 

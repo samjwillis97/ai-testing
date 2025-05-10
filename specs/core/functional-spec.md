@@ -69,8 +69,6 @@ The collection management system provides tools for organizing and managing HTTP
 - Variable set management
 - Request execution with variable substitution
 - Collection import/export
-- Collection sharing
-- Request history tracking
 
 ## Integration Points
 

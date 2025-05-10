@@ -26,7 +26,7 @@ export interface PluginManager {
   // Dynamic loading
   loadFromNpm(packageName: string, version?: string): Promise<void>;
   loadFromPath(pluginPath: string): Promise<void>;
-  loadFromGit(url: string, ref?: string): Promise<void>;
+  loadFromGit(url: string, ref?: string, options?: GitPluginOptions): Promise<void>;
   
   // Event handling
   on(event: string, handler: (...args: unknown[]) => void): void;
@@ -90,13 +90,15 @@ export interface AuthProviderPlugin extends SHCPlugin {
 ```typescript
 export interface PluginConfig {
   name: string;
-  package?: string;
-  path?: string;
-  git?: string;
-  ref?: string;
-  version?: string;
-  enabled?: boolean;
-  config?: Record<string, unknown>;
+  type: PluginType;
+  source: {
+    type: 'npm' | 'path' | 'git';
+    location: string;
+    version?: string;
+    ref?: string;
+    gitOptions?: GitPluginOptions;
+  };
+  options?: Record<string, unknown>;
   dependencies?: Array<{
     name: string;
     package: string;
@@ -109,6 +111,25 @@ export interface PluginConfig {
     network?: string[];
     env?: string[];
   };
+}
+```
+
+### GitPluginOptions Interface
+
+```typescript
+export interface GitPluginOptions {
+  // The branch, tag, or commit to checkout
+  ref?: string;
+  // The directory within the repository that contains the plugin
+  directory?: string;
+  // Authentication options for private repositories
+  auth?: {
+    username?: string;
+    password?: string;
+    token?: string;
+  };
+  // Whether to use shallow clone (faster but limited history)
+  shallow?: boolean;
 }
 ```
 
@@ -191,11 +212,47 @@ await pluginManager.loadFromPath('./plugins/request-logger');
 ### Loading a Plugin from Git
 
 ```typescript
-// Load a plugin from Git
+// Basic Git plugin loading
 await pluginManager.loadFromGit(
   'https://github.com/shc/oauth2-plugin.git',
   'main'
 );
+
+// Advanced Git plugin loading with options
+await pluginManager.loadFromGit(
+  'https://github.com/shc/oauth2-plugin.git',
+  'v1.2.0',
+  {
+    directory: 'packages/auth-provider',  // Load from a specific directory in the repo
+    auth: {
+      token: process.env.GITHUB_TOKEN    // Use authentication for private repos
+    },
+    shallow: true                        // Use shallow clone for faster loading
+  }
+);
+
+// Loading from Git via configuration
+await pluginManager.registerFromConfig({
+  name: 'advanced-auth-provider',
+  type: PluginType.AUTH_PROVIDER,
+  source: {
+    type: 'git',
+    location: 'https://github.com/shc/plugins.git',
+    ref: 'v2.0.0',
+    gitOptions: {
+      directory: 'auth/oauth2',
+      shallow: true,
+      auth: {
+        token: '${env.GITHUB_TOKEN}'  // Template-based token from environment
+      }
+    }
+  },
+  options: {
+    clientId: '${config.auth.clientId}',
+    clientSecret: '${secrets.AUTH_SECRET}',
+    tokenUrl: 'https://auth.example.com/oauth/token'
+  }
+});
 ```
 
 ### Initializing Plugins
