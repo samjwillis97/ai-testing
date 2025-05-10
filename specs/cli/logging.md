@@ -123,7 +123,6 @@ export class Logger {
       info: 30,
       warn: 40,
       error: 50,
-      silent: 100,
     };
     
     return levels[level] >= levels[this.logLevel];
@@ -135,12 +134,12 @@ export class Logger {
   }
   
   private shouldShowSpinner(): boolean {
-    // Don't show spinners in quiet mode or for error/silent log levels
-    return !this.quietMode && this.logLevel !== 'silent' && this.logLevel !== 'error';
+    // Don't show spinners in quiet mode or for error log level
+    return !this.quietMode && this.logLevel !== 'error';
   }
 }
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'silent';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LoggerOptions {
   level?: LogLevel;
@@ -265,7 +264,7 @@ export interface SpinnerOptions {
 
 ## Log Level-Based Decision Making
 
-All logging decisions in the CLI package are made based on the Logger's log level rather than checking verbose/quiet/silent flags throughout the code. This makes the codebase more maintainable and ensures consistent behavior throughout the application.
+All logging decisions in the CLI package are made based on the Logger's log level rather than checking verbose or quiet flags throughout the code. This makes the codebase more maintainable and ensures consistent behavior throughout the application.
 
 ### Log Level Hierarchy
 
@@ -273,7 +272,6 @@ All logging decisions in the CLI package are made based on the Logger's log leve
 2. **INFO**: Standard output for normal operation
 3. **WARN**: Warning messages only
 4. **ERROR**: Error messages only
-5. **SILENT**: No output at all
 
 ### Quiet Mode
 

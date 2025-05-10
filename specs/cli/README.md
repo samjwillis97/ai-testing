@@ -25,7 +25,7 @@ The CLI package provides a command-line interface for the SHC project, allowing 
 ### Logging System
 
 - Centralized logging with Pino
-- Log level-based approach (DEBUG, INFO, ERROR, SILENT)
+- Log level-based approach (DEBUG, INFO, WARN, ERROR)
 - Integrated spinner utility
 - Consistent output formatting
 
