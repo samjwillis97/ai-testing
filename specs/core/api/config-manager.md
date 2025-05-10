@@ -36,6 +36,13 @@ export interface ConfigManager {
   getEnv(name: string, defaultValue?: string): string;
   getRequiredEnv(name: string): string;
   
+  // Variable sets management
+  loadVariableSetFromFile(name: string, filePath: string, merge?: boolean): Promise<void>;
+  loadVariableSetFromGlob(name: string, globPattern: string, merge?: boolean): Promise<void>;
+  exportVariableSetToFile(name: string, filePath: string, format?: 'yaml' | 'json'): Promise<void>;
+  getVariableSet(name: string): Record<string, unknown> | undefined;
+  listVariableSets(): string[];
+  
   // Event handling
   on(event: string, handler: (...args: unknown[]) => void): void;
   off(event: string, handler: (...args: unknown[]) => void): void;
@@ -111,11 +118,20 @@ export const configSchema = z.object({
       output: z.enum(['console', 'file']).default('console')
     }).default({})
   }).default({}),
-  variable_sets: z.object({
-    global: z.record(z.any()).default({}),
-    collection_defaults: z.record(z.any()).default({}),
-    request_overrides: z.record(z.any()).default({})
-  }).default({}),
+  variable_sets: z.record(z.union([
+    // Inline variable set
+    z.record(z.any()),
+    // External file reference
+    z.object({
+      file: z.string(),
+      overrides: z.record(z.any()).optional()
+    }),
+    // Glob pattern reference
+    z.object({
+      glob: z.string(),
+      overrides: z.record(z.any()).optional()
+    })
+  ])).default({}),
   plugins: z.object({
     auth: z.array(pluginConfigSchema).default([]),
     preprocessors: z.array(pluginConfigSchema).default([]),
@@ -262,6 +278,27 @@ try {
 }
 ```
 
+### Variable Sets Management
+
+```typescript
+// Load a variable set from a file
+await config.loadVariableSetFromFile('staging', './variable-sets/staging.yaml');
+
+// Load and merge variable sets from multiple files using a glob pattern
+await config.loadVariableSetFromGlob('production', './variable-sets/production/*.yaml');
+
+// Export a variable set to a file
+await config.exportVariableSetToFile('development', './variable-sets/dev-export.yaml');
+
+// Get a specific variable set
+const stagingVars = config.getVariableSet('staging');
+console.log('Staging variables:', stagingVars);
+
+// List all available variable sets
+const variableSets = config.listVariableSets();
+console.log('Available variable sets:', variableSets);
+```
+
 ### Event Handling
 
 ```typescript
@@ -273,6 +310,15 @@ config.on('config:loaded', (loadedConfig) => {
 // Listen for configuration changes
 config.on('config:changed', (path, value) => {
   console.log(`Configuration changed: ${path} = ${value}`);
+});
+
+// Listen for variable set events
+config.on('variable-set:loaded', (name, source) => {
+  console.log(`Variable set '${name}' loaded from ${source}`);
+});
+
+config.on('variable-set:exported', (name, filePath) => {
+  console.log(`Variable set '${name}' exported to ${filePath}`);
 });
 ```
 

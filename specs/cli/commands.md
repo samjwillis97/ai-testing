@@ -352,6 +352,30 @@ Views the current configuration.
 | `--format <format>` | Output format (yaml, json) | `yaml` |
 | `--show-secrets` | Show secret values | `false` |
 
+### Manage Variable Sets
+
+```
+shc config var-set [command]
+```
+
+Manages variable sets in the configuration.
+
+#### Subcommands
+
+##### List Variable Sets
+
+```
+shc config var-set list [options]
+```
+
+Lists all available variable sets.
+
+###### Options
+
+| Option | Description | Default |
+|--------|-------------|----------|
+| `--format <format>` | Output format (table, json) | `table` |
+
 ### Set Configuration
 
 ```

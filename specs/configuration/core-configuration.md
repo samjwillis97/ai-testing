@@ -64,7 +64,18 @@ interface CoreConfig {
     // Current environment name
     current?: string;
     // Variable sets for different environments
-    variableSets?: Record<string, Record<string, any>>;
+    // Can be defined inline or loaded from external files
+    variableSets?: Record<string, VariableSetConfig>;
+  };
+  
+  // Variable set configuration can be inline or reference external files
+  interface VariableSetConfig {
+    // Inline variable set definition
+    [key: string]: any;
+    // OR external file reference
+    file?: string;
+    // OR glob pattern to load multiple files
+    glob?: string;
   };
   
   // Template configuration
@@ -148,17 +159,24 @@ plugins:
 environment:
   current: development
   variableSets:
+    # Inline variable set definition
     development:
       baseUrl: https://dev-api.example.com
       timeout: 10000
     
+    # External file reference
     staging:
-      baseUrl: https://staging-api.example.com
-      timeout: 5000
+      file: "./variable-sets/staging.yaml"
     
+    # External file with glob pattern
     production:
-      baseUrl: https://api.example.com
-      timeout: 3000
+      glob: "./variable-sets/production/*.yaml"
+    
+    # Mixed approach with both inline and external references
+    testing:
+      file: "./variable-sets/testing-base.yaml"
+      overrides:
+        baseUrl: https://test-api.example.com
 
 templates:
   functions:
@@ -220,8 +238,17 @@ logging:
       "development": {
         "baseUrl": "https://dev-api.example.com"
       },
+      "staging": {
+        "file": "./variable-sets/staging.json"
+      },
       "production": {
-        "baseUrl": "https://api.example.com"
+        "glob": "./variable-sets/production/*.json"
+      },
+      "testing": {
+        "file": "./variable-sets/testing-base.json",
+        "overrides": {
+          "baseUrl": "https://test-api.example.com"
+        }
       }
     }
   }

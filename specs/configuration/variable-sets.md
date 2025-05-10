@@ -84,9 +84,93 @@ In this example:
 - In the `staging` environment, requests will use `https://staging-api.example.com` with the default 5-second timeout, and logging will be set to debug level
 - In the `production` environment, requests will use the default `https://api.example.com` with a 3-second timeout, and caching will be enabled with a 1-hour TTL
 
+## External Variable Sets
+
+SHC supports defining variable sets in external files, providing better organization and maintainability for complex configurations.
+
+### File References
+
+Variable sets can be loaded from external files using the `file` property:
+
+```yaml
+variable_sets:
+  global:
+    file: "./variable-sets/api-environments.yaml"
+```
+
+The referenced file should contain a valid variable set structure:
+
+```yaml
+# api-environments.yaml
+api:
+  description: "API configuration for different environments"
+  default_value: "development"
+  active_value: "development"
+  values:
+    development:
+      url: "http://localhost:3000"
+      timeout: 5000
+    production:
+      url: "https://api.example.com"
+      timeout: 3000
+```
+
+### Glob Pattern Support
+
+Multiple variable set files can be loaded and merged using glob patterns:
+
+```yaml
+variable_sets:
+  global:
+    glob: "./variable-sets/*.yaml"
+```
+
+### Named Variable Sets
+
+Named variable sets can be loaded from different files:
+
+```yaml
+variable_sets:
+  global:
+    file: "./variable-sets/global.yaml"
+  development:
+    file: "./variable-sets/development.yaml"
+  production:
+    file: "./variable-sets/production.yaml"
+```
+
+### Mixed Approach
+
+Inline and external variable sets can be mixed in the same configuration:
+
+```yaml
+variable_sets:
+  global:
+    file: "./variable-sets/global.yaml"
+  custom:
+    inline_var: "value"
+    another_var: 123
+```
+
+### Path Resolution
+
+Paths to external variable set files can be:
+
+1. **Absolute paths**: `/path/to/variable-sets/global.yaml`
+2. **Relative paths**: `./variable-sets/global.yaml` (relative to the config file)
+
+### Error Handling
+
+The system will throw an error if:
+
+1. The referenced file does not exist
+2. The file format is invalid (not YAML or JSON)
+3. The file content does not match the expected variable set structure
+4. A glob pattern does not match any files
+
 ## Environment Files
 
-In addition to inline variable sets, SHC supports loading environment-specific configuration from separate files:
+In addition to external variable sets, SHC supports loading environment-specific configuration from separate files:
 
 ```
 ~/.shc/
