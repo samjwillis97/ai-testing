@@ -8,6 +8,14 @@ import { addCollectionCommand } from '../commands/collection-request.js';
 import { addCompletionCommand } from '../commands/completion.js';
 import { addListCommand } from '../commands/list.js';
 import { initializePlugins, cliPluginManager } from '../plugins/index.js';
+import { Logger } from './logger.js';
+
+/**
+ * Extended Command type that includes a logger property
+ */
+export interface CommandWithLogger extends Command {
+  logger: Logger;
+}
 
 /**
  * Options for program creation
@@ -29,6 +37,11 @@ export interface MakeProgramOptions {
   initPlugins?: boolean;
 
   /**
+   * Global logger instance to use across all commands
+   */
+  logger?: Logger;
+
+  /**
    * Mock console methods for testing
    */
   mockConsole?: {
@@ -48,10 +61,15 @@ export interface MakeProgramOptions {
 /**
  * Create a new Commander program instance
  * @param options Options for program creation
- * @returns A configured Commander program instance
+ * @returns A configured Commander program instance with logger
  */
-export async function makeProgram(options: MakeProgramOptions = {}): Promise<Command> {
-  const program = new Command();
+export async function makeProgram(options: MakeProgramOptions = {}): Promise<CommandWithLogger> {
+  const program = new Command() as CommandWithLogger;
+  
+  // Store the global logger instance if provided
+  if (options.logger) {
+    program.logger = options.logger;
+  }
 
   // Configure program for testing if needed
   if (options.exitOverride) {
@@ -91,6 +109,7 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
     .option('-c, --config <PATH>', 'Config file path')
     .option('-v, --verbose', 'Enable verbose output')
     .option('-q, --quiet', 'Quiet mode - output only the essential data')
+    .passThroughOptions()
     .option(
       '-V, --set <key>=<value>',
       'Set config value, (i.e. --set storage.collections.path="./collections")',
@@ -114,11 +133,7 @@ export async function makeProgram(options: MakeProgramOptions = {}): Promise<Com
       },
       []
     )
-    .option('-v, --verbose', 'Verbose output')
-    .option(
-      '-q, --quiet',
-      'Quiet mode - output only the response data without any formatting or decorations'
-    )
+    // Global options are defined above
     .option('-o, --output <format>', 'Output format (json, yaml, raw, table)', 'json')
     .option('--no-color', 'Disable colors');
 

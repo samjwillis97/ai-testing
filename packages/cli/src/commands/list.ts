@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { CommandWithLogger } from '../utils/program.js';
 import chalk from 'chalk';
 import { getCollections, getRequests } from '../utils/collections.js';
 import { createConfigManagerFromOptions } from '../utils/config.js';
@@ -18,8 +19,12 @@ export function addListCommand(program: Command): void {
     .description('List all collections')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
-    .action(async (options: Record<string, unknown>) => {
+    .action(async function(this: Command, options: Record<string, unknown>) {
       try {
+        // Use the global logger instance from the program if available
+        const parentWithLogger = this.parent?.parent as CommandWithLogger;
+        const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
+        
         // Create config manager from options
         const configManager = await createConfigManagerFromOptions(options);
 
@@ -30,9 +35,10 @@ export function addListCommand(program: Command): void {
         );
 
         // Display collections
-        await listCollections(collectionDir, options);
+        await listCollections(collectionDir, options, logger);
       } catch (error) {
-        const logger = Logger.fromCommandOptions(options);
+        // @ts-ignore - Access the logger from the program
+        const logger = this.parent?.parent?.logger || Logger.fromCommandOptions(options);
         logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
@@ -45,8 +51,12 @@ export function addListCommand(program: Command): void {
     .description('List all requests in a collection')
     .option('-c, --config <PATH>', 'Config file path')
     .option('--collection-dir <dir>', 'Collection directory')
-    .action(async (collection: string, options: Record<string, unknown>) => {
+    .action(async function(this: Command, collection: string, options: Record<string, unknown>) {
       try {
+        // Use the global logger instance from the program if available
+        const parentWithLogger = this.parent?.parent as CommandWithLogger;
+        const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
+        
         // Create config manager from options
         const configManager = await createConfigManagerFromOptions(options);
 
@@ -57,9 +67,10 @@ export function addListCommand(program: Command): void {
         );
 
         // Display requests
-        await listRequests(collectionDir, collection, options);
+        await listRequests(collectionDir, collection, options, logger);
       } catch (error) {
-        const logger = Logger.fromCommandOptions(options);
+        // @ts-ignore - Access the logger from the program
+        const logger = this.parent?.parent?.logger || Logger.fromCommandOptions(options);
         logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
@@ -71,9 +82,11 @@ export function addListCommand(program: Command): void {
  */
 async function listCollections(
   collectionDir: string,
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  logger?: Logger
 ): Promise<void> {
-  const logger = Logger.fromCommandOptions(options);
+  // Use provided logger or create one from command options
+  logger = logger || Logger.fromCommandOptions(options);
   const console = Console.fromCommandOptions(options);
   
   // Log detailed information only in verbose mode
@@ -106,9 +119,11 @@ async function listCollections(
 async function listRequests(
   collectionDir: string,
   collectionName: string,
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  logger?: Logger
 ): Promise<void> {
-  const logger = Logger.fromCommandOptions(options);
+  // Use provided logger or create one from command options
+  logger = logger || Logger.fromCommandOptions(options);
   const console = Console.fromCommandOptions(options);
   
   // Log detailed information only in verbose mode

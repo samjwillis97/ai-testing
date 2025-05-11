@@ -111,35 +111,22 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
   // Format the response data
   const formattedData = formatOutput(response.data, options);
 
-  // For quiet mode, just return the formatted data without status
+  // In quiet mode, return only the formatted data without any additional information
   if (options.quiet) {
     return formattedData;
   }
 
-  // For raw format without verbose mode, just return the formatted data without status
-  if (options.format === 'raw' && !options.verbose) {
-    return formattedData;
-  }
-
-  // In verbose mode, include detailed headers and status
+  // In verbose mode, include headers
   if (options.verbose) {
     const statusLine = `${chalk.bold('Status:')} ${response.status} ${response.statusText}`;
-    const headersSection = Object.entries(response.headers)
+    const headersFormatted = Object.entries(response.headers)
       .map(([key, value]) => `${chalk.dim(key)}: ${value}`)
       .join('\n');
 
-    return boxen(
-      `${statusLine}\n\n${chalk.bold('Headers:')}\n${headersSection}\n\n${chalk.bold('Body:')}\n${formattedData}`,
-      {
-        padding: 1,
-        borderColor: 'green',
-        title: 'Response',
-        titleAlignment: 'center',
-      }
-    );
+    return `${statusLine}\n\n${chalk.bold('Headers:')}\n${headersFormatted}\n\n${chalk.bold('Body:')}\n${formattedData}`;
   }
 
-  // In non-verbose mode, include basic status and the formatted data
+  // In normal mode, include basic status and the formatted data
   const statusLine = `${chalk.bold('Status:')} ${response.status} ${response.statusText}`;
   return `${statusLine}\n\n${formattedData}`;
 }
@@ -147,19 +134,24 @@ export function formatResponse(response: ResponseData, options: OutputOptions): 
 /**
  * Print response with appropriate formatting
  */
-export function printResponse(response: ResponseData, options: OutputOptions): void {
+export async function printResponse(response: ResponseData, options: OutputOptions): Promise<void> {
+  // In quiet mode, only output the raw data without any formatting or status information
+  if (options.quiet) {
+    // Format the data according to the specified format
+    const formattedData = formatOutput(response.data, options);
+    // Write directly to stdout without any status information
+    process.stdout.write(formattedData + '\n');
+    return;
+  }
+  
+  // For normal mode, use the standard formatting
   const output = formatResponse(response, options);
   if (!output) {
     return;
   }
-
-  // In quiet mode, write directly to stdout
-  if (options.quiet) {
-    process.stdout.write(output + '\n');
-  } else {
-    // In normal mode, use console.log
-    console.log(output);
-  }
+  
+  // Use console.log for normal output
+  console.log(output);
 }
 
 /**

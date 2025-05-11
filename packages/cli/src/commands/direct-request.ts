@@ -2,10 +2,11 @@
  * Direct request command
  */
 import { Command, Option } from 'commander';
+import { CommandWithLogger } from '../utils/program.js';
 import chalk from 'chalk';
 import { SHCClient, SHCEvent } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
-import { printResponse } from '../utils/output.js';
+import { printResponse, formatOutput } from '../utils/output.js';
 import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
@@ -54,8 +55,11 @@ export function addDirectCommand(program: Command): void {
       []
     )
     .addOption(new Option('--no-color', 'Disable colors'))
-    .action(async (method: string, url: string, options: Record<string, unknown>) => {
-      await executeDirectRequest(method as HttpMethod, url, options);
+    .action(async function(this: Command, method: string, url: string, options: Record<string, unknown>) {
+      // Use the global logger instance from the program if available
+      const parentWithLogger = this.parent as CommandWithLogger;
+      const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
+      await executeDirectRequest(method as HttpMethod, url, options, logger);
     });
 }
 
@@ -100,8 +104,11 @@ function addHttpMethodCommand(
     cmd.option('-d, --data <data>', 'Request body');
   }
 
-  cmd.action(async (url: string, options: Record<string, unknown>) => {
-    await executeDirectRequest(method.toUpperCase() as HttpMethod, url, options);
+  cmd.action(async function(this: Command, url: string, options: Record<string, unknown>) {
+    // Use the global logger instance from the program if available
+    const parentWithLogger = this.parent as CommandWithLogger;
+    const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
+    await executeDirectRequest(method.toUpperCase() as HttpMethod, url, options, logger);
   });
 }
 
@@ -111,10 +118,11 @@ function addHttpMethodCommand(
 async function executeDirectRequest(
   method: HttpMethod,
   url: string,
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  logger?: Logger
 ): Promise<void> {
-  // Create logger from command options
-  const logger = Logger.fromCommandOptions(options);
+  // Use provided logger or create one from command options
+  logger = logger || Logger.fromCommandOptions(options);
 
   // Store original console methods
   const originalConsole = {
@@ -197,12 +205,21 @@ async function executeDirectRequest(
       requestOptions.timeout = parseInt(options.timeout as string, 10);
     }
 
+    // Check if we're in quiet mode
+    const isQuietMode = logger.isQuietMode();
+    
     // Only create a spinner if not in quiet mode
-    const spinner = Spinner.fromCommandOptions(`Sending ${method} request to ${url}`, options);
+    let spinner = null;
+    if (!isQuietMode) {
+      spinner = new Spinner(`Sending ${method} request to ${url}`, {
+        enabled: true,
+        logger,
+        color: 'cyan'
+      });
+      spinner.start();
+    }
 
     try {
-      // Start the spinner
-      spinner.start();
 
       // Create client configuration
       const configManager = await createConfigManagerFromOptions(effectiveOptions);
@@ -239,15 +256,27 @@ async function executeDirectRequest(
       // Execute request
       const response = await client.request(requestOptions);
 
-      // Update spinner with success message
-      spinner.succeed(chalk.green('Response received'));
+      // Update spinner with success message if it exists
+      if (spinner) {
+        spinner.succeed(chalk.green('Response received'));
+      }
 
-      // Print response
-      printResponse(response, outputOptions);
+      // In quiet mode, only output the raw data without any formatting or status information
+      if (isQuietMode) {
+        // Format the data according to the specified format
+        const formattedData = formatOutput(response.data, outputOptions);
+        // Write directly to stdout without any status information
+        process.stdout.write(formattedData + '\n');
+      } else {
+        // Print the response with full formatting
+        await printResponse(response, outputOptions);
+      }
       process.exit(0);
     } catch (error) {
-      // Update spinner with error message
-      spinner.fail(chalk.red('Request failed'));
+      // Update spinner with error message if it exists
+      if (spinner) {
+        spinner.fail(chalk.red('Request failed'));
+      }
 
       logger.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       if (error instanceof Error && error.stack) {

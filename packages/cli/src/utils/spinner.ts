@@ -36,12 +36,18 @@ export class Spinner {
     this.spinnerText = text;
     this.logger = options.logger || Logger.getInstance();
 
-    // Only create the spinner if enabled
-    if (options.enabled !== false) {
+    // Check if we're in quiet mode using the logger instance
+    const isQuietMode = this.logger.isQuietMode();
+    
+    // Only create the spinner if enabled and not in quiet mode
+    if (options.enabled !== false && !isQuietMode) {
       this.spinner = ora({
         text,
         ...options,
       });
+    } else {
+      // In quiet mode, we don't create a spinner at all
+      this.spinner = null;
     }
   }
 
@@ -50,6 +56,11 @@ export class Spinner {
    * @returns This spinner instance for chaining
    */
   start(): Spinner {
+    // In quiet mode, do nothing
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     if (this.spinner) {
       this.spinner.start();
     } else {
@@ -64,11 +75,15 @@ export class Spinner {
    * @returns This spinner instance for chaining
    */
   succeed(text?: string): Spinner {
+    // In quiet mode, do nothing
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     const message = text || this.spinnerText;
     if (this.spinner) {
       this.spinner.succeed(message);
     } else {
-      // Use the appropriate log level method
       this.logger.info(chalk.green('✓') + ' ' + message);
     }
     return this;
@@ -80,6 +95,11 @@ export class Spinner {
    * @returns This spinner instance for chaining
    */
   fail(text?: string): Spinner {
+    // In quiet mode, do nothing
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     const message = text || this.spinnerText;
     if (this.spinner) {
       this.spinner.fail(message);
@@ -95,6 +115,11 @@ export class Spinner {
    * @returns This spinner instance for chaining
    */
   warn(text?: string): Spinner {
+    // In quiet mode, do nothing
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     const message = text || this.spinnerText;
     if (this.spinner) {
       this.spinner.warn(message);
@@ -110,6 +135,11 @@ export class Spinner {
    * @returns This spinner instance for chaining
    */
   info(text?: string): Spinner {
+    // In quiet mode, do nothing
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     const message = text || this.spinnerText;
     if (this.spinner) {
       this.spinner.info(message);
@@ -126,8 +156,16 @@ export class Spinner {
    */
   setText(newText: string): Spinner {
     this.spinnerText = newText;
+    
+    // In quiet mode, just update the text without logging
+    if (this.logger.isQuietMode()) {
+      return this;
+    }
+    
     if (this.spinner) {
       this.spinner.text = newText;
+    } else {
+      this.logger.debug(`Updated spinner text: ${newText}`);
     }
     return this;
   }
@@ -156,12 +194,17 @@ export class Spinner {
   static fromCommandOptions(text: string, options: Record<string, unknown>): Spinner {
     const logger = Logger.fromCommandOptions(options);
 
-    // Enable spinner only if not in quiet mode
-    // We determine this based on the quiet flag in options
-    const enabled = !options.quiet;
+    // In quiet mode, create a completely disabled spinner
+    if (logger.isQuietMode()) {
+      return new Spinner(text, {
+        enabled: false,
+        logger
+      });
+    }
 
+    // In normal mode, create an enabled spinner
     return new Spinner(text, {
-      enabled,
+      enabled: true,
       logger,
       color: options.color !== false ? 'cyan' : undefined,
     });

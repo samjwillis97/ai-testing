@@ -18,14 +18,20 @@ async function main() {
       quiet: isQuiet,
       verbose: isVerbose,
     });
+    
+    // Set a global flag for quiet mode that can be checked throughout the application
+    if (isQuiet) {
+      process.env.SHC_CLI_QUIET_MODE = 'true';
+    }
 
     // Log the environment mode
     const isProduction = process.env.NODE_ENV === 'production';
     logger.debug(`Running in ${isProduction ? 'production' : 'development'} mode`);
 
-    // Create the program with the same logger settings
+    // Create the program with the global logger instance
     const program = await makeProgram({
       initPlugins: true,
+      logger: logger, // Pass the global logger instance
     });
 
     // Show help if no arguments are provided

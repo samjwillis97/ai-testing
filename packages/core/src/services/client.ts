@@ -349,7 +349,6 @@ export class SHCClient implements ISHCClient {
 
     // Load collections from specific file paths
     if (config.collections?.files && config.collections.files.length > 0) {
-      console.log('Loading collections from files:', config.collections.files);
       for (const filePath of config.collections.files) {
         try {
           if (
@@ -383,7 +382,6 @@ export class SHCClient implements ISHCClient {
 
     // Load collections from directories
     if (config.collections?.directories && config.collections.directories.length > 0) {
-      console.log('Loading collections from directories:', config.collections.directories);
       for (const directoryPath of config.collections.directories) {
         try {
           if (

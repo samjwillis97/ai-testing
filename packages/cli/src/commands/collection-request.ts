@@ -3,9 +3,10 @@
  * This command executes requests from collections
  */
 import { Command, Option } from 'commander';
+import { CommandWithLogger } from '../utils/program.js';
 import chalk from 'chalk';
 import { OutputOptions } from '../types.js';
-import { printResponse } from '../utils/output.js';
+import { printResponse, formatOutput } from '../utils/output.js';
 import { getCollectionDir } from '../utils/config.js';
 import { Logger } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
@@ -39,13 +40,25 @@ export function addCollectionCommand(program: Command): void {
     .option('--auth-user <user>', 'Authentication username')
     .option('--auth-pass <pass>', 'Authentication password')
     .addOption(new Option('--no-color', 'Disable colors'))
-    .action(async (collectionName, requestName, options) => {
-      // Create a logger instance for this command
-      const logger = Logger.fromCommandOptions(options);
+    .action(async function(this: Command, collectionName, requestName, options) {
+      // Use the global logger instance from the program if available
+      const parentWithLogger = this.parent as CommandWithLogger;
+      const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
       
-      // Create a spinner for the request
-      const requestSpinner = new Spinner(`Loading request '${requestName}' from collection '${collectionName}'`);
-      requestSpinner.start();
+      // Check if we're in quiet mode using the logger
+      const isQuietMode = logger.isQuietMode();
+      
+      // Only create and use a spinner if not in quiet mode
+      let requestSpinner = null;
+      
+      if (!isQuietMode) {
+        requestSpinner = new Spinner(`Starting request`, {
+          enabled: true,
+          logger,
+          color: 'cyan'
+        });
+        requestSpinner.start();
+      }
       
       try {
         // Get the collection directory
@@ -63,24 +76,33 @@ export function addCollectionCommand(program: Command): void {
           logger
         );
         
-        // Update spinner with success message
-        requestSpinner.succeed(chalk.green('Response received'));
+        // Show success message only if not in quiet mode
+        if (requestSpinner) {
+          requestSpinner.succeed(chalk.green('Response received'));
+        }
         
-        // Create output options
-        const outputOptions: OutputOptions = {
-          format: options.output as "json" | "yaml" | "raw" | "table",
-          color: Boolean(!options.noColor),
-          verbose: Boolean(options.verbose),
-          quiet: Boolean(options.quiet),
-        };
-        
-        // Print the response
-        printResponse(response, outputOptions);
+        // In quiet mode, directly output the raw data without any formatting or status information
+        if (isQuietMode) {
+          // Just output the raw JSON data directly to stdout (not console.log)
+          process.stdout.write(JSON.stringify(response.data, null, 2) + '\n');
+        } else {
+          // For normal mode, use the standard output formatting
+          const outputOptions: OutputOptions = {
+            format: options.output as "json" | "yaml" | "raw" | "table",
+            color: Boolean(!options.noColor),
+            verbose: Boolean(options.verbose),
+            quiet: false, // Ensure quiet is false here
+          };
+          
+          // Print the response with formatting
+          printResponse(response, outputOptions);
+        }
         
       } catch (error) {
-        // Update spinner with error message
-        requestSpinner.fail(chalk.red('Request failed'));
-        
+        // Update spinner with error message only if not in quiet mode
+        if (requestSpinner) {
+          requestSpinner.fail(chalk.red(`Request failed: ${error instanceof Error ? error.message : String(error)}`));
+        }
         logger.error(
           chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
         );

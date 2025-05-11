@@ -10,6 +10,7 @@ import {
 } from '../utils/completion.js';
 import { cliPluginManager } from '../plugins/index.js';
 import { Logger } from '../utils/logger.js';
+import { CommandWithLogger } from '../utils/program.js';
 
 /**
  * Add completion command to program
@@ -23,8 +24,10 @@ export function addCompletionCommand(program: Command): void {
     .description('Generate shell completion script')
     .argument('<shell>', 'Shell type (bash, zsh, fish)')
     .option('--eval', 'Generate completion script suitable for eval')
-    .action((shell: string, options) => {
-      const logger = Logger.fromCommandOptions(options);
+    .action(function(this: Command, shell: string, options) {
+      // Use the global logger instance from the program if available
+      const parentWithLogger = this.parent as CommandWithLogger;
+      const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
 
       if (!['bash', 'zsh', 'fish'].includes(shell)) {
         logger.error(`Unsupported shell: ${shell}`);
@@ -62,8 +65,10 @@ export function addCompletionCommand(program: Command): void {
     .argument('<shell>', 'Shell type')
     .argument('<line>', 'Current command line')
     .argument('<point>', 'Cursor position')
-    .action((shell: string, line: string, pointStr: string) => {
-      const logger = Logger.fromCommandOptions({});
+    .action(function(this: Command, shell: string, line: string, pointStr: string) {
+      // Use the global logger instance from the program if available
+      const parentWithLogger = this.parent as CommandWithLogger;
+      const logger = parentWithLogger?.logger || Logger.fromCommandOptions({});
 
       try {
         const point = parseInt(pointStr, 10);
@@ -89,8 +94,11 @@ export function addCompletionCommand(program: Command): void {
     });
 
   // Hidden commands for tab completion
-  program.command('--get-collections', { hidden: true }).action(async (options) => {
+  program.command('--get-collections', { hidden: true }).action(async function(this: Command, options) {
     try {
+      // Use the global logger instance from the program if available
+      const parentWithLogger = this.parent as CommandWithLogger;
+      const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
       const collections = await getCollectionsForCompletion(options);
       process.stdout.write(collections.join('\n'));
     } catch (error) {
@@ -101,8 +109,11 @@ export function addCompletionCommand(program: Command): void {
   program
     .command('--get-requests', { hidden: true })
     .argument('<collection>', 'Collection name')
-    .action(async (collection, options) => {
+    .action(async function(this: Command, collection, options) {
       try {
+        // Use the global logger instance from the program if available
+        const parentWithLogger = this.parent as CommandWithLogger;
+        const logger = parentWithLogger?.logger || Logger.fromCommandOptions(options);
         const requests = await getRequestsForCompletion(collection, options);
         process.stdout.write(requests.join('\n'));
       } catch (error) {
