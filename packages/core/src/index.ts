@@ -15,6 +15,28 @@ export type {
 export * from './types/plugin.types';
 export * from './types/plugin-manager.types';
 
+// Export schemas
+export { CollectionSchemas, validateCollection, safeValidateCollection, formatCollectionValidationErrors } from './schemas/collection.schema';
+export type { 
+  AuthenticationSchema,
+  RequestSchema,
+  VariableSetSchema,
+  CollectionSchema
+} from './schemas/collection.schema';
+
+export { PluginSchemas, validatePlugin, safeValidatePlugin, formatPluginValidationErrors } from './schemas/plugin.schema';
+export type { PluginSchema } from './schemas/plugin.schema';
+
+// Export file utilities
+export { 
+  getFileFormat,
+  fileExists,
+  readAndParseFile,
+  findFilesByExtension,
+  findFileWithExtensions
+} from './utils/file-utils';
+export type { FileFormat } from './utils/file-utils';
+
 // Export implementations
 import { SHCClient as SHCClientImpl } from './services/client';
 export const SHCClient = {

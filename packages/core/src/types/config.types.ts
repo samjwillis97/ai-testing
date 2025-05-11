@@ -133,8 +133,7 @@ export interface ConfigManager {
   validateSchema(config: unknown): Promise<ValidationResult>;
   validateCurrentConfig(): Promise<ValidationResult>;
 
-  // Configuration persistence
-  saveToFile(path: string): Promise<void>;
+
 
   // Secret management
   getSecret(key: string): Promise<string>;

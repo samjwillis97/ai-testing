@@ -5,8 +5,9 @@
  */
 import { ConfigManager } from '@shc/core';
 import path from 'path';
+import fs from 'fs';
 import { promises as fsPromises } from 'fs';
-import * as yaml from 'js-yaml';
+import yaml from 'js-yaml';
 import { Logger } from './logger.js';
 
 // Singleton instance of ConfigManager
@@ -110,14 +111,13 @@ async function manuallyLoadCollections(
   logger?: Logger
 ): Promise<void> {
   try {
-    // Ensure the directory exists
+    // Check if the directory exists
     try {
       await fsPromises.access(collectionDir);
     } catch (error) {
-      // Create the directory if it doesn't exist
-      await fsPromises.mkdir(collectionDir, { recursive: true });
-      if (logger) logger.debug(`Created collection directory: ${collectionDir}`);
-      return; // No collections to load yet
+      // Directory doesn't exist, just log and return
+      if (logger) logger.debug(`Collection directory does not exist: ${collectionDir}`);
+      return; // No collections to load
     }
     
     // Check if the path is a directory
@@ -416,7 +416,10 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
     return path.resolve(process.cwd(), collectionDir);
   }
   
-  // For development and testing, prioritize the local collections directory
+  // Get logger for debugging
+  const logger = Logger.getInstance();
+  
+  // For development and testing, prioritize the local collections directory if it exists
   const localCollectionDir = path.join(process.cwd(), 'collections');
   try {
     // Check if the local directory exists and has collection files
@@ -428,22 +431,47 @@ export async function getCollectionDir(options: Record<string, unknown>): Promis
       );
       
       if (collectionFiles.length > 0) {
+        logger.debug(`Using collections from local directory: ${localCollectionDir}`);
         return localCollectionDir;
       }
     }
   } catch (error) {
     // Ignore errors and fall back to other methods
+    logger.debug(`Error checking local directory: ${error instanceof Error ? error.message : String(error)}`);
   }
   
-  // If no local collections, use the ConfigManager to get the configured path
+  // Next check the user's config directory
+  const userConfigDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.config', 'shc', 'collections');
+  try {
+    // Check if the user config directory exists and has collection files
+    const exists = await fileExists(userConfigDir);
+    if (exists) {
+      const files = await fsPromises.readdir(userConfigDir);
+      const collectionFiles = files.filter(file => 
+        file.endsWith('.json') || file.endsWith('.yaml') || file.endsWith('.yml')
+      );
+      
+      if (collectionFiles.length > 0) {
+        logger.debug(`Using collections from user config directory: ${userConfigDir}`);
+        return userConfigDir;
+      }
+    }
+  } catch (error) {
+    // Ignore errors and fall back to other methods
+    logger.debug(`Error checking user config directory: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
+  // If no collections found yet, use the ConfigManager to get the configured path
   const configManager = await getConfigManager(options);
   const configDirectories = configManager.get<string[]>('collections.directories', []);
   
   if (configDirectories && configDirectories.length > 0) {
     // Use the first directory in the array
+    logger.debug(`Using collections from config: ${configDirectories[0]}`);
     return configDirectories[0];
   }
   
   // Fall back to default path in user's home directory
-  return path.join(process.env.HOME || process.env.USERPROFILE || '', '.config', 'shc', 'collections');
+  logger.debug(`Falling back to default user config directory: ${userConfigDir}`);
+  return userConfigDir;
 }

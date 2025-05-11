@@ -3,6 +3,7 @@ import path from 'path';
 import pacote from 'pacote';
 import { PluginManager as IPluginManager } from '../types/plugin-manager.types';
 import { SHCPlugin, PluginConfig } from '../types/plugin.types';
+import { safeValidatePlugin } from '../schemas/plugin.schema';
 import { ConfigManagerImpl } from '../config-manager';
 import simpleGit from 'simple-git';
 
@@ -410,20 +411,12 @@ export class PluginManagerImpl implements IPluginManager {
   }
 
   /**
-   * Validates that an object has the required properties to be a SHCPlugin
+   * Validates that an object has the required properties to be a SHCPlugin using Zod schema
    * @private
    */
   private isValidPlugin(obj: Record<string, unknown>): boolean {
-    return (
-      'name' in obj &&
-      typeof obj.name === 'string' &&
-      'version' in obj &&
-      typeof obj.version === 'string' &&
-      'type' in obj &&
-      typeof obj.type === 'string' &&
-      'execute' in obj &&
-      typeof obj.execute === 'function'
-    );
+    const validationResult = safeValidatePlugin(obj);
+    return validationResult.success;
   }
 }
 

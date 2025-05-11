@@ -626,93 +626,21 @@ export class ConfigManagerImpl implements IConfigManager {
   }
 
   async validateConfig(config: Record<string, unknown>): Promise<boolean> {
-    // Basic validation for backward compatibility
-    if (!config) {
-      throw new Error('Configuration cannot be null or undefined');
+    // Use schema validation instead of manual validation
+    try {
+      // Use the validateSchema method which uses Zod schema validation
+      const validationResult = await this.validateSchema(config);
+      
+      if (!validationResult.valid) {
+        // If validation fails, throw an error with the validation errors
+        throw new Error(`Invalid configuration: ${validationResult.errors?.join(', ')}`);
+      }
+      
+      return true;
+    } catch (error) {
+      // Re-throw the error
+      throw error;
     }
-
-    // Check version
-    if (config.version && typeof config.version !== 'string') {
-      throw new Error('Configuration version must be a string');
-    }
-
-    // Check HTTP configuration
-    if (config.core && typeof config.core === 'object' && 'http' in config.core && config.core.http) {
-      const http = config.core.http as {
-        timeout?: unknown;
-        max_redirects?: unknown;
-        retry?: {
-          attempts?: unknown;
-          backoff?: unknown;
-        };
-        tls?: {
-          verify?: unknown;
-        };
-      };
-      
-      if ('timeout' in http && http.timeout !== undefined && typeof http.timeout !== 'number') {
-        throw new Error('HTTP timeout must be a number');
-      }
-      
-      if ('max_redirects' in http && http.max_redirects !== undefined && typeof http.max_redirects !== 'number') {
-        throw new Error('HTTP max_redirects must be a number');
-      }
-      
-      if ('retry' in http && http.retry) {
-        if ('attempts' in http.retry && http.retry.attempts !== undefined && typeof http.retry.attempts !== 'number') {
-          throw new Error('HTTP retry attempts must be a number');
-        }
-        
-        if ('backoff' in http.retry && http.retry.backoff !== undefined && typeof http.retry.backoff !== 'string') {
-          throw new Error('HTTP retry backoff must be a string');
-        }
-      }
-      
-      if ('tls' in http && http.tls) {
-        if ('verify' in http.tls && http.tls.verify !== undefined && typeof http.tls.verify !== 'boolean') {
-          throw new Error('HTTP TLS verify must be a boolean');
-        }
-      }
-    }
-
-    // Check logging configuration
-    if (config.core && typeof config.core === 'object' && 'logging' in config.core && config.core.logging) {
-      const logging = config.core.logging as {
-        level?: unknown;
-        format?: unknown;
-        output?: unknown;
-      };
-      
-      if ('level' in logging && logging.level !== undefined && typeof logging.level !== 'string') {
-        throw new Error('Logging level must be a string');
-      }
-      
-      if ('format' in logging && logging.format !== undefined && typeof logging.format !== 'string') {
-        throw new Error('Logging format must be a string');
-      }
-      
-      if ('output' in logging && logging.output !== undefined && typeof logging.output !== 'string') {
-        throw new Error('Logging output must be a string');
-      }
-    }
-
-    // Check storage configuration
-    if (config.storage && typeof config.storage === 'object' && 'collections' in config.storage && config.storage.collections) {
-      const collections = config.storage.collections as {
-        type?: unknown;
-        path?: unknown;
-      };
-      
-      if ('type' in collections && collections.type !== undefined && typeof collections.type !== 'string') {
-        throw new Error('Storage collections type must be a string');
-      }
-      
-      if ('path' in collections && collections.path !== undefined && typeof collections.path !== 'string') {
-        throw new Error('Storage collections path must be a string');
-      }
-    }
-
-    return true;
   }
 
   async validateSchema(config: unknown): Promise<ValidationResult> {
@@ -739,24 +667,7 @@ export class ConfigManagerImpl implements IConfigManager {
     return this.validateSchema(this.config);
   }
 
-  async saveToFile(filePath: string): Promise<void> {
-    try {
-      const fileExt = path.extname(filePath).toLowerCase();
-      let content: string;
-      
-      if (fileExt === '.yaml' || fileExt === '.yml') {
-        content = yaml.dump(this.config, { indent: 2 });
-      } else if (fileExt === '.json') {
-        content = JSON.stringify(this.config, null, 2);
-      } else {
-        throw new Error(`Unsupported file type: ${fileExt}`);
-      }
-      
-      await fs.writeFile(filePath, content, 'utf8');
-    } catch (error) {
-      throw new Error(`Failed to save configuration to ${filePath}: ${error instanceof Error ? error.message : error}`);
-    }
-  }
+
 
   async getSecret(key: string): Promise<string> {
     const secret = this.secretStore.get(key);

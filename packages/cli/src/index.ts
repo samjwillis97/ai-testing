@@ -18,11 +18,6 @@ async function main() {
       quiet: isQuiet,
       verbose: isVerbose,
     });
-    
-    // Set a global flag for quiet mode that can be checked throughout the application
-    if (isQuiet) {
-      process.env.SHC_CLI_QUIET_MODE = 'true';
-    }
 
     // Log the environment mode
     const isProduction = process.env.NODE_ENV === 'production';

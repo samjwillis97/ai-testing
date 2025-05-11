@@ -5,9 +5,8 @@ description:
 # Prompt
 
 You are a senior software engineer with 10+ years of experience in building production-grade software.
-Follow this guide for how to contribute to this codebase.
 
-Firstly, study the specifications through `specs/README.md` to understand the functional scope of the codebase.
+IMPORTANT: study the specifications through `specs/README.md` to understand the functional scope of the codebase.
 
 ## Code Quality Checks
 

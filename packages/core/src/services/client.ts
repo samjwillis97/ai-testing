@@ -317,25 +317,22 @@ export class SHCClient implements ISHCClient {
     if (config.collections?.items && config.collections.items.length > 0) {
       for (const collection of config.collections.items) {
         try {
-          // Add the collection to the manager
+          // Add the collection directly to the collection manager's in-memory storage
           if (
             typeof this.collectionManager === 'object' &&
-            this.collectionManager !== null &&
-            'createCollection' in this.collectionManager &&
-            typeof (
-              this.collectionManager as {
-                createCollection: (name: string, collection: unknown) => Promise<unknown>;
-              }
-            ).createCollection === 'function'
+            this.collectionManager !== null
           ) {
-            await (
-              this.collectionManager as {
-                createCollection: (name: string, collection: unknown) => Promise<unknown>;
-              }
-            ).createCollection(collection.name, collection);
-            this.eventEmitter.emit('collection:loaded', collection.name);
+            // Access the private collections Map directly
+            const collectionManagerImpl = this.collectionManager as any;
+            if (collectionManagerImpl.collections instanceof Map) {
+              // Store the collection directly in memory
+              collectionManagerImpl.collections.set(collection.name, collection);
+              this.eventEmitter.emit('collection:loaded', collection.name);
+            } else {
+              throw new Error('Collection manager does not have a collections Map');
+            }
           } else {
-            throw new Error('Collection manager does not support createCollection');
+            throw new Error('Collection manager is not properly initialized');
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -361,6 +358,7 @@ export class SHCClient implements ISHCClient {
               }
             ).loadCollection === 'function'
           ) {
+            // Use the existing loadCollection method which reads from files but stores in memory
             const collection = await (
               this.collectionManager as {
                 loadCollection: (filePath: string) => Promise<{ name: string }>;
@@ -394,6 +392,7 @@ export class SHCClient implements ISHCClient {
               }
             ).loadCollectionsFromDirectory === 'function'
           ) {
+            // Use the existing loadCollectionsFromDirectory method which reads from files but stores in memory
             const collectionNames = await (
               this.collectionManager as {
                 loadCollectionsFromDirectory: (directoryPath: string) => Promise<string[]>;
