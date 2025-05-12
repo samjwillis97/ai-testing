@@ -56,15 +56,47 @@ export async function getConfigManager(options?: Record<string, unknown>): Promi
   pendingInitPromise = (async () => {
     try {
       const configManager = new ConfigManager();
+      const logger = Logger.getInstance();
       
-      // Load config file if specified via CLI options
+      // Try to load config file in the following order:
+      // 1. From CLI options if specified
+      // 2. From default location ~/.config/shc/config.yaml
+      let configLoaded = false;
+      
+      // 1. Load config file if specified via CLI options
       if (options && options.config) {
         try {
+          logger.debug(`Loading config from specified path: ${options.config}`);
           await configManager.loadFromFile(options.config as string);
+          configLoaded = true;
+          logger.debug('Successfully loaded config from specified path');
         } catch (error) {
-          Logger.getInstance().error(
+          logger.error(
             `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
           );
+        }
+      }
+      
+      // 2. If no config loaded yet, try default location
+      if (!configLoaded) {
+        const homeDir = process.env.HOME || process.env.USERPROFILE;
+        if (homeDir) {
+          const defaultConfigPath = path.join(homeDir, '.config', 'shc', 'config.yaml');
+          try {
+            // Check if the file exists before trying to load it
+            if (fs.existsSync(defaultConfigPath)) {
+              logger.debug(`Loading config from default path: ${defaultConfigPath}`);
+              await configManager.loadFromFile(defaultConfigPath);
+              configLoaded = true;
+              logger.debug('Successfully loaded config from default path');
+            } else {
+              logger.debug(`Default config file not found at: ${defaultConfigPath}`);
+            }
+          } catch (error) {
+            logger.error(
+              `Failed to load default config file: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
         }
       }
       

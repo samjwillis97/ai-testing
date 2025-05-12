@@ -173,8 +173,8 @@ describe('SHC Client Plugin Integration', () => {
       });
 
       // Create the client with the config
-      const client = SHCClient.create(config);
-      expect(client).toBeDefined();
+      const clientPromise = SHCClient.create(config);
+      expect(clientPromise).toBeDefined();
 
       // Verify that the plugin initialization was attempted
       expect(failingPlugin.initialize).toHaveBeenCalled();
@@ -197,18 +197,23 @@ describe('SHC Client Plugin Integration', () => {
       expect((error as Error).message).toContain('Failed to initialize plugin failing-plugin');
       expect((error as Error).message).toContain('Initialization failed');
 
-      // Clean up the client to prevent any lingering promises
-      if (client) {
-        // Remove the plugin to trigger cleanup
-        client.removePlugin(failingPlugin.name);
+      // Try to resolve the client promise to clean up
+      try {
+        const client = await clientPromise;
+        if (client) {
+          // Remove the plugin to trigger cleanup
+          client.removePlugin(failingPlugin.name);
+        }
+      } catch (e) {
+        // Client creation might have failed due to plugin error, which is expected
       }
     });
   });
 
   describe('Plugin lifecycle management', () => {
-    it('should initialize plugins when the client is created', () => {
+    it('should initialize plugins when the client is created', async () => {
       // Create a client with plugins
-      const client = SHCClient.create({
+      await SHCClient.create({
         plugins: {
           auth: [authProviderPlugin],
           preprocessors: [requestPreprocessorPlugin],
@@ -222,9 +227,9 @@ describe('SHC Client Plugin Integration', () => {
       expect(responseTransformerPlugin.initialize).toHaveBeenCalled();
     });
 
-    it('should destroy plugins when they are removed', () => {
+    it('should destroy plugins when they are removed', async () => {
       // Create a client with plugins
-      const client = SHCClient.create({
+      const client = await SHCClient.create({
         plugins: {
           auth: [authProviderPlugin],
         },

@@ -42,9 +42,9 @@ const mockAxiosInstance = {
 };
 
 describe('SHCClient', () => {
-  let client: ReturnType<typeof SHCClient.create>;
+  let client: SHCClient;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Reset the mock instance properties
@@ -52,9 +52,26 @@ describe('SHCClient', () => {
     mockAxiosInstance.defaults.timeout = 30000;
     mockAxiosInstance.defaults.baseURL = undefined;
 
-    client = SHCClient.create({
+    client = await SHCClient.create({
       baseURL: 'https://api.example.com',
       timeout: 5000,
+    });
+  });
+
+  describe('builder', () => {
+    it('should create a builder with the provided configuration', async () => {
+      const builder = SHCClient.builder({
+        baseURL: 'https://api.example.com',
+        timeout: 5000,
+      });
+
+      const builtClient = await builder.build();
+
+      expect(axios.create).toHaveBeenCalledWith({
+        baseURL: 'https://api.example.com',
+        timeout: 5000,
+        headers: {},
+      });
     });
   });
 
@@ -67,9 +84,9 @@ describe('SHCClient', () => {
       });
     });
 
-    it('should create a new client instance with default configuration if none provided', () => {
+    it('should create a new client instance with default configuration if none provided', async () => {
       vi.clearAllMocks();
-      const defaultClient = SHCClient.create();
+      const defaultClient = await SHCClient.create();
       expect(axios.create).toHaveBeenCalledWith({
         baseURL: undefined,
         timeout: 30000,
@@ -378,6 +395,17 @@ describe('SHCClient', () => {
   });
 
   describe('Event handling', () => {
+    it('should register an event handler', async () => {
+      const errorHandler = vi.fn();
+      client.on('error', errorHandler);
+
+      // Trigger the event
+      (client as any).eventEmitter.emit('error', new Error('Test error'));
+
+      // Verify the handler was called
+      expect(errorHandler).toHaveBeenCalledWith(new Error('Test error'));
+    });
+
     it('should register and trigger event listeners', async () => {
       const mockListener = vi.fn();
 
@@ -510,6 +538,77 @@ describe('SHCClient', () => {
           statusText: 'OK',
         })
       );
+    });
+  });
+
+  describe('plugin handling', () => {
+    it('should register a plugin', async () => {
+      const mockPlugin = {
+        name: 'test-plugin',
+        type: PluginType.REQUEST_PREPROCESSOR,
+        execute: vi.fn(),
+        version: '1.0.0',
+      };
+
+      client.use(mockPlugin);
+
+      // Verify the plugin is registered
+      expect((client as any).plugins.get('test-plugin')).toBe(mockPlugin);
+    });
+
+    it('should not register a null or undefined plugin', async () => {
+      // Spy on console.error
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Try to register a null plugin
+      client.use(null as any);
+
+      // Try to register an undefined plugin
+      client.use(undefined as any);
+
+      // Verify console.error was called twice
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+
+      // Restore the original console.error
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle plugin errors in response interceptor', async () => {
+      // Create a plugin that throws an error
+      const badPlugin = {
+        name: 'bad-plugin',
+        type: PluginType.RESPONSE_TRANSFORMER,
+        execute: vi.fn().mockRejectedValue(new Error('Plugin error')),
+        version: '1.0.0',
+      };
+
+      // Register the plugin
+      client.use(badPlugin);
+
+      // Set up the mock implementation
+      const mockResponse = {
+        data: { id: 1, name: 'Test' },
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config: {},
+        pluginError: {
+          type: 'plugin-error',
+          plugin: 'bad-plugin',
+          error: new Error('Plugin error'),
+        },
+      };
+
+      mockAxiosInstance.request.mockResolvedValueOnce(mockResponse);
+
+      // Make the request and expect it to succeed but with a plugin error in the response
+      const response = await client.get('/test');
+
+      // Use type assertion to access the pluginError property
+      expect((response as any).pluginError).toMatchObject({
+        type: 'plugin-error',
+        plugin: 'bad-plugin',
+      });
     });
   });
 

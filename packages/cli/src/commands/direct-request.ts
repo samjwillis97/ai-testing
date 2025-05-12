@@ -251,7 +251,7 @@ async function executeDirectRequest(
             ]
           : [];
 
-      const client = SHCClient.create(configManager, { eventHandlers });
+      const client = await SHCClient.create(configManager, { eventHandlers });
 
       // Execute request
       const response = await client.request(requestOptions);

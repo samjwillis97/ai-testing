@@ -373,7 +373,7 @@ export async function executeRequest(
     logger.info(`Executing ${requestOptions.method} request to: ${url}`);
     
     // Create a client instance with a custom event handler to prevent collection loading errors
-    const client = SHCClient.create(configManager, {
+    const client = await SHCClient.create(configManager, {
       eventHandlers: [
         {
           event: 'error',

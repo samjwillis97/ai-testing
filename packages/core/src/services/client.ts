@@ -200,93 +200,137 @@ export class SHCClient implements ISHCClient {
 
     // Load plugins if not deferred
     if (!this.deferPluginLoading) {
-      this._loadPlugins(config);
+      this._loadPlugins(config).catch((error) => {
+        this.eventEmitter.emit(
+          'error',
+          new Error(`Failed to load plugins: ${String(error)}`)
+        );
+      });
     }
   }
 
   /**
    * Load plugins from the configuration
+   * @param config Optional configuration object
    */
-  private _loadPlugins(config?: SHCConfig): void {
-    // Register initial plugins if provided
+  private async _loadPlugins(config?: SHCConfig): Promise<void> {    
     if (config?.plugins) {
-      // Handle the new plugins structure
+      const loadPluginsOfType = async (pluginConfigs: any[], type: string) => {        
+        for (const pluginConfig of pluginConfigs) {
+          try {
+            // Skip if the plugin is already registered
+            if (this.plugins.has(pluginConfig.name)) {
+              continue;
+            }
+            
+            // If it's already a plugin instance, use it directly
+            if (pluginConfig.type && typeof pluginConfig.execute === 'function') {
+              this.use(pluginConfig);
+              continue;
+            }
+
+            // Otherwise, load it from configuration
+            try {
+              await this.pluginManager.registerFromConfig(pluginConfig);
+              
+              // After registration, get the actual plugin instance
+              const plugin = this.pluginManager.getPlugin(pluginConfig.name);
+              if (plugin) {
+                this.use(plugin);
+              } else {
+                this.eventEmitter.emit(
+                  'error',
+                  new Error(`Plugin ${pluginConfig.name} was registered but could not be retrieved`)
+                );
+              }
+            } catch (registerError) {
+              // If the error is just that the plugin is already registered with the plugin manager,
+              // we can still try to get it and use it
+              if (String(registerError).includes('already registered')) {
+                const plugin = this.pluginManager.getPlugin(pluginConfig.name);
+                if (plugin && !this.plugins.has(plugin.name)) {
+                  this.use(plugin);
+                }
+              } else {
+                // Re-throw other errors
+                throw registerError;
+              }
+            }
+          } catch (error) {
+            // This is a real error, so emit it regardless of logger
+            this.eventEmitter.emit(
+              'error',
+              new Error(`Failed to load ${type} plugin ${pluginConfig.name}: ${String(error)}`)
+            );
+          }
+        }
+      };
+
+      // Handle the plugin types
       if (config.plugins.auth) {
-        config.plugins.auth.forEach((plugin) => this.use(plugin));
+        await loadPluginsOfType(config.plugins.auth, 'auth');
       }
       if (config.plugins.preprocessors) {
-        config.plugins.preprocessors.forEach((plugin) => this.use(plugin));
+        await loadPluginsOfType(config.plugins.preprocessors, 'preprocessor');
       }
       if (config.plugins.transformers) {
-        config.plugins.transformers.forEach((plugin) => this.use(plugin));
+        await loadPluginsOfType(config.plugins.transformers, 'transformer');
       }
     }
   }
 
   /**
-   * Create a new HTTP client instance with default configuration
-   */
-  static create(): SHCClient;
-  /**
-   * Create a new HTTP client instance with optional configuration
-   * @param config Configuration object
+   * Create a new HTTP client instance with different configurations
+   * @param configOrManager Optional configuration object or ConfigManager instance
    * @param options Additional options for client creation
-   * @param options.eventHandlers Event handlers to register before plugins are loaded
+   * @returns Promise resolving to an SHCClient instance
    */
+  static create(): Promise<SHCClient>;
   static create(
     config: SHCConfig,
     options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient;
-  /**
-   * Create a new HTTP client instance with a ConfigManager
-   * @param configManager ConfigManager instance
-   * @param options Additional options for client creation
-   * @param options.eventHandlers Event handlers to register before plugins are loaded
-   */
+  ): Promise<SHCClient>;
   static create(
     configManager: ConfigManager,
     options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient;
-  /**
-   * Implementation of create method that handles both config and ConfigManager
-   * @param configOrManager Configuration object or ConfigManager instance
-   * @param options Additional options for client creation
-   */
-  static create(
+  ): Promise<SHCClient>;
+  static async create(
     configOrManager?: SHCConfig | ConfigManager,
     options?: { eventHandlers?: { event: SHCEvent; handler: (...args: unknown[]) => void }[] }
-  ): SHCClient {
-    let config: SHCConfig;
+  ): Promise<SHCClient> {
+    let config: SHCConfig = {};
     let configManager: ConfigManagerImpl | null = null;
 
     // Extract config and configManager
-    if (configOrManager && typeof configOrManager === 'object' && 'get' in configOrManager) {
-      // It's a ConfigManager
-      configManager = configOrManager as ConfigManagerImpl;
-      config = configManager.get('');
-    } else {
-      // It's a regular config object or undefined
-      config = configOrManager || {};
+    if (configOrManager) {
+      if (typeof configOrManager === 'object' && 'get' in configOrManager) {
+        // It's a ConfigManager
+        configManager = configOrManager as ConfigManagerImpl;
+        config = configManager.get('') || {};
+      } else {
+        // It's a config object
+        config = configOrManager as SHCConfig;
+      }
     }
 
-    // Create a client with deferred plugin loading
-    const client = new SHCClient(config, true); // Pass true to defer plugin loading
+    // Create the client with deferred plugin loading
+    const client = new SHCClient(config, true);
 
-    // Set the ConfigManager if provided
+    // Set the config manager if provided
     if (configManager) {
       client._setConfigManager(configManager);
     }
 
-    // Register event handlers if provided
+    // Register event handlers before loading plugins
     if (options?.eventHandlers) {
       for (const { event, handler } of options.eventHandlers) {
         client.on(event, handler);
       }
     }
 
-    // Now load plugins
-    client._loadPlugins(config);
-
+    // Load plugins from the configuration
+    await client._loadPlugins(config);
+    
     return client;
   }
 
@@ -621,8 +665,21 @@ export class SHCClient implements ISHCClient {
       throw new Error('Plugin must have a name');
     }
 
-    // Register with the plugin manager
-    this.pluginManager.register(plugin);
+    // Skip if the plugin is already registered with the client
+    if (this.plugins.has(plugin.name)) {
+      return;
+    }
+
+    try {
+      // Register with the plugin manager
+      this.pluginManager.register(plugin);
+    } catch (error) {
+      // If the plugin is already registered with the plugin manager, we can continue
+      if (!String(error).includes('already registered')) {
+        throw error;
+      }
+      // Plugin is already registered with the plugin manager, continuing
+    }
 
     // Initialize the plugin if it has an initialize method
     if (plugin.initialize) {
@@ -725,12 +782,23 @@ export class SHCClient implements ISHCClient {
 
     // Apply authentication if needed
     if (config.authentication) {
+      // Authentication config found
+      
+      // Debug all plugins in the registry
+      // Process all registered plugins
+      
+      // Debug plugin types
+
+      
       const authPlugins = Array.from(this.plugins.values()).filter(
         (plugin) => plugin.type === PluginType.AUTH_PROVIDER
       );
+      
+      // Process auth plugins
 
       for (const plugin of authPlugins) {
         try {
+
           type AuthResult = { token?: string; tokenType?: string };
           const authPromise = plugin.execute({
             type: config.authentication.type,
@@ -738,7 +806,9 @@ export class SHCClient implements ISHCClient {
           });
           const authResult = (await authPromise) as AuthResult;
 
+
           if (authResult && authResult.token) {
+
             axiosConfig.headers = axiosConfig.headers || {};
             axiosConfig.headers['Authorization'] =
               `${authResult.tokenType || 'Bearer'} ${authResult.token}`;
@@ -746,6 +816,7 @@ export class SHCClient implements ISHCClient {
 
           break;
         } catch (error) {
+          // Error executing auth plugin, emitting error event
           this.eventEmitter.emit('error', {
             type: 'auth-error',
             plugin: plugin.name,
@@ -759,39 +830,59 @@ export class SHCClient implements ISHCClient {
   }
 }
 
+/**
+ * Builder class for creating SHCClient instances with more configuration options
+ */
 class SHCClientBuilder {
   private config: SHCConfig;
   private configManager: ConfigManagerImpl | null;
-  private eventHandlers: Map<SHCEvent, (...args: unknown[]) => void> = new Map();
+  private eventHandlers: Array<{ event: SHCEvent; handler: (...args: unknown[]) => void }> = [];
 
+  /**
+   * Create a new SHCClientBuilder
+   * @param config Optional configuration object
+   */
   constructor(config?: SHCConfig) {
     this.config = config || {};
     this.configManager = null;
   }
 
+  /**
+   * Set the config manager for the client
+   * @param configManager ConfigManager instance
+   * @returns The builder instance for chaining
+   */
   setConfigManager(configManager: ConfigManagerImpl): SHCClientBuilder {
     this.configManager = configManager;
     return this;
   }
 
+  /**
+   * Add an event handler to the client
+   * @param event Event to listen for
+   * @param handler Handler function
+   * @returns The builder instance for chaining
+   */
   withEventHandler(event: SHCEvent, handler: (...args: unknown[]) => void): SHCClientBuilder {
-    this.eventHandlers.set(event, handler);
+    this.eventHandlers.push({ event, handler });
     return this;
   }
 
-  build(): SHCClient {
-    const client = SHCClient.create(this.config);
-
-    // Set the config manager if provided
+  /**
+   * Build the client with the configured options
+   * @returns Promise resolving to an SHCClient instance
+   */
+  async build(): Promise<SHCClient> {
+    // Create options object with event handlers
+    const options = {
+      eventHandlers: this.eventHandlers
+    };
+    
+    // Create the client based on what we have
     if (this.configManager) {
-      client._setConfigManager(this.configManager);
+      return SHCClient.create(this.configManager, options);
+    } else {
+      return SHCClient.create(this.config, options);
     }
-
-    // Register all event handlers
-    this.eventHandlers.forEach((handler, event) => {
-      client.on(event, handler);
-    });
-
-    return client;
   }
 }

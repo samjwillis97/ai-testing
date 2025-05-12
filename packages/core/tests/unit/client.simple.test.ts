@@ -4,8 +4,8 @@ import { PluginType } from '../../src/types/plugin.types';
 
 describe('SHCClient', () => {
   describe('create', () => {
-    it('should create a new client instance', () => {
-      const client = SHCClient.create({
+    it('should create a new client instance', async () => {
+      const client = await SHCClient.create({
         baseURL: 'https://api.example.com',
         timeout: 5000,
       });
@@ -29,15 +29,15 @@ describe('SHCClient', () => {
       expect(typeof client.off).toBe('function');
     });
 
-    it('should create a new client instance with default configuration if none provided', () => {
-      const client = SHCClient.create();
+    it('should create a new client instance with default configuration if none provided', async () => {
+      const client = await SHCClient.create();
       expect(client).toBeDefined();
     });
   });
 
   describe('Plugin management', () => {
-    it('should throw an error when registering a plugin without a name', () => {
-      const client = SHCClient.create();
+    it('should throw an error when registering a plugin without a name', async () => {
+      const client = await SHCClient.create();
       const mockPlugin = {
         name: '',
         version: '1.0.0',
@@ -48,8 +48,8 @@ describe('SHCClient', () => {
       expect(() => client.use(mockPlugin)).toThrow('Plugin must have a name');
     });
 
-    it('should register and remove a plugin', () => {
-      const client = SHCClient.create();
+    it('should register and remove a plugin', async () => {
+      const client = await SHCClient.create();
       const mockPlugin = {
         name: 'test-plugin',
         version: '1.0.0',
@@ -57,17 +57,23 @@ describe('SHCClient', () => {
         execute: async () => ({}),
       };
 
-      // Should not throw when registering a valid plugin
-      expect(() => client.use(mockPlugin)).not.toThrow();
+      // Register the plugin
+      client.use(mockPlugin);
 
-      // Should not throw when removing a registered plugin
-      expect(() => client.removePlugin('test-plugin')).not.toThrow();
+      // Verify the plugin is registered
+      expect((client as any).plugins.get('test-plugin')).toBe(mockPlugin);
+
+      // Remove the plugin
+      client.removePlugin('test-plugin');
+
+      // Verify the plugin is removed
+      expect((client as any).plugins.has('test-plugin')).toBe(false);
     });
   });
 
   describe('Event handling', () => {
-    it('should register and remove event handlers', () => {
-      const client = SHCClient.create();
+    it('should register and remove event handlers', async () => {
+      const client = await SHCClient.create();
       const mockHandler = vi.fn();
 
       // Should not throw when registering an event handler
@@ -79,10 +85,10 @@ describe('SHCClient', () => {
   });
 
   describe('Configuration methods', () => {
-    it('should have configuration methods', () => {
-      const client = SHCClient.create();
+    it('should set default headers, timeout, and baseURL', async () => {
+      const client = await SHCClient.create();
 
-      // Should not throw when setting configuration
+      // Verify that the methods don't throw exceptions
       expect(() => client.setDefaultHeader('Content-Type', 'application/json')).not.toThrow();
       expect(() => client.setTimeout(10000)).not.toThrow();
       expect(() => client.setBaseURL('https://api.example.com')).not.toThrow();

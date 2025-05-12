@@ -32,7 +32,23 @@ export class CollectionManagerImpl implements ICollectionManager {
     this.collections = new Map<string, Collection>();
     this.globalVariableSets = new Map<string, VariableSet>();
     this.storagePath = options?.storagePath || './collections';
-    this.client = options?.client || SHCClient.create({});
+    
+    // Set the client if provided, otherwise it will be initialized lazily
+    if (options?.client) {
+      this.client = options.client;
+    } else {
+      // Create a placeholder client that will be replaced with the real one
+      // This is a workaround for the asynchronous nature of SHCClient.create
+      this.client = {} as SHCClient;
+      
+      // Initialize the client asynchronously
+      SHCClient.create({}).then(client => {
+        this.client = client;
+      }).catch(error => {
+        console.error('Failed to initialize SHCClient:', error);
+      });
+    }
+    
     this.configManager = options?.configManager || new ConfigManagerImpl();
   }
 
@@ -420,6 +436,8 @@ export class CollectionManagerImpl implements ICollectionManager {
 
 /**
  * Create a new CollectionManager instance
+ * @param options Configuration options
+ * @returns A CollectionManager instance
  */
 export const createCollectionManager = (options?: {
   storagePath?: string;
@@ -427,4 +445,25 @@ export const createCollectionManager = (options?: {
   configManager?: ConfigManagerImpl;
 }): ICollectionManager => {
   return new CollectionManagerImpl(options);
+};
+
+/**
+ * Create a new CollectionManager instance with an asynchronously created client
+ * @param options Configuration options
+ * @returns Promise resolving to a CollectionManager instance
+ */
+export const createCollectionManagerAsync = async (options?: {
+  storagePath?: string;
+  configManager?: ConfigManagerImpl;
+  config?: Record<string, unknown>;
+}): Promise<ICollectionManager> => {
+  // Create the client first
+  const client = await SHCClient.create(options?.config || {});
+  
+  // Then create the collection manager with the client
+  return new CollectionManagerImpl({
+    storagePath: options?.storagePath,
+    client,
+    configManager: options?.configManager,
+  });
 };

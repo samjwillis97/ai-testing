@@ -1,0 +1,8 @@
+# SHC CLI Test Configuration
+baseURL: https://httpbin.org
+timeout: 10000
+plugins:
+  preprocessors:
+    - name: test-plugin
+      path: /Users/sam/code/github.com/samjwillis97/ai-testing/main/packages/cli/src/test-plugin.ts
+      enabled: true
