@@ -4,12 +4,31 @@
 import { Command, Option } from 'commander';
 import { CommandWithLogger } from '../utils/program.js';
 import chalk from 'chalk';
-import { SHCClient, SHCEvent } from '@shc/core';
+import { SHCClient, SHCEvent, Response, ConfigManager } from '@shc/core';
+import type { LogEvent } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
 import { printResponse, formatOutput } from '../utils/output.js';
 import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
+
+/**
+ * Safely stringify an object, handling circular references
+ * @param obj The object to stringify
+ * @returns A JSON string representation of the object
+ */
+function safeStringify(obj: unknown): string {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      seen.add(value);
+    }
+    return value;
+  }, 2);
+}
 
 // We'll dynamically import the rate-limit plugin at runtime
 // instead of statically importing it to avoid TypeScript errors
@@ -225,31 +244,59 @@ async function executeDirectRequest(
       const configManager = await createConfigManagerFromOptions(effectiveOptions);
 
       // Register event handlers for debugging
-      const eventHandlers: { event: SHCEvent; handler: (event: unknown) => void }[] =
-        logger.level === 'debug'
-          ? [
-              {
-                event: 'request',
-                handler: (req: unknown) => {
-                  logger.debug('Request:', JSON.stringify(req, null, 2));
-                },
+      // Define event handlers with proper typing
+      const eventHandlers: { event: SHCEvent; handler: (...args: unknown[]) => void }[] = !isQuietMode
+        ? [
+            {
+              event: 'request' as SHCEvent,
+              handler: (req: unknown) => {
+                logger.debug('Request:', safeStringify(req));
               },
-              {
-                event: 'response',
-                handler: (res: unknown) => {
-                  logger.debug('Response:', JSON.stringify(res, null, 2));
-                },
+            },
+            {
+              event: 'response' as SHCEvent,
+              handler: (res: unknown) => {
+                logger.debug('Response:', safeStringify(res));
               },
-              {
-                event: 'error',
-                handler: (err: unknown) => {
-                  logger.error(
-                    chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
-                  );
-                },
+            },
+            {
+              event: 'error' as SHCEvent,
+              handler: (err: unknown) => {
+                logger.error(
+                  chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`)
+                );
               },
-            ]
-          : [];
+            },
+            // Add log event handlers
+            {
+              event: 'log' as SHCEvent,
+              handler: (logEvent: unknown) => {
+                try {
+                  // Cast to LogEvent type
+                  const { level, message, source, metadata } = logEvent as LogEvent;
+                  
+                  // Handle logs based on the CLI's logger level
+                  switch (level) {
+                    case 'debug':
+                      logger.debug(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                      break;
+                    case 'info':
+                      logger.info(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                      break;
+                    case 'warn':
+                      logger.warn(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                      break;
+                    case 'error':
+                      logger.error(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                      break;
+                  }
+                } catch (error) {
+                  logger.error(`Error processing log event: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              },
+            },
+          ]
+        : [];
 
       const client = await SHCClient.create(configManager, { eventHandlers });
 

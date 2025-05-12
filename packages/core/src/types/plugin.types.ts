@@ -1,3 +1,5 @@
+import type { LogEmitter } from './log-emitter.types';
+
 export enum PluginType {
   REQUEST_PREPROCESSOR = 'request-preprocessor',
   RESPONSE_TRANSFORMER = 'response-transformer',
@@ -33,6 +35,9 @@ export interface SHCPlugin {
       parameters?: unknown[];
     }
   >;
+  
+  // Logger for the plugin
+  logEmitter?: LogEmitter;
 }
 
 export interface RequestPreprocessorPlugin extends SHCPlugin {

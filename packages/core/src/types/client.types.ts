@@ -118,7 +118,16 @@ export type SHCEvent =
   | 'collection:loaded'
   | 'collection:created'
   | 'collection:updated'
-  | 'collection:deleted';
+  | 'collection:deleted'
+  // Log events
+  | 'log'
+  | 'log:debug'
+  | 'log:info'
+  | 'log:warn'
+  | 'log:error';
+
+// Re-export LogLevel and LogEvent from log-emitter.types.ts for convenience
+export type { LogLevel, LogEvent } from './log-emitter.types';
 
 export interface Response<T> {
   data: T;

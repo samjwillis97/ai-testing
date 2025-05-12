@@ -15,6 +15,10 @@ export type {
 export * from './types/plugin.types';
 export * from './types/plugin-manager.types';
 
+// Export logging types and classes
+export type { LogEmitter, LogLevel, LogEvent } from './types/log-emitter.types';
+export { ClientLogger, NoopLogger } from './services/logger';
+
 // Export schemas
 export { CollectionSchemas, validateCollection, safeValidateCollection, formatCollectionValidationErrors } from './schemas/collection.schema';
 export type { 

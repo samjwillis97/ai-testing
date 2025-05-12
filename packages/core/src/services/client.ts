@@ -8,6 +8,8 @@ import { createPluginManager } from './plugin-manager';
 import { createCollectionManager } from './collection-manager';
 import { ConfigManagerImpl } from '../config-manager';
 import { ConfigManager } from '../types/config.types';
+import type { LogEmitter, LogLevel, LogEvent } from '../types/log-emitter.types';
+import { ClientLogger } from './logger';
 
 // Type extensions for plugin error handling
 declare module 'axios' {
@@ -56,7 +58,7 @@ function isPluginError(
  * Implementation of the SHC HTTP Client
  * Provides a wrapper around Axios with additional functionality
  */
-export class SHCClient implements ISHCClient {
+export class SHCClient implements ISHCClient, LogEmitter {
   private axiosInstance: AxiosInstance;
   private eventEmitter: EventEmitter;
   private plugins: Map<string, SHCPlugin>;
@@ -215,29 +217,40 @@ export class SHCClient implements ISHCClient {
    */
   private async _loadPlugins(config?: SHCConfig): Promise<void> {    
     if (config?.plugins) {
-      const loadPluginsOfType = async (pluginConfigs: any[], type: string) => {        
+      this.debug(`Loading plugins from config: ${JSON.stringify(config.plugins, null, 2)}`);
+      
+      const loadPluginsOfType = async (pluginConfigs: any[], type: string) => {
+        this.debug(`Loading ${type} plugins: ${JSON.stringify(pluginConfigs, null, 2)}`);
+        
         for (const pluginConfig of pluginConfigs) {
           try {
             // Skip if the plugin is already registered
             if (this.plugins.has(pluginConfig.name)) {
+              this.debug(`Plugin ${pluginConfig.name} is already registered, skipping`);
               continue;
             }
             
+            this.debug(`Processing ${type} plugin: ${pluginConfig.name}`);
+            
             // If it's already a plugin instance, use it directly
             if (pluginConfig.type && typeof pluginConfig.execute === 'function') {
+              this.debug(`Plugin ${pluginConfig.name} is already a plugin instance, using directly`);
               this.use(pluginConfig);
               continue;
             }
 
             // Otherwise, load it from configuration
+            this.debug(`Registering plugin ${pluginConfig.name} from config: ${JSON.stringify(pluginConfig, null, 2)}`);
             try {
               await this.pluginManager.registerFromConfig(pluginConfig);
               
               // After registration, get the actual plugin instance
               const plugin = this.pluginManager.getPlugin(pluginConfig.name);
               if (plugin) {
+                this.debug(`Successfully loaded plugin ${pluginConfig.name}, registering with client`);
                 this.use(plugin);
               } else {
+                this.error(`Plugin ${pluginConfig.name} was registered but could not be retrieved`);
                 this.eventEmitter.emit(
                   'error',
                   new Error(`Plugin ${pluginConfig.name} was registered but could not be retrieved`)
@@ -247,8 +260,10 @@ export class SHCClient implements ISHCClient {
               // If the error is just that the plugin is already registered with the plugin manager,
               // we can still try to get it and use it
               if (String(registerError).includes('already registered')) {
+                this.debug(`Plugin ${pluginConfig.name} is already registered with plugin manager, trying to get it`);
                 const plugin = this.pluginManager.getPlugin(pluginConfig.name);
                 if (plugin && !this.plugins.has(plugin.name)) {
+                  this.debug(`Found plugin ${pluginConfig.name} in plugin manager, registering with client`);
                   this.use(plugin);
                 }
               } else {
@@ -257,7 +272,7 @@ export class SHCClient implements ISHCClient {
               }
             }
           } catch (error) {
-            // This is a real error, so emit it regardless of logger
+            this.error(`Failed to load ${type} plugin ${pluginConfig.name}:`, { error });
             this.eventEmitter.emit(
               'error',
               new Error(`Failed to load ${type} plugin ${pluginConfig.name}: ${String(error)}`)
@@ -670,6 +685,11 @@ export class SHCClient implements ISHCClient {
       return;
     }
 
+    // Provide a logger to the plugin if it doesn't have one
+    if (!plugin.logEmitter) {
+      plugin.logEmitter = this.createLogger(plugin.name);
+    }
+
     try {
       // Register with the plugin manager
       this.pluginManager.register(plugin);
@@ -739,9 +759,75 @@ export class SHCClient implements ISHCClient {
 
   /**
    * Get the collection manager instance
+   * @returns The collection manager instance
    */
   getCollectionManager(): unknown {
     return this.collectionManager;
+  }
+
+  /**
+   * Log a message at the specified level
+   * @param level The log level
+   * @param message The message to log
+   * @param metadata Optional metadata to include with the log
+   */
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
+    const logEvent: LogEvent = {
+      level,
+      message,
+      source: 'client',
+      timestamp: Date.now(),
+      metadata
+    };
+    
+    // Emit both specific and general log events
+    this.eventEmitter.emit(`log:${level}`, logEvent);
+    this.eventEmitter.emit('log', logEvent);
+  }
+  
+  /**
+   * Log a debug message
+   * @param message The message to log
+   * @param metadata Optional metadata to include with the log
+   */
+  debug(message: string, metadata?: Record<string, unknown>): void {
+    this.log('debug', message, metadata);
+  }
+  
+  /**
+   * Log an info message
+   * @param message The message to log
+   * @param metadata Optional metadata to include with the log
+   */
+  info(message: string, metadata?: Record<string, unknown>): void {
+    this.log('info', message, metadata);
+  }
+  
+  /**
+   * Log a warning message
+   * @param message The message to log
+   * @param metadata Optional metadata to include with the log
+   */
+  warn(message: string, metadata?: Record<string, unknown>): void {
+    this.log('warn', message, metadata);
+  }
+  
+  /**
+   * Log an error message
+   * @param message The message to log
+   * @param metadata Optional metadata to include with the log
+   */
+  error(message: string, metadata?: Record<string, unknown>): void {
+    this.log('error', message, metadata);
+  }
+  
+  /**
+   * Create a new logger with a specific source
+   * @param source The source identifier for the new logger
+   * @returns A new LogEmitter with the specified source
+   */
+  createLogger(source: string): LogEmitter {
+    return new ClientLogger(this.eventEmitter, source);
   }
 
   /**
