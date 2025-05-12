@@ -18,6 +18,26 @@ interface ResponseData {
   data: unknown;
 }
 
+
+/**
+ * Safely stringify an object, handling circular references
+ * @param obj The object to stringify
+ * @returns A JSON string representation of the object
+ */
+export function safeStringify(obj: unknown): string {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      seen.add(value);
+    }
+    return value;
+  }, 2);
+}
+
+
 /**
  * Format response data according to output options
  */

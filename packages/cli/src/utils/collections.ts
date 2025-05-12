@@ -4,13 +4,14 @@
  * for use in the CLI package.
  */
 import { ConfigManager, SHCClient } from '@shc/core';
-import type { Collection } from '@shc/core';
+import type { Collection, LogEvent } from '@shc/core';
 import type { Response } from '@shc/core';
 import { RequestOptions } from '../types.js';
 import { getConfigManager, ensureCollectionsLoaded } from './config.js';
 import { Logger } from './logger.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { safeStringify } from './output.js';
 
 // Define ExecuteOptions type locally
 interface ExecuteOptions {
@@ -387,7 +388,35 @@ export async function executeRequest(
             // // Log other errors
             logger.error(`Client error: ${errorStr}`);
           }
-        }
+        },
+        // Add log event handlers
+        {
+          event: 'log',
+          handler: (logEvent: unknown) => {
+            try {
+              // Cast to LogEvent type
+              const { level, message, source, metadata } = logEvent as LogEvent;
+              
+              // Handle logs based on the CLI's logger level
+              switch (level) {
+                case 'debug':
+                  logger.debug(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                  break;
+                case 'info':
+                  logger.info(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                  break;
+                case 'warn':
+                  logger.warn(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                  break;
+                case 'error':
+                  logger.error(`[${source}] ${message}`, metadata ? safeStringify(metadata) : undefined);
+                  break;
+              }
+            } catch (error) {
+              logger.error(`Error processing log event: ${error instanceof Error ? error.message : String(error)}`);
+            }
+          },
+        },
       ]
     });
     

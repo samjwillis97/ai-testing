@@ -7,28 +7,10 @@ import chalk from 'chalk';
 import { SHCClient, SHCEvent, Response, ConfigManager } from '@shc/core';
 import type { LogEvent } from '@shc/core';
 import { RequestOptions, OutputOptions, HttpMethod } from '../types.js';
-import { printResponse, formatOutput } from '../utils/output.js';
+import { printResponse, formatOutput, safeStringify } from '../utils/output.js';
 import { getEffectiveOptions, createConfigManagerFromOptions } from '../utils/config.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
-
-/**
- * Safely stringify an object, handling circular references
- * @param obj The object to stringify
- * @returns A JSON string representation of the object
- */
-function safeStringify(obj: unknown): string {
-  const seen = new WeakSet();
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return '[Circular Reference]';
-      }
-      seen.add(value);
-    }
-    return value;
-  }, 2);
-}
 
 // We'll dynamically import the rate-limit plugin at runtime
 // instead of statically importing it to avoid TypeScript errors
