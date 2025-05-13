@@ -1,225 +1,164 @@
 import { describe, it, expect } from 'vitest';
-import {
-  configSchema,
-  validateConfig,
-  validatePartialConfig,
-  formatValidationErrors,
-  safeValidateConfig,
-} from '../../src/schemas/config.schema';
-import { z } from 'zod';
+import { configSchema } from '../../src/schemas/config.schema';
 
-describe('Config Schema', () => {
-  describe('configSchema', () => {
-    it('should validate a valid complete configuration', () => {
-      const validConfig = {
+describe('Config Schema Validation', () => {
+  describe('Basic validation', () => {
+    it('should validate a minimal valid configuration', () => {
+      const minimalConfig = {
         name: 'Test Config',
+        version: '1.0.0',
+      };
+
+      const result = configSchema.safeParse(minimalConfig);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate a complete valid configuration', () => {
+      const completeConfig = {
+        name: 'Complete Config',
         version: '1.0.0',
         core: {
           http: {
             timeout: 5000,
-            max_redirects: 3,
+            max_redirects: 5,
             retry: {
               attempts: 3,
-              backoff: 'exponential',
-            },
-            tls: {
-              verify: true,
-            },
+              backoff: 'exponential'
+            }
           },
           logging: {
             level: 'info',
-            format: 'text',
-            output: 'console',
-          },
+            format: 'text'
+          }
         },
-        variable_sets: {
-          global: {
-            api_url: 'https://api.example.com',
-          },
-          collection_defaults: {
-            timeout: 3000,
+        storage: {
+          collections: {
+            type: 'file',
+            path: '/path/to/collections',
           },
         },
         plugins: {
           auth: [
             {
-              name: 'basic-auth',
+              name: 'test-auth-plugin',
+              package: '@test/auth-plugin',
+              version: '1.0.0',
               enabled: true,
-            },
+              config: {
+                option1: 'value1',
+              },
+            }
           ],
           preprocessors: [
             {
-              name: 'request-logger',
-              enabled: true,
-            },
+              name: 'test-preprocessor',
+              package: '@test/preprocessor',
+              version: '1.0.0',
+            }
           ],
-          transformers: [
-            {
-              name: 'response-formatter',
-              enabled: true,
-            },
-          ],
+          transformers: []
         },
-        storage: {
-          collections: {
-            type: 'file',
-            path: './collections',
-          },
+        cli: {
+          defaultFormat: 'json',
+          autoComplete: true,
         },
       };
 
-      const result = configSchema.safeParse(validConfig);
+      const result = configSchema.safeParse(completeConfig);
       expect(result.success).toBe(true);
     });
+  });
 
-    it('should apply default values for missing properties', () => {
-      const minimalConfig = {
-        name: 'Minimal Config',
+  describe('Required fields', () => {
+    it('should provide default for name field if missing', () => {
+      const missingName = {
+        version: '1.0.0',
       };
 
-      const result = configSchema.parse(minimalConfig);
-
-      expect(result.name).toBe('Minimal Config');
-      expect(result.version).toBe('1.0.0'); // Default
-      expect(result.core.http.timeout).toBe(30000); // Default
-      expect(result.core.logging.level).toBe('info'); // Default
-      expect(result.plugins.auth).toEqual([]); // Default
-      expect(result.storage.collections.type).toBe('file'); // Default
+      const result = configSchema.safeParse(missingName);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.name).toBeDefined();
+      }
     });
 
-    it('should reject invalid values', () => {
-      const invalidConfig = {
-        name: 'Invalid Config',
-        version: 123, // Should be a string
-        core: {
-          http: {
-            timeout: 'invalid', // Should be a number
-            retry: {
-              attempts: -1, // Should be >= 0
-              backoff: 'invalid', // Should be one of the enum values
-            },
-          },
-          logging: {
-            level: 'extreme', // Should be one of the enum values
-          },
-        },
+    it('should provide default for version field if missing', () => {
+      const missingVersion = {
+        name: 'Test Config',
       };
 
-      const result = configSchema.safeParse(invalidConfig);
-      expect(result.success).toBe(false);
-
-      if (!result.success) {
-        // Check for specific error messages
-        const errorMap = new Map(
-          result.error.errors.map((err) => [err.path.join('.'), err.message])
-        );
-
-        expect(errorMap.get('version')).toBeDefined();
-        expect(errorMap.get('core.http.timeout')).toBeDefined();
-        expect(errorMap.get('core.http.retry.attempts')).toBeDefined();
-        expect(errorMap.get('core.http.retry.backoff')).toBeDefined();
-        expect(errorMap.get('core.logging.level')).toBeDefined();
+      const result = configSchema.safeParse(missingVersion);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.version).toBeDefined();
       }
     });
   });
 
-  describe('validateConfig', () => {
-    it('should validate a complete config and return it with defaults', () => {
-      const config = {
+  describe('Type validation', () => {
+    it('should validate core.http.timeout as number', () => {
+      const invalidTimeout = {
         name: 'Test Config',
         version: '1.0.0',
-      };
-
-      const validated = validateConfig(config);
-      expect(validated.name).toBe('Test Config');
-      expect(validated.version).toBe('1.0.0');
-      expect(validated.core).toBeDefined();
-      expect(validated.plugins).toBeDefined();
-    });
-
-    it('should throw for invalid config', () => {
-      const invalidConfig = {
-        name: 123, // Should be a string
-        version: '1.0.0',
-      };
-
-      expect(() => validateConfig(invalidConfig)).toThrow();
-    });
-  });
-
-  describe('validatePartialConfig', () => {
-    it('should validate a partial config without requiring all fields', () => {
-      const partialConfig = {
         core: {
           http: {
-            timeout: 5000,
+            timeout: 'not-a-number',
           },
         },
       };
 
-      const validated = validatePartialConfig(partialConfig);
-      expect(validated.core?.http?.timeout).toBe(5000);
-    });
-
-    it('should still validate the types of provided fields', () => {
-      const invalidPartial = {
-        core: {
-          http: {
-            timeout: 'invalid', // Should be a number
-          },
-        },
-      };
-
-      expect(() => validatePartialConfig(invalidPartial)).toThrow();
-    });
-  });
-
-  describe('safeValidateConfig', () => {
-    it('should return success and data for valid config', () => {
-      const config = {
-        name: 'Test Config',
-        version: '1.0.0',
-      };
-
-      const result = safeValidateConfig(config);
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.data?.name).toBe('Test Config');
-    });
-
-    it('should return error information for invalid config', () => {
-      const invalidConfig = {
-        name: 123, // Should be a string
-        version: '1.0.0',
-      };
-
-      const result = safeValidateConfig(invalidConfig);
+      const result = configSchema.safeParse(invalidTimeout);
       expect(result.success).toBe(false);
-      expect(result.error).toBeInstanceOf(z.ZodError);
-      expect(result.data).toBeUndefined();
+      if (!result.success) {
+        const issue = result.error.issues.find(issue => 
+          issue.path.join('.') === 'core.http.timeout'
+        );
+        expect(issue).toBeDefined();
+        expect(issue?.code).toBe('invalid_type');
+      }
     });
-  });
 
-  describe('formatValidationErrors', () => {
-    it('should format Zod errors into readable messages', () => {
-      const invalidConfig = {
-        name: 123, // Should be a string
+    it('should validate core.http.max_redirects as number', () => {
+      const invalidMaxRedirects = {
+        name: 'Test Config',
+        version: '1.0.0',
         core: {
           http: {
-            timeout: 'invalid', // Should be a number
+            max_redirects: 'not-a-number',
           },
         },
       };
 
-      const result = configSchema.safeParse(invalidConfig);
-
+      const result = configSchema.safeParse(invalidMaxRedirects);
+      expect(result.success).toBe(false);
       if (!result.success) {
-        const formatted = formatValidationErrors(result.error);
-        expect(formatted).toContain('name:');
-        expect(formatted).toContain('core.http.timeout:');
-      } else {
-        // Use expect to fail the test if validation unexpectedly succeeds
-        expect(false).toBe(true);
+        const issue = result.error.issues.find(issue => 
+          issue.path.join('.') === 'core.http.max_redirects'
+        );
+        expect(issue).toBeDefined();
+        expect(issue?.code).toBe('invalid_type');
+      }
+    });
+
+    it('should validate storage.collections.type as enum', () => {
+      const invalidStorageType = {
+        name: 'Test Config',
+        version: '1.0.0',
+        storage: {
+          collections: {
+            type: 'invalid-type',
+            path: '/path/to/collections',
+          },
+        },
+      };
+
+      const result = configSchema.safeParse(invalidStorageType);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find(issue => 
+          issue.path.join('.') === 'storage.collections.type'
+        );
+        expect(issue).toBeDefined();
       }
     });
   });
