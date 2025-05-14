@@ -16,6 +16,11 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [x] Implement centralized logging system with Pino to replace direct console.log usage (see tasks/implement-centralized-logging-system.md)
 - [x] Remove silent mode from CLI package to simplify logging (see tasks/remove-silent-mode.md)
 - [x] Fix authentication transfer from collections to requests (see tasks/fix-collection-authentication-transfer.md)
+- [-] Configure npm publishing for @shc/core package (see tasks/configure-npm-publishing.md)
+  - [x] Package.json configuration for npm publishing
+  - [x] Create README.md for core package
+  - [x] Configure GitHub Actions for automated publishing with Nix flake
+  - [-] Set up release workflow and versioning strategy
 
 ## Monorepo & Architecture
 - [x] Turborepo setup and configuration (`turbo.json`)
@@ -23,7 +28,9 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
 - [-] Shared `configs/` and example `apps/`
 - [x] A working config in the `configs` directory that can be used for demoing, should talk to httpbin and other public API's
 - [x] pnpm workspace configuration and best practices
-- [ ] CI/CD pipeline with pnpm and coverage enforcement
+- [-] CI/CD pipeline with pnpm and coverage enforcement
+  - [x] GitHub Actions workflow for npm publishing with Nix integration
+  - [ ] Coverage enforcement in CI pipeline
 
 ## Core Package (`@shc/core`)
 - [x] HTTP client API (Axios-based, ESM + CJS build)
@@ -146,6 +153,10 @@ This checklist is derived from the specifications in the `specs/` directory. Eac
   - [x] Dynamic suggestions based on available collections/requests
   - [x] Multi-level completion with Tab cycling
   - [-] Shell compatibility (bash, zsh, fish)
+    - [-] Zsh completion (--eval flag) tests with automated input testing
+    - [-] Zsh completion tests with automated input testing
+    - [-] Bash completion tests
+    - [-] Fish completion tests
   - [-] Dynamic command introspection for generating completions
   - [-] Automatic completion script generation based on command structure
 - [x] CLI Extension System

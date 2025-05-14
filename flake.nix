@@ -86,6 +86,7 @@
               node
               pnpm
               git
+              expect
               nodePackages.typescript
               nodePackages.typescript-language-server
               nodePackages.eslint

@@ -14,7 +14,8 @@
     "lint": "eslint src/**/*.ts tests/**/*.ts",
     "lint:fix": "eslint src tests --fix",
     "prettier": "prettier -l src/**/*.ts tests/**/*.ts",
-    "prettier:fix": "prettier src/**/*.ts tests/**/*.ts --write"
+    "prettier:fix": "prettier src/**/*.ts tests/**/*.ts --write",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "http-client",
@@ -22,6 +23,18 @@
   ],
   "author": "Sam Willis",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samjwillis97/ai-testing"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "axios": "^1.6.0",
     "js-yaml": "^4.1.0",
