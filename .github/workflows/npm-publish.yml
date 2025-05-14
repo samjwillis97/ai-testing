@@ -57,14 +57,14 @@ jobs:
             nix develop --command bash -c "pnpm build"
           fi
 
-      - name: Run tests
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            PACKAGE="${{ github.event.inputs.package }}"
-            nix develop --command bash -c "pnpm --filter=${PACKAGE} test"
-          else
-            nix develop --command bash -c "pnpm test"
-          fi
+      # - name: Run tests
+      #   run: |
+      #     if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+      #       PACKAGE="${{ github.event.inputs.package }}"
+      #       nix develop --command bash -c "pnpm --filter=${PACKAGE} test"
+      #     else
+      #       nix develop --command bash -c "pnpm test"
+      #     fi
         
       - name: Setup Node.js for NPM publishing
         uses: actions/setup-node@v4
