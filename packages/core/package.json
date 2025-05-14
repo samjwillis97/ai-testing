@@ -1,32 +1,63 @@
 {
   "name": "@shc/core",
   "version": "0.1.0",
-  "description": "Core HTTP client functionality with plugin system",
+  "description": "Core functionality for Sam's HTTP Client",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc -w",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "build": "tsup",
+    "test": "vitest --run",
+    "test:coverage": "vitest --run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts tests/**/*.ts",
+    "lint:fix": "eslint src tests --fix",
+    "prettier": "prettier -l src/**/*.ts tests/**/*.ts",
+    "prettier:fix": "prettier src/**/*.ts tests/**/*.ts --write",
+    "prepublishOnly": "npm run build"
   },
+  "keywords": [
+    "http-client",
+    "api-tool"
+  ],
+  "author": "Sam Willis",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samjwillis97/ai-testing"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
-    "axios": "^1.6.7",
-    "yaml": "^2.3.4"
+    "axios": "^1.6.0",
+    "js-yaml": "^4.1.0",
+    "lodash.merge": "^4.6.2",
+    "pacote": "^15.0.6",
+    "simple-git": "^3.27.0",
+    "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.19",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "eslint": "^8.56.0",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
-    "typescript": "^5.3.3"
-  },
-  "engines": {
-    "node": ">=18"
+    "@eslint/js": "^9.25.1",
+    "@types/axios": "^0.14.0",
+    "@types/glob": "^8.1.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash.merge": "^4.6.9",
+    "@types/node": "^20.10.0",
+    "@vitest/coverage-v8": "^3.1.2",
+    "eslint": "^8.57.1",
+    "glob-promise": "^6.0.7",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "tsup": "^8.0.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.0",
+    "vitest": "^3.1.2"
   }
 }

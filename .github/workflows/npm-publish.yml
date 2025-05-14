@@ -1,0 +1,109 @@
+name: NPM Publish
+
+on:
+  # Trigger on version tags
+  push:
+    tags:
+      - 'v*.*.*'
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        default: '@shc/core'
+        type: choice
+        options:
+          - '@shc/core'
+          - '@shc/cli'
+          - '@shc/logging'
+          - '@shc/rate-limit'
+      dry-run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Setup Nix environment with flake
+        run: |
+          nix develop --command bash -c "echo 'Nix environment set up successfully'"
+          echo "NODE_VERSION=$(nix develop --command bash -c 'node --version')"
+          echo "PNPM_VERSION=$(nix develop --command bash -c 'pnpm --version')"
+
+      - name: Install dependencies
+        run: nix develop --command bash -c 'pnpm install'
+
+      - name: Build packages
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PACKAGE="${{ github.event.inputs.package }}"
+            nix develop --command bash -c "pnpm --filter=${PACKAGE} build"
+          else
+            nix develop --command bash -c "pnpm build"
+          fi
+
+      - name: Run tests
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PACKAGE="${{ github.event.inputs.package }}"
+            nix develop --command bash -c "pnpm --filter=${PACKAGE} test"
+          else
+            nix develop --command bash -c "pnpm test"
+          fi
+        
+      - name: Setup Node.js for NPM publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Determine package directory
+        id: package-dir
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PACKAGE="${{ github.event.inputs.package }}"
+            PACKAGE_NAME=${PACKAGE#@shc/}
+            echo "package_dir=packages/${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          else
+            # Default to core package for tag-based publishing
+            echo "package_dir=packages/core" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract version from tag
+        id: get-version
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "Publishing version ${GITHUB_REF#refs/tags/v}"
+
+      - name: Update package version from tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        working-directory: ${{ steps.package-dir.outputs.package_dir }}
+        run: npm version ${{ steps.get-version.outputs.version }} --no-git-tag-version
+      
+      - name: Publish package to npm
+        working-directory: ${{ steps.package-dir.outputs.package_dir }}
+        run: |
+          if [ "${{ github.event.inputs.dry-run }}" = "true" ]; then
+            echo "Dry run mode - would publish package"
+            npm pack
+          else
+            npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,17 @@
+api:
+  description: "API configuration for different environments"
+  default_value: "development"
+  active_value: "development"
+  values:
+    development:
+      url: "http://localhost:3000"
+      timeout: 5000
+      debug: true
+    staging:
+      url: "https://staging-api.example.com"
+      timeout: 3000
+      debug: true
+    production:
+      url: "https://api.example.com"
+      timeout: 3000
+      debug: false

@@ -1,22 +1,52 @@
 #!/usr/bin/env node
+import { makeProgram } from './utils/program.js';
+import { Logger } from './utils/logger.js';
 
-import { Command } from 'commander';
-import { send } from './commands/send.js';
-import { collections } from './commands/collections.js';
+async function main() {
+  try {
+    // Set default NODE_ENV if not already set
+    process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-const program = new Command();
+    // Check for quiet mode flag in command line arguments first
+    // so we can configure the logger properly from the start
+    const isQuiet = process.argv.includes('-q') || process.argv.includes('--quiet');
+    const isVerbose = process.argv.includes('-v') || process.argv.includes('--verbose');
 
-program.name('shc').description("Sam's HTTP Client - A versatile HTTP client CLI").version('0.1.0');
+    // Configure the global logger with settings based on command line flags
+    // This should only happen once at the beginning of execution
+    const logger = Logger.getInstance({
+      quiet: isQuiet,
+      verbose: isVerbose,
+    });
 
-program
-  .command('send')
-  .description('Send an HTTP request')
-  .argument('<url>', 'URL to send request to')
-  .option('-X, --method <method>', 'HTTP method', 'GET')
-  .option('-H, --header <header...>', 'HTTP headers')
-  .option('-d, --data <data>', 'Request body data')
-  .action(send);
+    // Log the environment mode
+    const isProduction = process.env.NODE_ENV === 'production';
+    logger.debug(`Running in ${isProduction ? 'production' : 'development'} mode`);
 
-program.addCommand(collections);
+    // Create the program with the global logger instance
+    const program = await makeProgram({
+      initPlugins: true,
+      logger: logger, // Pass the global logger instance
+    });
 
-program.parse();
+    // Show help if no arguments are provided
+    if (process.argv.length <= 2) {
+      program.help();
+    } else {
+      // Execute the CLI normally
+      program.parseAsync(process.argv).catch((error) => {
+        logger.error('Error:', error);
+        process.exit(1);
+      });
+    }
+  } catch (error) {
+    console.error('Error initializing CLI:', error);
+    process.exit(1);
+  }
+}
+
+// Run the main function
+main().catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

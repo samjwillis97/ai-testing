@@ -1,0 +1,227 @@
+# Package Manager Rule - pnpm
+
+## Description
+This rule establishes pnpm as the required package manager for all JavaScript/TypeScript projects in the repository.
+
+## Rule
+1. MUST use pnpm exclusively as the package manager
+   - All package installations MUST use pnpm
+   - All script executions MUST use pnpm
+   - No usage of npm or yarn is permitted
+
+2. MUST maintain proper pnpm configuration
+   - Use pnpm-workspace.yaml for monorepo workspace configuration
+   - Maintain .npmrc file with appropriate settings
+   - Configure proper dependency hoisting settings
+
+3. MUST follow pnpm best practices
+   - Use exact versions for dependencies when appropriate
+   - Utilize pnpm's workspace features for monorepo management
+   - Leverage peerDependencies appropriately
+   - Use overrides only when absolutely necessary
+
+4. MUST include proper lockfile
+   - Always commit pnpm-lock.yaml
+   - Never modify lockfile manually
+   - Resolve lockfile conflicts carefully
+
+5. MUST use appropriate pnpm commands
+   - Use `pnpm add` for adding dependencies
+   - Use `pnpm install` for installing all dependencies
+   - Use `pnpm run` for executing scripts
+   - Use `pnpm -r` for recursive operations in workspaces
+
+## Benefits
+- Efficient disk space usage
+- Strict dependency management
+- Faster installation times
+- Better monorepo support
+- Consistent dependency resolution
+
+## Implementation
+- Configure CI/CD to use pnpm
+- Include pnpm version in package.json engines field
+- Document pnpm usage in project README
+- Provide pnpm setup instructions for new developers
+
+
+# Specification Compliance Rules
+
+## SPECS.md and specs/ Directory Compliance
+
+1. MUST adhere to the architectural specifications outlined in SPECS.md
+   - Follow the monorepo structure with designated packages (@shc/core, @shc/web-ui, @shc/cli, @shc/neovim-ui)
+   - Maintain proper package dependencies as specified in the dependency graph
+   - Implement all core features as described in the specifications
+
+2. MUST implement package-specific requirements as detailed in the specs/ directory
+   - Core Package (@shc/core): Follow TypeScript, ES Modules with dual CJS support, and Axios-based implementation
+   - Web UI (@shc/web-ui): Implement React-based interface with all specified features
+   - CLI (@shc/cli): Provide command-line functionality as specified
+   - Neovim UI (@shc/neovim-ui): Implement Neovim integration as specified
+   - Base Plugins: Develop all required plugins with proper integration
+
+3. MUST maintain specification consistency
+   - Any code changes MUST be reflected in updated specifications
+   - New features MUST have corresponding specification documents
+   - Specifications MUST be kept in sync with implementation
+
+4. MUST follow technical requirements in specifications
+   - Use specified languages, libraries, and frameworks
+   - Implement APIs according to the interface definitions
+   - Follow module systems and build processes as specified
+   - Adhere to testing frameworks and documentation requirements
+
+5. MUST validate specification compliance before committing
+   - Verify that code changes align with specifications
+   - Update specifications when necessary
+   - Ensure all required functionality is implemented
+
+
+# Code Quality Rules
+
+## Code Quality Tools
+- For linting always use eslint, set it up if required.
+- For type checking always use tsc, set it up if required.
+- For testing always use vitest, set it up if required.
+- For formatting always use prettier, set it up if required.
+
+## Code Quality Checks
+- After making meaningful changes to the codebase:
+  - The project MUST be built
+  - All linters MUST be run
+  - All tests MUST be executed
+  - All checks MUST pass before committing
+  - All files MUST be formatted
+- Quality Check Order:
+  1. Build the project
+  2. Run linters
+  3. Execute tests
+  4. Report any failures
+  5. Run formatter
+- Meaningful changes include:
+  - Adding new features
+  - Modifying existing functionality
+  - Refactoring code
+  - Updating dependencies
+  - Changing configuration
+  - Modifying test files
+
+## Git Auto Commit Rule
+- After performing automatic changes:
+  1. All modified files MUST be automatically committed after running the formatter
+  2. Commit messages MUST follow the conventional commit format
+  3. Commit messages MUST include:
+     - Type: The type of change (feat, fix, docs, style, refactor, test, chore)
+     - Scope: The affected component or area (optional)
+     - Description: A clear explanation of what changed
+     - Body: Detailed explanation of why the changes were made
+  4. The commit message MUST reference the original prompts used to generate the changes
+- Git commit command examples:
+  - CORRECT: `git commit -m "feat: Add new feature" -m "- new feature 1" -m "- new feature 2"`
+  - INCORRECT: `git commit -m "feat: Add new feature \n -new feature 1 \n -new feature 2"`
+- Conventional Commit Types:
+  - feat: New feature
+  - fix: Bug fix
+  - docs: Documentation changes
+  - style: Code style changes (formatting, etc.)
+  - refactor: Code refactoring
+  - test: Adding or modifying tests
+  - chore: Maintenance tasks
+
+
+# TypeScript Rules
+
+## TypeScript Function Design Best Practices
+- When writing functions and methods in TypeScript:
+  1. MUST follow Single Responsibility Principle
+     - Each function should do one thing and do it well
+     - Break complex functions into smaller, focused functions
+  2. MUST use proper parameter typing
+     - Explicitly type all parameters
+     - Use appropriate return types
+  3. MUST use function overloads for complex type relationships
+  4. MUST use proper async/await patterns
+     - Always return Promise<T> for async functions
+     - Handle errors appropriately in async functions
+  5. MUST use parameter destructuring for objects
+  6. MUST use function composition with proper typing
+  7. MUST implement currying with proper type inference
+  8. MUST use generic constraints effectively
+
+## TypeScript Type Safety Best Practices
+- When writing TypeScript code:
+  1. MUST enable strict mode in `tsconfig.json`# Performance Standards
+  
+  1. MUST optimize bundle size
+     - Use tree-shaking compatible imports
+     - Implement code splitting where appropriate
+     - Monitor and limit bundle size with tools like Webpack Bundle Analyzer
+  
+  2. MUST implement proper memoization
+     - Use React.memo, useMemo, and useCallback appropriately
+     - Avoid unnecessary re-renders in React components
+     - Profile performance regularly
+  3. MUST follow asynchronous best practices
+     - Use proper Promise chaining and async/await patterns
+     - Implement request batching and caching where appropriate
+     - Handle loading and error states consistently
+  4. MUST avoid using `any` type unless absolutely necessary
+     - Use `unknown` instead of `any` for values of unknown type
+     - Document why `any` is needed if used
+  5. MUST explicitly define return types for functions
+  6. MUST use type assertions sparingly
+     - Only use type assertions when you know more about the type than TypeScript
+     - Prefer type guards over type assertions
+  5. MUST enable strict flags in `tsconfig.json`:
+     - `noImplicitAny`
+     - `noImplicitThis`
+     - `strictNullChecks`
+     - `strictFunctionTypes`
+     - `strictPropertyInitialization`
+  6. MUST use literal types and const assertions appropriately
+  7. MUST use the satisfies operator for type validation
+  8. MUST use template literal types for string patterns
+
+## TypeScript Project Structure Rule
+- When organizing TypeScript projects:
+  1. MUST follow standard directory structure:
+     - src/ (Source code with index.ts as main entry point)
+     - src/types/ (Type definitions)
+     - src/utils/ (Utility functions)
+     - src/services/ (Business logic)
+     - src/models/ (Data models)
+     - tests/ (Test files, with unit/ and integration/ subdirectories)
+     - package.json, tsconfig.json, tsconfig.test.json
+  2. MUST use proper file naming conventions:
+     - Source files: kebab-case.ts
+     - Test files: *.test.ts
+     - Type definition files: *.types.ts
+     - Index files for barrels: index.ts
+  3. MUST use proper import paths:
+     - Use @/* alias for imports from src directory
+     - Use relative paths for imports within the same directory
+     - Use absolute imports for external dependencies
+  4. MUST organize test files:
+     - Place all tests in the tests directory
+     - Match test file structure to source file structure
+     - Use descriptive test file names
+  5. MUST use proper TypeScript configuration:
+     - Separate configs for source and tests
+     - Use project references for dependencies
+     - Enable strict type checking
+     - Configure proper module resolution
+
+# Security Guidelines
+
+1. MUST follow security best practices
+   - Sanitize all user inputs
+   - Implement proper authentication and authorization
+   - Use HTTPS for all API communications
+   - Follow OWASP security guidelines
+
+2. MUST handle sensitive data properly
+   - Never store sensitive information in client-side code
+   - Use environment variables for configuration
+   - Implement proper token management
+   - Follow data minimization principles

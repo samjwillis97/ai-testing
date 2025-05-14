@@ -1,34 +1,52 @@
-export * from './client.js';
-export * from './types.js';
-export { HttpClient } from './client.js';
-export type { Collection, Request } from './types.js';
+// Sam's HTTP Client (SHC) Core Package
+export * from './types/client.types';
+export * from './types/collection.types';
+export type { 
+  RequestConfig, 
+  ConfigManagerOptions, 
+  TemplateFunction, 
+  TemplateContext, 
+  ValidationResult, 
+  PluginConfig,
+  CLIConfig,
+  AnyObject,
+  TemplateFunctionType
+} from './types/config.types';
+export * from './types/plugin.types';
+export * from './types/plugin-manager.types';
 
-// Plugin system types
-export {
-  PluginType,
-  SHCPlugin,
-  RequestPreprocessorPlugin,
-  ResponseTransformerPlugin,
-  AuthProviderPlugin,
-  TemplateFunction,
-  TemplateFunctionParameter,
-  HTTPRequest,
-  HTTPResponse,
-  HTTPMethod,
-  AuthContext,
-  AuthResult,
-  PluginConfig
-} from './types/plugin';
+// Export logging types and classes
+export type { LogEmitter, LogLevel, LogEvent } from './types/log-emitter.types';
+export { ClientLogger, NoopLogger } from './services/logger';
 
-// Plugin management
-export {
-  PluginManager,
-  PluginLoadError
-} from './plugin/PluginManager';
+// Export schemas
+export { CollectionSchemas, validateCollection, safeValidateCollection, formatCollectionValidationErrors } from './schemas/collection.schema';
+export type { 
+  AuthenticationSchema,
+  RequestSchema,
+  VariableSetSchema,
+  CollectionSchema
+} from './schemas/collection.schema';
 
-// Template resolution
-export {
-  TemplateResolver,
-  TemplateResolutionError,
-  TemplateFunctionCall
-} from './plugin/TemplateResolver';
+export { PluginSchemas, validatePlugin, safeValidatePlugin, formatPluginValidationErrors } from './schemas/plugin.schema';
+export type { PluginSchema } from './schemas/plugin.schema';
+
+// Export file utilities
+export { 
+  getFileFormat,
+  fileExists,
+  readAndParseFile,
+  findFilesByExtension,
+  findFileWithExtensions
+} from './utils/file-utils';
+export type { FileFormat } from './utils/file-utils';
+
+// Export implementations
+import { SHCClient as SHCClientImpl } from './services/client';
+export const SHCClient = {
+  ...SHCClientImpl,
+  create: SHCClientImpl.create
+};
+export { ConfigManagerImpl as ConfigManager } from './config-manager';
+export { CollectionManagerImpl, createCollectionManager } from './services/collection-manager';
+export { PluginManagerImpl, createPluginManager } from './services/plugin-manager';

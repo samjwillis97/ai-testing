@@ -1,0 +1,15 @@
+auth:
+  description: "Authentication configuration"
+  default_value: "default"
+  active_value: "default"
+  values:
+    default:
+      token_endpoint: "/oauth/token"
+      client_id: "${env.CLIENT_ID}"
+      client_secret: "${env.CLIENT_SECRET}"
+      scopes: ["read", "write"]
+    github:
+      token_endpoint: "https://github.com/login/oauth/access_token"
+      client_id: "${env.GITHUB_CLIENT_ID}"
+      client_secret: "${env.GITHUB_CLIENT_SECRET}"
+      scopes: ["user", "repo"]
